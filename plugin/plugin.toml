@@ -1,0 +1,112 @@
+id = "omyfedora/ai-chat"
+name = "omyfedora AI Chat"
+version = "0.1.0"
+plugin_api = 34
+author = "omyfedora"
+license = "MIT"
+icon = "message-chatbot"
+description = "Chat de IA especialista em mudanças no desktop omyfedora (niri + Noctalia), com o OpenCode como motor."
+tags = ["bar", "panel", "service", "ai", "opencode", "omyfedora"]
+dependencies = ["opencode", "niri", "noctalia"]
+
+# ── Settings do plugin (compartilhados por todas as entradas) ───────────────
+[[setting]]
+key = "directory"
+type = "string"
+label_key = "settings.directory.label"
+description_key = "settings.directory.description"
+default = "~/.omyfedora-ai-chat"
+
+[[setting]]
+key = "agent"
+type = "string"
+label_key = "settings.agent.label"
+description_key = "settings.agent.description"
+default = "omyfedora-chat"
+
+[[setting]]
+key = "opencode_bin"
+type = "string"
+label_key = "settings.opencode_bin.label"
+description_key = "settings.opencode_bin.description"
+default = "opencode"
+
+[[setting]]
+key = "auto_pair"
+type = "bool"
+label_key = "settings.auto_pair.label"
+description_key = "settings.auto_pair.description"
+default = true
+
+[[setting]]
+key = "auto_export"
+type = "bool"
+label_key = "settings.auto_export.label"
+description_key = "settings.auto_export.description"
+default = true
+
+[[setting]]
+key = "notify_on_finish"
+type = "bool"
+label_key = "settings.notify_on_finish.label"
+description_key = "settings.notify_on_finish.description"
+default = true
+
+[[setting]]
+key = "show_bar_label"
+type = "bool"
+label_key = "settings.show_bar_label.label"
+description_key = "settings.show_bar_label.description"
+default = false
+
+[[setting]]
+key = "max_tool_output"
+type = "int"
+label_key = "settings.max_tool_output.label"
+description_key = "settings.max_tool_output.description"
+default = 4000
+min = 500
+max = 20000
+
+[[setting]]
+key = "panel_size"
+type = "select"
+label_key = "settings.panel_size.label"
+description_key = "settings.panel_size.description"
+default = "medium"
+options = [
+  { value = "compact", label_key = "settings.panel_size.compact" },
+  { value = "medium", label_key = "settings.panel_size.medium" },
+  { value = "large", label_key = "settings.panel_size.large" },
+]
+
+# ── Serviço ─────────────────────────────────────────────────────────────────
+[[service]]
+id = "engine"
+entry = "engine.luau"
+
+# ── Widget da barra ─────────────────────────────────────────────────────────
+[[widget]]
+id = "bar"
+entry = "bar.luau"
+
+  [[widget.setting]]
+  key = "glyph"
+  type = "glyph"
+  label_key = "settings.glyph.label"
+  description_key = "settings.glyph.description"
+  default = "message-chatbot"
+
+# ── Janela principal: painel flutuante, persistente, overlay ────────────────
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 460
+height = 640
+placement = "floating"
+position = "top_right"
+open_near_click = false
+dismiss_on_outside_click = false
+keyboard_focus = "on_demand"
+persistent = false
+layer = "overlay"

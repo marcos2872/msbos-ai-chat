@@ -1,0 +1,9 @@
+# Artefatos locais de instalação/backup
+plugin/plugin.toml.bak-size-*
+*.bak-*
+*.bak
+*.log
+
+# Credenciais e estado local
+.env
+.env.*
