@@ -60,10 +60,10 @@ Posso executar? (vai abrir a janela de senha)
 
 ## Execução de root neste chat (pkexec)
 
-O servidor do OpenCode Desktop roda com `NoNewPrivs=1`; por isso `pkexec` direto pelo shell falha com `pkexec must be setuid root`. Para acionar o helper privilegiado fora desse sandbox e abrir a janela do polkit, use:
+O servidor do OpenCode Desktop roda com `NoNewPrivs=1`; `pkexec` direto pelo shell falha. O caminho confiável é abrir o `pkexec` dentro do **Alacritty** (TTY), iniciado pelo niri:
 
 ```bash
-niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subcomando> [argumentos...]
+niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subcomando> [argumentos...]
 ```
 
 Depois do spawn:
@@ -71,13 +71,15 @@ Depois do spawn:
 1. Espere 1–2 s.
 2. Rode `niri msg --json windows` e procure `"app_id": "org.kde.polkit-kde-authentication-agent-1"` (título “Autenticação necessária”).
 3. Se a janela existir, pegue o `id` e rode `niri msg action focus-window --id <id>`. Avise o usuário que a janela está aberta e peça para autenticar ou cancelar.
-4. Se a janela não existir, pare e reporte que ela não abriu; não espere 90 s nem conclua que a ação rodou.
+4. A janela do Alacritty pode fechar sozinha quando o helper terminar; isso é esperado.
+5. Se a janela do polkit não existir, pare e reporte que ela não abriu; não espere 90 s nem conclua que a ação rodou.
 
 Regras:
 
 - Só execute depois do "sim" explícito do usuário, com a mudança já descrita.
 - Use somente os subcomandos da skill: `dnf-install`, `dnf-simulate-remove`, `dnf-remove`, `svc-enable`, `svc-disable`, `svc-restart`. Não use `niri msg action spawn` para comandos arbitrários.
 - Antes, valide os argumentos sem privilégio: `/usr/local/libexec/omyfedora-priv --dry-run <subcomando> ...`.
+- Prefira o Alacritty porque ele fornece um TTY e o polkit abre de forma confiável. Se o Alacritty não existir, use `niri msg action spawn -- /usr/bin/pkexec ...` e confira/foca a janela do polkit.
 - `niri msg action spawn` retorna 0 mesmo se o filho falhar; `rc=0` **não** é prova de execução. O comando também não entrega stdout/stderr do helper.
 - A janela pode abrir no workspace/monitor que o niri considera focado, que pode ser diferente do painel do chat; use `focus-window` para trazê-la.
 - Se a janela fechar sem autenticação, o helper não rodou; não repita automaticamente, pergunte ao usuário.

@@ -139,7 +139,7 @@ permission:
 - O agente é `primary`.
 - A skill `omyfedora` deve existir em `~/.agents/skills/omyfedora/` (ou em um dos diretórios globais descobertos pelo OpenCode).
 - A confirmação de mudanças é feita no texto; não há cartão de permissão para shell/edit no painel.
-- Para root, o agente usa `niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/omyfedora-priv ...` porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
+- Para root, o agente usa `niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv ...` (TTY + polkit) porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
 - O instalador faz backup do agente anterior como `omyfedora-chat.md.bak-<timestamp>`.
 
 ## Configuração do host (Noctalia)

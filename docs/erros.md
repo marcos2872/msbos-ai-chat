@@ -128,17 +128,18 @@ O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → 
 
 ### `pkexec must be setuid root` / polkit não abre
 
-O servidor do OpenCode Desktop roda com `NoNewPrivs=1`; o `pkexec` direto pelo shell do agente não consegue elevar. O agente deve iniciar o helper pelo niri:
+O servidor do OpenCode Desktop roda com `NoNewPrivs=1`; o `pkexec` direto pelo shell do agente não consegue elevar. O agente deve abrir o helper dentro do Alacritty (TTY), pelo niri:
 
 ```bash
-niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subcomando> [argumentos...]
+niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subcomando> [argumentos...]
 ```
 
-- Confirme que `niri` está rodando e que existe um agente polkit na sessão (no ambiente de referência, `polkit-kde-authentication-agent-1`).
-- O comando retorna imediatamente; a janela do polkit aparece para o usuário.
+- Confirme que `niri` está rodando, que o Alacritty existe e que há um agente polkit na sessão.
+- O comando retorna imediatamente; a janela do polkit aparece e o terminal pode fechar ao final.
 - Depois do spawn, procure a janela em `niri msg --json windows` (`app_id = org.kde.polkit-kde-authentication-agent-1`) e foque com `niri msg action focus-window --id <id>`. Ela pode abrir em outro workspace/monitor.
 - Se a janela não existir, pare e reporte; não fique esperando 90 s nem presuma que a ação rodou.
 - Valide o resultado com leitura (`rpm -q`, `systemctl status`, `dnf history list`).
+- Se o Alacritty não existir, use `niri msg action spawn -- /usr/bin/pkexec ...` e confira a janela.
 - Se a janela não aparecer, não use `sudo`; pare e explique.
 - `niri msg action spawn -- /usr/bin/pkexec --version` pode ser usado como teste seguro, sem pedir senha.
 
