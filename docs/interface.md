@@ -21,7 +21,7 @@ O painel **não** desenha um segundo fundo/borda. O `frame()` do `panel.luau` s�
 
 - **Abrir:** `onOpen` define `chat.panel_open = true`, liga `panel.setWantsSecondTicks(true)` e `panel.setNeedsFrameTick(true)`, pede `sync` e renderiza.
 - **Fechar/minimizar:** `onClose` define `chat.panel_open = false` e desliga os ticks. O serviço continua rodando.
-- **Spinner:** `onFrameTick` avança `◐ ◓ ◑ ◒` a cada ~120 ms quando o estado é `busy` e a view é o chat.
+- **Spinner:** `onFrameTick` avança `◐ ◓ ◑ ◒` a cada ~400 ms quando o estado é `busy` e a view é o chat.
 - **Atualização:** o painel observa `chat.snapshot`, `chat.models` e `chat.sessions`; `update()` limpa toasts após 5 s.
 
 ## Máquina de views
@@ -86,7 +86,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Ferramenta | Cartão com glifo, nome, status, seta de expansão; entrada e saída truncadas. |
 | Erro | Label em `error`. |
 
-O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado é truncado em 4000 caracteres na UI; a entrada em 1200.
+O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) caracteres; a entrada em 1200.
 
 ### Compositor
 

@@ -13,6 +13,17 @@ local autoExport = true
 local notifyOnFinish = true
 local maxToolOutput = 4000
 
+-- O snapshot publicado é copiado para o estado compartilhado e reconstruído
+-- pelo painel a cada mudança. Manter o payload curto evita estourar o
+-- orçamento de CPU dos callbacks Luau do Noctalia (que desabilita o painel
+-- após timeouts repetidos). O histórico completo continua em `messages`.
+local MAX_SNAPSHOT_MESSAGES = 24
+local MAX_SNAPSHOT_BYTES = 48000
+local MAX_SNAPSHOT_TEXT = 8000
+local MAX_SNAPSHOT_REASONING = 3000
+local MAX_SNAPSHOT_TOOL_OUTPUT = 2000
+local PUBLISH_INTERVAL_MS = 250
+
 local pairing = nil
 local models = {}
 local agents = {}
@@ -306,8 +317,62 @@ local function setError(message)
   publish(true)
 end
 
+local function snapshotMessages()
+  local total = #messages
+  local oldest = total - MAX_SNAPSHOT_MESSAGES + 1
+  if oldest < 1 then
+    oldest = 1
+  end
+
+  -- Monta da mensagem mais recente para a mais antiga e para quando passar
+  -- do orçamento, para que o painel receba sempre o trecho mais recente.
+  local collected = {}
+  local used = 0
+  for i = total, oldest, -1 do
+    local message = messages[i]
+    local tools = {}
+    for _, tool in ipairs(message.tools or {}) do
+      local input = format.toolInput(tool.input)
+      local output = format.truncate(tool.output, MAX_SNAPSHOT_TOOL_OUTPUT)
+      used = used + #input + #output
+      table.insert(tools, {
+        id = tool.id,
+        name = tool.name,
+        status = tool.status,
+        input = input,
+        output = output,
+      })
+    end
+
+    local text = format.truncate(message.text, MAX_SNAPSHOT_TEXT)
+    local reasoning = format.truncate(message.reasoning, MAX_SNAPSHOT_REASONING)
+    used = used + #text + #reasoning
+    if #collected > 0 and used > MAX_SNAPSHOT_BYTES then
+      break
+    end
+
+    table.insert(collected, {
+      id = message.id,
+      role = message.role,
+      text = text,
+      reasoning = reasoning,
+      tools = tools,
+      streaming = message.streaming,
+      error = message.error,
+      model = message.model,
+    })
+  end
+
+  local out = {}
+  for i = #collected, 1, -1 do
+    table.insert(out, collected[i])
+  end
+  return out, total
+end
+
 publish = function(_force)
   revision = revision + 1
+  local publishedMessages, messagesTotal = snapshotMessages()
   local snapshot = {
     revision = revision,
     state = status,
@@ -321,7 +386,8 @@ publish = function(_force)
       model = activeSession.model,
       agent = activeSession.agent,
     } or nil,
-    messages = messages,
+    messages = publishedMessages,
+    messagesTotal = messagesTotal,
     pending = {
       permissions = pendingPermissions,
       forms = pendingForms,
@@ -1310,7 +1376,7 @@ function onIpc(event, payload)
 end
 
 function update()
-  if dirty and noctalia.nowMs() - lastPublish >= 100 then
+  if dirty and noctalia.nowMs() - lastPublish >= PUBLISH_INTERVAL_MS then
     publish(true)
   end
   if reconnectAt > 0 and noctalia.nowMs() >= reconnectAt then

@@ -120,7 +120,7 @@ O widget respeita orientação vertical/horizontal da barra.
 | `frame(content)` | Container transparente; o host desenha fundo/borda. |
 | `render()` | Escolhe a view e chama `panel.render`. |
 | `onOpen` / `onClose` | Ciclo de vida; publica `chat.panel_open`; liga/desliga frame ticks. |
-| `onFrameTick(deltaMs)` | Anima o spinner a cada ~120 ms quando busy. |
+| `onFrameTick(deltaMs)` | Anima o spinner a cada ~400 ms quando busy. |
 | `onNewSession()` | Envia `new_session` com o modelo atual. |
 | `onConfirmDelete()` | Envia `delete_session` e permanece no seletor. |
 | `onSend` / `onSubmit` | Envia `prompt` e limpa o compositor. |

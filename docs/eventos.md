@@ -97,7 +97,7 @@ sequenceDiagram
 ## Streaming e publicação
 
 - Deltas não publicam imediatamente; marcam `dirty`.
-- `update()` roda a cada 100 ms e publica se passaram pelo menos 100 ms desde o último publish.
+- `update()` roda a cada 100 ms e publica se passaram pelo menos 250 ms desde o último publish.
 - O painel recebe o snapshot por `noctalia.state.watch` e re-renderiza.
 - O `revision` incrementa a cada publicação; o painel não depende dele para decidir o que renderizar.
 

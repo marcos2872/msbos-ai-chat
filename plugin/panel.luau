@@ -455,9 +455,23 @@ local function composer()
   })
 end
 
+local function historyNotice(shown, total)
+  return ui.label({
+    text = "Mostrando as últimas " .. tostring(shown) .. " de " .. tostring(total) .. " mensagens.",
+    fontSize = 9,
+    color = "on_surface_variant",
+    textAlign = "center",
+  })
+end
+
 local function chatView()
   local children = {}
-  for _, message in ipairs(snapshot.messages or {}) do
+  local list = snapshot.messages or {}
+  local total = tonumber(snapshot.messagesTotal) or #list
+  if total > #list then
+    table.insert(children, historyNotice(#list, total))
+  end
+  for _, message in ipairs(list) do
     table.insert(children, renderMessage(message))
   end
   if #children == 0 then
@@ -958,11 +972,11 @@ function onFrameTick(deltaMs)
   end
 
   spinnerAccum = spinnerAccum + delta
-  if spinnerAccum < 120 then
+  if spinnerAccum < 400 then
     return
   end
 
-  spinnerAccum = spinnerAccum % 120
+  spinnerAccum = spinnerAccum % 400
   spinnerFrame = (spinnerFrame % #spinnerFrames) + 1
   render()
 end

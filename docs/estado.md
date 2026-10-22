@@ -31,7 +31,8 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
     model = { id = "...", providerID = "...", variant = "low" },
     agent = "omyfedora-chat",
   },
-  messages = { ... },
+  messages = { ... },          -- no máximo MAX_SNAPSHOT_MESSAGES (24)
+  messagesTotal = 40,          -- tamanho real do histórico interno
   pending = {
     permissions = { ... },
     forms = { ... },
@@ -49,10 +50,17 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `baseUrl` | string | Origem do OpenCode; nunca inclui o token. |
 | `agentMissing` | bool | `true` se o agente configurado não aparece em `/api/agent`. |
 | `session` | table/nil | Sessão ativa. |
-| `messages` | array | Mensagens mapeadas para a UI. |
+| `messages` | array | Mensagens mapeadas para a UI (apenas as últimas `MAX_SNAPSHOT_MESSAGES`, 24). |
+| `messagesTotal` | number | Total de mensagens no histórico interno; o painel avisa quando é maior que `#messages`. |
 | `pending.permissions` | array | Permissões carregadas por `/permission`; **não renderizadas** pelo painel atual. |
 | `pending.forms` | array | Formulários pendentes; renderizados no fim do chat. |
 | `lastEventAt` | number | `noctalia.nowMs()` da última publicação. |
+
+### Limites de publicação
+
+O snapshot é copiado para o estado compartilhado e reconstruído pelo painel a cada mudança. Para não estourar o orçamento de CPU dos callbacks Luau do Noctalia (que desabilita o painel após timeouts repetidos), `publish()` envia somente as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens, dentro de um orçamento total de `MAX_SNAPSHOT_BYTES` (48000): começa pela mensagem mais recente e para de acumular quando o orçamento estoura. Por mensagem, `text` é truncado em `MAX_SNAPSHOT_TEXT` (8000), `reasoning` em `MAX_SNAPSHOT_REASONING` (3000) e `output` de ferramenta em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000). Durante o streaming, o engine publica no máximo a cada `PUBLISH_INTERVAL_MS` (250 ms); eventos pontuais (sessão, permissões, formulários) continuam publicando na hora.
+
+O histórico completo permanece em `messages` dentro do engine. A exportação e o espelho em `sessions/` usam o payload de `/export`, então não sofrem esses cortes.
 
 ### Mensagem
 
@@ -60,8 +68,8 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 {
   id = "msg_...",              -- ou "local-<timestamp>" para a mensagem otimista
   role = "user" | "assistant",
-  text = "...",
-  reasoning = "...",           -- assistente
+  text = "...",                -- truncado em MAX_SNAPSHOT_TEXT (8000)
+  reasoning = "...",           -- assistente; truncado em MAX_SNAPSHOT_REASONING (3000)
   tools = { ... },             -- assistente
   streaming = false,           -- assistente
   error = "",                  -- assistente
@@ -76,11 +84,12 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
   id = "tool_...",
   name = "read",
   status = "running" | "streaming" | "ok" | "completed" | "error",
-  input = { ... } | "...",
-  output = "...",
-  metadata = { ... },          -- opcional
+  input = { ... } | "...",     -- no snapshot vai já formatado/truncado (1200)
+  output = "...",              -- truncado em MAX_SNAPSHOT_TOOL_OUTPUT (2000)
 }
 ```
+
+O snapshot não copia `metadata` da ferramenta; ele existe só no histórico interno do engine.
 
 ### Formulário pendente
 
@@ -263,7 +272,7 @@ stateDiagram-v2
 
 - `publish()` é imediato em mudanças estruturais (sessão, estado, permissões, formulários, fim de execução).
 - Deltas de texto/raciocínio/tools usam `schedulePublish()`, que só marca `dirty`.
-- `update()` publica quando `dirty` e passaram ≥100 ms.
+- `update()` publica quando `dirty` e passaram ≥250 ms (`PUBLISH_INTERVAL_MS`).
 - `revision` não é usado para controle de concorrência; é apenas informativo.
 
 ## Persistência de formulários e permissões

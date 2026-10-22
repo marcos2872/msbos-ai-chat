@@ -13,7 +13,17 @@ function M.truncate(text, max)
   end
   max = tonumber(max) or 4000
   if #text > max then
-    return text:sub(1, max) .. "\n… (truncado)"
+    local cut = max
+    -- `sub` corta bytes: recua até uma fronteira de caractere UTF-8 para não
+    -- terminar no meio de uma sequência multi-byte (acentos, emoji).
+    while cut > 0 do
+      local byte = text:byte(cut + 1)
+      if byte == nil or byte < 0x80 or byte > 0xBF then
+        break
+      end
+      cut = cut - 1
+    end
+    return text:sub(1, cut) .. "\n… (truncado)"
   end
   return text
 end

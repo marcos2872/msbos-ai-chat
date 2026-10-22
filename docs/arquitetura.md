@@ -85,7 +85,7 @@ sequenceDiagram
         E->>E: seleciona sessão ativa (ui.json ou primeira)
         E->>OC: GET /context + /permission + /form
         E->>OC: GET /api/event (SSE)
-        E-->>H: publica snapshot completo
+        E-->>H: publica snapshot (últimas mensagens, truncado)
     end
 ```
 
@@ -93,8 +93,8 @@ O `engine` roda mesmo com o painel fechado. O painel, ao abrir, define `chat.pan
 
 ### Atualização de estado
 
-- `publish()` incrementa `revision`, monta o `chat.snapshot` e publica também `chat.status`.
-- Eventos de streaming marcam `dirty`; `update()` publica no máximo a cada **100 ms**.
+- `publish()` incrementa `revision`, monta o `chat.snapshot` (últimas `MAX_SNAPSHOT_MESSAGES` mensagens, com `text`/`reasoning`/`tools` truncados) e publica também `chat.status`.
+- Eventos de streaming marcam `dirty`; `update()` publica no máximo a cada **250 ms** (`PUBLISH_INTERVAL_MS`).
 - `noctalia.setUpdateInterval(100)` mantém o loop do serviço.
 - O painel observa `chat.snapshot`, `chat.models` e `chat.sessions`; a barra observa `chat.status`.
 - Valores de `noctalia.state` são cópias planas; o painel não compartilha referências mutáveis com o engine.
@@ -117,7 +117,7 @@ sequenceDiagram
     OC->>A: executa com skill omyfedora
     A-->>OC: texto, raciocínio, ferramentas e formulários
     OC-->>E: SSE session.text.delta, tool.*, form.created...
-    E-->>P: snapshot (throttle ~100 ms)
+    E-->>P: snapshot (throttle ~250 ms)
     P-->>U: streaming e cartões
     OC-->>E: session.execution.succeeded
     E->>OC: GET /context (reconciliação)

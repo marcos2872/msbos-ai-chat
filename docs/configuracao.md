@@ -20,7 +20,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → omyfe
 ### Observações de comportamento
 
 - `agent` vale para novas sessões; uma sessão existente mantém o agente que já tem. O IPC `set_agent` troca o agente da sessão ativa.
-- `max_tool_output` é usado por `store.sessionMarkdown` no export. O cartão de ferramenta da UI usa um limite fixo de 4000 caracteres; a entrada é limitada a 1200 por `format.toolInput`.
+- `max_tool_output` é usado por `store.sessionMarkdown` no export. No chat, o snapshot já entrega o `output` truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) e a entrada limitada a 1200 por `format.toolInput`; o painel trunca de novo em 4000, mas o valor exibido já vem limitado a 2000.
 - `panel_size` não altera o tamanho em runtime: o Noctalia não expõe API de resize. O engine edita a cópia instalada do `plugin.toml`.
 - `auto_pair` não é usado no health check; apenas na queda do SSE com `401`.
 
