@@ -29,19 +29,22 @@ if command -v noctalia >/dev/null 2>&1; then
   echo "==> lint do plugin"
   noctalia plugins lint "$PLUGIN_DIR" || true
 
-  sleep 1
-  if noctalia msg plugins list 2>/dev/null | grep -q "$PLUGIN_ID"; then
+  # O shell descobre o plugin de forma assíncrona; aguarde até ~15s.
+  discovered=0
+  for _ in $(seq 1 15); do
+    if noctalia msg plugins list 2>/dev/null | grep -q "$PLUGIN_ID"; then
+      discovered=1
+      break
+    fi
+    sleep 1
+  done
+
+  if [[ "$discovered" == 1 ]]; then
     echo "==> habilitando $PLUGIN_ID"
     noctalia msg plugins enable "$PLUGIN_ID" || true
   else
-    sleep 1
-    if noctalia msg plugins list 2>/dev/null | grep -q "$PLUGIN_ID"; then
-      echo "==> habilitando $PLUGIN_ID"
-      noctalia msg plugins enable "$PLUGIN_ID" || true
-    else
-      echo "O Noctalia ainda não descobriu o plugin."
-      echo "Abra Settings → Plugins e habilite $PLUGIN_ID."
-    fi
+    echo "O Noctalia ainda não descobriu o plugin."
+    echo "Abra Settings → Plugins e habilite $PLUGIN_ID."
   fi
 else
   echo "Noctalia não encontrado no PATH; habilite o plugin pela GUI."
