@@ -79,7 +79,8 @@ niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subc
 ```
 
 - O `niri` roda como o usuário e não eleva privilégios sozinho; o `pkexec` continua sendo a única via para root e o polkit pede a senha.
-- O comando é assíncrono: o agente não recebe stdout/stderr. Ele deve validar o resultado com leituras (`rpm -q`, `systemctl status`, `dnf history list`) e não afirmar sucesso sem evidência.
+- O comando é assíncrono: o agente não recebe stdout/stderr. Depois do spawn, ele deve localizar a janela `org.kde.polkit-kde-authentication-agent-1` em `niri msg --json windows` e focá-la com `niri msg action focus-window --id <id>`; se a janela não existir, deve parar e reportar, sem esperar 90 s.
+- A janela pode abrir no workspace/monitor focado pelo niri, que pode ser diferente do painel do chat; focar a janela resolve.
 - Só os subcomandos do helper devem ser usados; não é um caminho para comandos arbitrários.
 - Se o host for reiniciado com um servidor standalone (sem `NoNewPrivs`), o `pkexec` direto também funciona; a instrução via niri continua válida.
 

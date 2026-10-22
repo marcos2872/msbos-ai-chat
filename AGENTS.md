@@ -68,7 +68,7 @@ panel.luau --IPC--> engine.luau --HTTP/SSE--> OpenCode local
 - Novas conversas herdam o modelo/variante atuais; a precedência é `opts.model` → `preferredModel` em `ui.json` → modelo da sessão ativa. `variant = "default"` é omitido.
 - Ao apagar a sessão ativa, o engine limpa a sessão ativa e o painel permanece no seletor; não abre a primeira sessão. Clicar em uma linha do seletor abre a sessão.
 - `shell`/`edit` são automáticos (sem cartão de permissão). Formulários da ferramenta `question` são renderizados e respondidos pelo painel.
-- No ambiente atual, o servidor do OpenCode Desktop roda com `NoNewPrivs=1`. Root é acionado pelo helper via `niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/omyfedora-priv …`, nunca por `sudo`; o resultado é assíncrono e deve ser validado com leitura.
+- No ambiente atual, o servidor do OpenCode Desktop roda com `NoNewPrivs=1`. Root é acionado pelo helper via `niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/omyfedora-priv …`, nunca por `sudo`; o agente localiza/foca a janela do polkit e valida o resultado com leitura.
 - Estado e exports ficam em `~/.omyfedora-ai-chat`; `pairing.json`/`ui.json` e sessões são gravados com `0600`.
 
 ## Convenções

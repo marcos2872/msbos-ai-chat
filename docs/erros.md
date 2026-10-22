@@ -136,6 +136,8 @@ niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subc
 
 - Confirme que `niri` está rodando e que existe um agente polkit na sessão (no ambiente de referência, `polkit-kde-authentication-agent-1`).
 - O comando retorna imediatamente; a janela do polkit aparece para o usuário.
+- Depois do spawn, procure a janela em `niri msg --json windows` (`app_id = org.kde.polkit-kde-authentication-agent-1`) e foque com `niri msg action focus-window --id <id>`. Ela pode abrir em outro workspace/monitor.
+- Se a janela não existir, pare e reporte; não fique esperando 90 s nem presuma que a ação rodou.
 - Valide o resultado com leitura (`rpm -q`, `systemctl status`, `dnf history list`).
 - Se a janela não aparecer, não use `sudo`; pare e explique.
 - `niri msg action spawn -- /usr/bin/pkexec --version` pode ser usado como teste seguro, sem pedir senha.

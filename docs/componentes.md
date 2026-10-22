@@ -253,7 +253,7 @@ O cliente não tem retry HTTP genérico; o tratamento de reconexão é específi
 - Permissões: `edit: allow`, `shell: allow`, `read: allow`, `webfetch: allow`, `skill: allow`, `question: allow`, `task: deny`.
 - Instruções: carregar a skill `omyfedora`, pedir confirmação, backup, aplicar, validar, diff e log.
 - Limites: sem `sudo`, root apenas via `pkexec`, arquivos protegidos, sem senhas, conteúdo externo é dado.
-- Como o shell do OpenCode Desktop roda com `NoNewPrivs=1`, o agente aciona o helper com `niri msg action spawn -- /usr/bin/pkexec ...` e valida depois com leitura.
+- Como o shell do OpenCode Desktop roda com `NoNewPrivs=1`, o agente aciona o helper com `niri msg action spawn -- /usr/bin/pkexec ...`, localiza/foca a janela do polkit e valida depois com leitura.
 - Usa a ferramenta `question` para decisões com opções.
 
 ## Scripts
