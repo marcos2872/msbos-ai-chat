@@ -31,11 +31,15 @@ stateDiagram-v2
     [*] --> Carregando
     Carregando --> Onboarding: snapshot state=unpaired
     Carregando --> Pareando: state=pairing
+    Carregando --> Iniciando: state=starting
     Carregando --> Offline: state=offline
     Carregando --> Chat: state=idle/busy/error
     Onboarding --> Pareando: conectar
     Pareando --> Chat: paired + idle
-    Offline --> Chat: health ok
+    Iniciando --> Chat: serviço no ar + sonda ok
+    Iniciando --> Offline: falha ao iniciar
+    Offline --> Iniciando: iniciar/tentar novamente
+    Offline --> Chat: sonda ok
     Chat --> Seletor: histórico
     Seletor --> Chat: voltar/abrir sessão
 ```
@@ -71,7 +75,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 ### Header
 
 - Glifo `message-chatbot` e título “omyfedora IA”.
-- Subtítulo: “executando…”, título da sessão, “não pareado”, “offline” ou “pronto”.
+- Subtítulo: “executando…”, título da sessão, “não pareado”, “iniciando…”, “offline” ou “pronto”.
 - **+** — nova conversa.
 - **Histórico** — abre o seletor.
 - **−** — minimiza/fecha o painel.
@@ -102,7 +106,7 @@ O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radiu
 - Sem mensagens: cartão com “Pergunte sobre o seu sistema” e exemplos.
 - `snapshot.notice`: aviso em `primary` (ex.: retry).
 - `snapshot.error`: erro em `error`.
-- `agentMissing`: cartão vermelho com instrução para rodar `./install.sh` e botão para abrir Settings.
+- `agentStatus == "missing"`: cartão vermelho “Agente omyfedora-chat indisponível” com **Verificar novamente** (IPC `refresh_agents`); o engine revalida sozinho com backoff. Não aparece durante `busy`; `unknown` (erro de rede) não mostra cartão.
 - Toast de falha de IPC: label de erro por 5 s.
 
 ## Seletor de modelo e sessões
@@ -174,14 +178,21 @@ Limitações atuais:
 - **Conectar automaticamente**.
 - Input para colar o link `http://.../auth/connect/...` (largura 380, altura 38).
 - **Usar link colado** e **Colar da área de transferência**.
-- **Copiar comando** (`opencode pair`) e **Abrir terminal**.
+- **Copiar comando** (`opencode pair`) e **Tentar novamente**.
 - Erro de pareamento, se houver.
 
-### Offline
+### Iniciando (`starting`)
 
-- “OpenCode offline”; instrução para abrir o app ou `opencode serve`.
-- **Tentar novamente** (IPC `sync`, que faz health check quando offline).
-- **Abrir terminal**.
+- Glifo loader e texto “Iniciando o OpenCode…”.
+- Aparece no boot enquanto o engine executa `opencode service status/start`; não tem botões.
+
+### Offline (`offline`)
+
+- “OpenCode offline”; o engine tenta iniciar o servidor sozinho com backoff de 5 s a 60 s.
+- **Iniciar OpenCode** (IPC `start`, força `service status/start` + sonda).
+- **Tentar novamente** (IPC `sync`, que chama `ensureService` quando offline).
+- **Abrir terminal**, que roda `opencode serve` em primeiro plano (o terminal permanece aberto para diagnóstico).
+- Erro atual, se houver.
 
 ### Pareando
 
@@ -195,7 +206,7 @@ Limitações atuais:
 | Médio | 460 × 640 | `medium` |
 | Grande | 620 × 820 | `large` |
 
-O host é dono do tamanho. O engine reescreve `width`/`height` do `plugin.toml` **instalado**, faz backup em `plugin.toml.bak-size` e recarrega o plugin. O manifesto do repositório continua com o padrão 460 × 640; a escolha do usuário vive na cópia instalada.
+O host é dono do tamanho. O engine executa `scripts/panel-size.sh` com o preset escolhido; o script lê o `plugin.toml` **instalado**, compara, grava `plugin.toml.bak-size` e reescreve `width`/`height` (ou sai sem tocar no arquivo). O engine então recarrega o plugin. A escrita fica fora do callback Luau porque ler+reescrever o manifesto dentro de `onConfigChanged`/`update` estourava o orçamento de CPU do host. O manifesto do repositório continua com o padrão 460 × 640; a escolha do usuário vive na cópia instalada.
 
 Se o host não aplicar o novo tamanho, confira o `plugin.toml` instalado e recarregue o plugin manualmente.
 

@@ -20,11 +20,12 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 ```lua
 {
   revision = 42,
-  state = "idle",              -- unpaired | pairing | offline | idle | busy | error
+  state = "idle",              -- unpaired | pairing | starting | offline | idle | busy | error
   notice = "",                 -- aviso transitório (ex.: retry)
   error = "",                  -- erro atual
   baseUrl = "http://127.0.0.1:49374",
-  agentMissing = false,
+  agentMissing = false,        -- atalho: agentStatus == "missing"
+  agentStatus = "ok",          -- ok | missing | unknown
   session = {
     id = "ses_...",
     title = "Ajuste do gap do niri",
@@ -48,7 +49,8 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `notice` | string | Aviso não fatal (retry, status). |
 | `error` | string | Erro atual. |
 | `baseUrl` | string | Origem do OpenCode; nunca inclui o token. |
-| `agentMissing` | bool | `true` se o agente configurado não aparece em `/api/agent`. |
+| `agentMissing` | bool | Atalho para `agentStatus == "missing"`; mantido por compatibilidade. |
+| `agentStatus` | string | `ok`, `missing` ou `unknown` (erro de rede/verificação pendente). `missing` é revalidado com backoff. |
 | `session` | table/nil | Sessão ativa. |
 | `messages` | array | Mensagens mapeadas para a UI (apenas as últimas `MAX_SNAPSHOT_MESSAGES`, 24). |
 | `messagesTotal` | number | Total de mensagens no histórico interno; o painel avisa quando é maior que `#messages`. |
@@ -187,13 +189,13 @@ O engine observa essa chave para decidir notificações e unread.
 {
   "baseUrl": "http://127.0.0.1:49374",
   "token": "<token>",
-  "version": "2.1.2",
+  "version": "2.1.4",
   "pairedAt": 1792625451332
 }
 ```
 
 - `token` é a senha do Basic auth.
-- `version` é atualizada pelo health check.
+- `version` não é mais usada para validar a conexão (fica vazia em pairings novos).
 - O código do link de pareamento não é salvo.
 
 ### `state/ui.json` (`0600`)
@@ -247,22 +249,27 @@ Criado se não existir, com as regras do workspace: skill `omyfedora`, confirma�
 ```mermaid
 stateDiagram-v2
     [*] --> unpaired
-    unpaired --> pairing: pair
-    pairing --> idle: token + health
+    unpaired --> pairing: pair (automático se auto_pair)
+    pairing --> idle: token + sonda /api/agent
     pairing --> unpaired: erro
     idle --> busy: prompt/execução
     busy --> idle: sucesso
     busy --> error: falha
     error --> idle: nova execução
-    idle --> offline: health falhou
-    offline --> idle: health ok
-    unpaired --> offline: pairing existente no boot
+    idle --> offline: sonda falhou
+    offline --> starting: ensureService()
+    starting --> idle: serviço no ar + sonda ok
+    starting --> offline: falha ao iniciar
+    idle --> unpaired: 401
+    [*] --> starting: boot com pairing
 ```
 
+- `ensureService()` define `starting` enquanto roda `opencode service status/start`; `checkHealth` decide `idle`/`offline`/`unpaired`.
 - `selectSession` força `idle`.
 - `setError` força `error`.
 - `sendPrompt` força `busy`, limpa erro e `unread`.
 - `finishRun` decide `idle`/`error` conforme `errorMessage`.
+- `unpair` define `unpaired` e suspende o pareamento automático até um `pair`/`start` explícito.
 
 ## Mensagem otimista e reconciliação
 

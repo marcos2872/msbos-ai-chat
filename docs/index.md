@@ -3,8 +3,8 @@
 Documentação técnica do plugin de chat do Noctalia que usa o OpenCode local como motor.
 
 **Versão do plugin:** `0.1.0`
-**Ambiente de referência:** Fedora 44, niri, Noctalia 5.3.0, plugin API 34, OpenCode 2.1.2
-**Atualizado em:** 2026-10-21
+**Ambiente de referência:** Fedora 44, niri, Noctalia 5.3.0, plugin API 34, OpenCode 2.1.4
+**Atualizado em:** 2026-10-23
 
 > Esta documentação descreve o **código atual** em `plugin/` e `opencode/`.
 > O [`MAPEAMENTO.md`](../MAPEAMENTO.md) registra o levantamento e as decisões iniciais; algumas partes dele foram superadas pela implementação (por exemplo, o seletor está dentro de `panel.luau` e o cliente SSE está em `lib/api.luau`).
@@ -16,7 +16,7 @@ Documentação técnica do plugin de chat do Noctalia que usa o OpenCode local c
 | [README](../README.md) | Visão geral, requisitos, instalação e uso. |
 | [AGENTS.md](../AGENTS.md) | Comandos, arquitetura e convenções para agentes. |
 | [Arquitetura](arquitetura.md) | Componentes, fluxos, ciclo de vida e decisões de alto nível. |
-| [Conexão com o OpenCode](conexao.md) | Pareamento, autenticação, health check, SSE e reconexão. |
+| [Conexão com o OpenCode](conexao.md) | Pareamento, autenticação, sonda, SSE e reconexão. |
 | [Interface do painel](interface.md) | Telas, seletor de modelo/sessão, formulários, compositor e tamanhos. |
 | [Desenvolvimento](desenvolvimento.md) | Rodar, instalar, lint, recarregar e testar manualmente. |
 

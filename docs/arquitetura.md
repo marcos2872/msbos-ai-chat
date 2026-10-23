@@ -76,10 +76,14 @@ sequenceDiagram
     E->>S: readUi() + readPairing()
     alt sem pairing
         E-->>H: publica chat.snapshot state=unpaired
+        opt auto_pair
+            E->>E: doPair("") (service status/start + opencode pair)
+        end
     else com pairing
-        E-->>H: publica state=offline
-        E->>OC: GET /global/health
-        OC-->>E: healthy + version
+        E-->>H: publica state=starting
+        E->>OC: opencode service status/start
+        OC-->>E: URL do servidor
+        E->>OC: GET /api/agent (sonda autenticada)
         E->>OC: GET /api/model + /api/agent
         E->>OC: GET /api/session?directory=...
         E->>E: seleciona sessão ativa (ui.json ou primeira)
@@ -89,7 +93,7 @@ sequenceDiagram
     end
 ```
 
-O `engine` roda mesmo com o painel fechado. O painel, ao abrir, define `chat.panel_open = true`, pede `sync` e renderiza o último snapshot. Ao fechar, define `chat.panel_open = false`; a execução e o SSE continuam.
+O `engine` roda mesmo com o painel fechado, inicia o servidor do OpenCode quando necessário e mantém o retry com backoff enquanto estiver `offline`. O painel, ao abrir, define `chat.panel_open = true`, pede `sync` e renderiza o último snapshot. Ao fechar, define `chat.panel_open = false`; a execução e o SSE continuam.
 
 ### Atualização de estado
 
@@ -170,7 +174,7 @@ O Noctalia é dono do tamanho do painel; não há API de redimensionamento em ru
 | `medium` | 460 × 640 (padrão) |
 | `large` | 620 × 820 |
 
-Quando o setting `panel_size` muda, o engine reescreve `width`/`height` da primeira seção `[[panel]]` do `plugin.toml` **instalado**, cria `plugin.toml.bak-size` e agenda `plugins disable` + `plugins enable` para o host reler o manifesto.
+Quando o setting `panel_size` muda, o engine executa `scripts/panel-size.sh`, que reescreve `width`/`height` da primeira seção `[[panel]]` do `plugin.toml` **instalado** (com backup `plugin.toml.bak-size` e código de saída `10`). Ao receber esse código, o engine agenda `plugins disable` + `plugins enable` para o host reler o manifesto. A escrita roda fora do callback Luau para não estourar o orçamento de CPU.
 
 ## Permissões e formulários
 

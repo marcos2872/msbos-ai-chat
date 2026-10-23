@@ -113,7 +113,7 @@ Sem esses passos, a confirmação é apenas textual.
 - O servidor deve escutar em `127.0.0.1`, não em `0.0.0.0`.
 - Não use `--remote`/exposição pública sem uma camada de autenticação e TLS.
 - O plugin aceita link remoto colado; isso envia o token ao host remoto e faz o tráfego sair da máquina. Use apenas em túnel confiável.
-- O health check não é autenticado; ele só revela versão/estado.
+- A sonda usa `GET /api/agent` com Basic auth; ela valida servidor e token. `/global/health` não é usado (sem auth e, no v2, pode devolver o HTML da SPA).
 - O SSE usa Basic auth e não inclui `directory`; o filtro por sessão é feito no cliente.
 
 ## IPC do Noctalia

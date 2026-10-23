@@ -22,7 +22,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → omyfe
 - `agent` vale para novas sessões; uma sessão existente mantém o agente que já tem. O IPC `set_agent` troca o agente da sessão ativa.
 - `max_tool_output` é usado por `store.sessionMarkdown` no export. No chat, o snapshot já entrega o `output` truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) e a entrada limitada a 1200 por `format.toolInput`; o painel trunca de novo em 4000, mas o valor exibido já vem limitado a 2000.
 - `panel_size` não altera o tamanho em runtime: o Noctalia não expõe API de resize. O engine edita a cópia instalada do `plugin.toml`.
-- `auto_pair` não é usado no health check; apenas na queda do SSE com `401`.
+- `auto_pair` controla o pareamento automático (sem pairing) e a recuperação de `401` na sonda e no SSE.
 
 ## Manifesto
 
@@ -78,16 +78,15 @@ medium  = { width = 460, height = 640 }
 large   = { width = 620, height = 820 }
 ```
 
-Quando o setting muda, `applyPanelSize()`:
+Quando o setting muda, `applyPanelSize()` executa, em background, `bash plugin/scripts/panel-size.sh <plugin.toml> <largura> <altura>`:
 
-1. lê o `plugin.toml` instalado via `noctalia.pluginDir()`;
-2. localiza a primeira seção `[[panel]]`;
-3. reescreve `width` e `height`;
-4. grava um backup `plugin.toml.bak-size`;
-5. executa em background:
+1. o script lê o `plugin.toml` instalado via `noctalia.pluginDir()`;
+2. localiza a primeira seção `[[panel]]` e compara com o preset;
+3. se mudou, grava `plugin.toml.bak-size`, reescreve `width`/`height` e sai com código `10`;
+4. o engine então executa em background:
    `noctalia msg plugins disable omyfedora/ai-chat` → espera → `enable`.
 
-O `plugin.toml` do repositório permanece em 460 × 640; a preferência do usuário fica na cópia instalada.
+A leitura/escrita fica no script (e não no callback Luau) porque fazê-la em `onConfigChanged`/`update` estourava o orçamento de CPU do Noctalia. O `plugin.toml` do repositório permanece em 460 × 640; a preferência do usuário fica na cópia instalada.
 
 ## Workspace
 

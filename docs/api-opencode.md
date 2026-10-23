@@ -1,6 +1,6 @@
 # API do OpenCode usada pelo plugin
 
-Referência das chamadas implementadas em `plugin/lib/api.luau` e consumidas por `plugin/engine.luau`. O contrato foi validado contra a API v2 do OpenCode 2.1.2; versões diferentes podem mudar caminhos ou schemas.
+Referência das chamadas implementadas em `plugin/lib/api.luau` e consumidas por `plugin/engine.luau`. O contrato foi validado contra a API v2 do OpenCode 2.1.4; versões diferentes podem mudar caminhos ou schemas.
 
 ## Convenções
 
@@ -15,11 +15,11 @@ Referência das chamadas implementadas em `plugin/lib/api.luau` e consumidas por
 
 | Método | Caminho | Diretório | Corpo | Resposta usada | Uso no plugin |
 |---|---|---|---|---|---|
-| `GET` | `/global/health` | Não | — | `{ healthy, version }` | Health check; versão em `pairing.json`. |
+| `GET` | `/global/health` | Não | — | `{ healthy, version }` | Não usado: não valida o token e no v2 pode responder com o HTML da SPA. |
 | `GET` | `/auth/connect/{code}` | Não | — | `{ token }` | Consumir link do `opencode pair`. |
 | `GET` | `/api/model` | Não | — | `{ data: Model.Info[] }` | Catálogo global de modelos. |
 | `GET` | `/api/model/default` | Não | — | `{ data: Model.Info ou null }` | Disponível no cliente, **não usado** pelo engine. |
-| `GET` | `/api/agent` | Não | — | `{ data: Agent.Info[] }` | Catálogo global de agentes. |
+| `GET` | `/api/agent` | Não | — | `{ data: Agent.Info[] }` | Catálogo global de agentes **e sonda autenticada** (detecta `401`). |
 | `GET` | `/api/session?limit=50&order=desc` | Sim | — | `{ data: Session.Info[] }` | Lista as sessões do workspace. |
 | `POST` | `/api/session` | Sim | `{ title?, agent?, model?, location: { directory } }` | `{ data: Session.Info }` | Cria sessão com agente/modelo herdados. |
 | `GET` | `/api/session/{id}/context` | Sim | — | `{ data: Session.Message[] }` | Carrega/reconcilia mensagens. |
@@ -162,7 +162,7 @@ Substitua `$BASE` e `$TOKEN` pelos valores de `~/.omyfedora-ai-chat/state/pairin
 BASE="http://127.0.0.1:49374"
 TOKEN="<token>"
 
-curl -s "$BASE/global/health"
+curl -s -u "opencode:$TOKEN" -o /dev/null -w '%{http_code}\n' "$BASE/api/agent"
 
 curl -s -u "opencode:$TOKEN" \
   "$BASE/api/session?limit=50&order=desc&directory=$HOME/.omyfedora-ai-chat"

@@ -20,6 +20,8 @@ local function render()
     dotColor = "primary"
   elseif status.unread then
     dotColor = "tertiary"
+  elseif status.state == "starting" then
+    dotColor = "tertiary"
   elseif status.state == "error" then
     dotColor = "error"
   end

@@ -119,10 +119,15 @@ Não há suíte automatizada. Checklist mínimo após mudanças:
 
 ### Conexão
 
-- [ ] Sem token: onboarding aparece.
+- [ ] Sem token: onboarding aparece; com `auto_pair`, o engine pareia sozinho.
 - [ ] **Conectar automaticamente** pareia e mostra o chat.
 - [ ] Link colado inválido mostra erro claro.
-- [ ] OpenCode parado → `offline`; **Tentar novamente** recupera.
+- [ ] Boot com o serviço parado: painel mostra `starting` e chega a `idle` sem terminal.
+- [ ] Painel abre offline e **Iniciar OpenCode** sobe o serviço (`opencode service status` depois).
+- [ ] Porta antiga em `pairing.json`: `ensureService` corrige a `baseUrl` sozinho.
+- [ ] Servidor parado por mais de 1 min: retry continua com backoff (5–60 s).
+- [ ] Token inválido: sonda `/api/agent` dá `401` e o engine re-pareia com `auto_pair`.
+- [ ] Agente ausente no `/api/agent`: cartão aparece; ao voltar, some sem recarregar.
 - [ ] Reiniciar o plugin mantém a sessão ativa (`ui.json`).
 
 ### Conversa

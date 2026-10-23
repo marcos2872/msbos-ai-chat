@@ -151,7 +151,7 @@ O SSE não usa `Last-Event-ID` e não faz replay. Se a conexão cair:
 - o engine agenda reconexão com backoff de 1 a 30 s;
 - eventos ocorridos durante a queda não são reaplicados;
 - ao selecionar uma sessão ou ao final da execução, `/context` reconcilia as mensagens;
-- se o estado estiver `offline`, o health check de recuperação recarrega sessões/contexto.
+- se o estado estiver `offline`, o `ensureService`/sonda de recuperação recarrega sessões/contexto.
 
 Para forçar uma leitura nova, o usuário pode abrir o seletor e reabrir a sessão (`select_session`), ou enviar `refresh_sessions`; `sync` apenas republica o estado atual.
 

@@ -47,7 +47,24 @@ local agentMissing = false
 local revision = 0
 local dirty = false
 local lastPublish = 0
-local lastHealthCheck = 0
+
+-- Reinit/preset de tamanho são adiados para `update()`: aplicar os dois no
+-- mesmo callback de `onConfigChanged` estoura o orçamento de CPU do host.
+local reinitPending = false
+local panelSizePending = false
+
+-- Conexão: `starting` enquanto o serviço do OpenCode é iniciado/verificado.
+local serviceStarting = false
+local serviceAttempts = 0
+local serviceRetryAt = 0
+local pairRetryAt = 0
+local pairingSuppressed = false
+
+-- Agentes: `ok` | `missing` | `unknown` (erro de rede ou verificação pendente).
+local agentStatus = "unknown"
+local agentCheckAttempts = 0
+local agentRecheckAt = 0
+local agentRecheckDelay = 5000
 
 local stream = nil
 local streamGeneration = 0
@@ -58,7 +75,9 @@ local generation = 0
 local publish
 local schedulePublish
 local checkHealth
+local ensureService
 local loadCatalog
+local loadAgents
 local loadSessions
 local connectSse
 local selectSession
@@ -380,6 +399,7 @@ publish = function(_force)
     error = errorMessage,
     baseUrl = pairing and pairing.baseUrl or "",
     agentMissing = agentMissing,
+    agentStatus = agentStatus,
     session = activeSession and {
       id = activeSession.id,
       title = activeSession.title,
@@ -460,6 +480,70 @@ finishRun = function()
   publish(true)
 end
 
+local function setAgentStatus(value)
+  agentStatus = value
+  agentMissing = value == "missing"
+end
+
+loadAgents = function(gen)
+  if not pairing then
+    return
+  end
+  api.listAgents(pairing, function(data, err)
+    if gen ~= generation then
+      return
+    end
+    if err then
+      local statusCode = type(err) == "table" and err.status or nil
+      if statusCode == 401 then
+        agentCheckAttempts = 0
+        if autoPair then
+          doPair("")
+        else
+          setAgentStatus("unknown")
+          status = "unpaired"
+          errorMessage = "Sessão do OpenCode expirada. Pareie novamente."
+          publish(true)
+        end
+        return
+      end
+      -- Servidor recém-iniciado pode recusar a listagem por um instante:
+      -- tente mais algumas vezes antes de desistir.
+      if agentCheckAttempts < 3 then
+        agentCheckAttempts = agentCheckAttempts + 1
+        agentRecheckAt = noctalia.nowMs() + 2000
+        return
+      end
+      setAgentStatus("unknown")
+      publish(true)
+      return
+    end
+
+    agentCheckAttempts = 0
+    agents = {}
+    local found = false
+    for _, agent in ipairs(data or {}) do
+      if agent.mode ~= "subagent" and agent.hidden ~= true then
+        table.insert(agents, agent)
+        if agent.id == agentId then
+          found = true
+        end
+      end
+    end
+
+    if found then
+      setAgentStatus("ok")
+      agentRecheckAt = 0
+      agentRecheckDelay = 5000
+    else
+      setAgentStatus("missing")
+      agentRecheckAt = noctalia.nowMs() + agentRecheckDelay
+      agentRecheckDelay = math.min(60000, agentRecheckDelay * 2)
+    end
+    publish(true)
+  end)
+end
+
 loadCatalog = function(gen)
   api.listModels(pairing, function(data, err)
     if gen ~= generation then
@@ -493,22 +577,7 @@ loadCatalog = function(gen)
     publishModels()
   end)
 
-  api.listAgents(pairing, function(data, err)
-    if gen ~= generation or err then
-      return
-    end
-    agents = {}
-    agentMissing = true
-    for _, agent in ipairs(data or {}) do
-      if agent.mode ~= "subagent" and agent.hidden ~= true then
-        table.insert(agents, agent)
-        if agent.id == agentId then
-          agentMissing = false
-        end
-      end
-    end
-    publish(true)
-  end)
+  loadAgents(gen)
 end
 
 selectSession = function(id)
@@ -1075,25 +1144,102 @@ connectSse = function()
   end
 end
 
+local function serviceUrl(text)
+  return tostring(text or ""):match("(https?://[%w%._%-]+:%d+)")
+end
+
+local function applyServiceUrl(url)
+  if not url or not pairing or pairing.baseUrl == url then
+    return
+  end
+  pairing.baseUrl = url
+  store.writePairing(directory, pairing)
+end
+
+ensureService = function()
+  if serviceStarting then
+    return
+  end
+  serviceStarting = true
+  status = "starting"
+  statusMessage = "Iniciando o OpenCode…"
+  errorMessage = ""
+  publish(true)
+
+  local binary = noctalia.getConfig("opencode_bin") or "opencode"
+  if not noctalia.commandExists(binary) then
+    serviceStarting = false
+    status = "offline"
+    statusMessage = ""
+    errorMessage = "Binário não encontrado: " .. binary
+    publish(true)
+    return
+  end
+
+  local function finish(url, failure)
+    serviceStarting = false
+    statusMessage = ""
+    applyServiceUrl(url)
+    if failure then
+      status = "offline"
+      errorMessage = failure
+      publish(true)
+      return
+    end
+    checkHealth(generation)
+  end
+
+  -- `opencode service start` é idempotente e devolve a URL do servidor.
+  noctalia.runAsync({ binary, "service", "status" }, function(result)
+    local running = result and result.exitCode == 0 and serviceUrl(result.stdout) or nil
+    if running then
+      finish(running)
+      return
+    end
+    noctalia.runAsync({ binary, "service", "start" }, function(startResult)
+      if startResult and startResult.exitCode ~= 0 then
+        local message = noctalia.string.trim(startResult.stderr or "")
+        if message == "" then
+          message = "Não consegui iniciar o servidor do OpenCode."
+        end
+        finish(nil, message)
+        return
+      end
+      finish(serviceUrl(startResult and startResult.stdout))
+    end, 20000)
+  end, 5000)
+end
+
 checkHealth = function(gen)
   if not pairing then
     status = "unpaired"
     publish(true)
     return
   end
-  lastHealthCheck = noctalia.nowMs()
-  api.health(pairing.baseUrl, function(ok, version)
+  -- Sonda autenticada: além de saber se o servidor responde, valida o token.
+  api.ready(pairing, function(ok, err)
     if gen ~= generation then
       return
     end
     if not ok then
+      local statusCode = type(err) == "table" and err.status or nil
+      if statusCode == 401 then
+        if autoPair then
+          doPair("")
+        else
+          status = "unpaired"
+          errorMessage = "Sessão do OpenCode expirada. Pareie novamente."
+          publish(true)
+        end
+        return
+      end
       status = "offline"
       errorMessage = "OpenCode não está respondendo."
       publish(true)
       return
     end
-    pairing.version = version
-    store.writePairing(directory, pairing)
+    serviceAttempts = 0
+    serviceRetryAt = 0
     status = "idle"
     errorMessage = ""
     publish(true)
@@ -1119,6 +1265,8 @@ onPaired = function(result, err)
   store.writePairing(directory, pairing)
   status = "idle"
   errorMessage = ""
+  pairRetryAt = 0
+  pairingSuppressed = false
   publish(true)
   checkHealth(generation)
 end
@@ -1145,22 +1293,42 @@ doPair = function(link)
     return
   end
 
-  noctalia.runAsync({ binary, "pair" }, function(result)
-    if result.exitCode ~= 0 then
-      status = "unpaired"
-      errorMessage = (result.stderr ~= "" and result.stderr) or "`opencode pair` falhou."
-      publish(true)
+  local function runPair()
+    noctalia.runAsync({ binary, "pair" }, function(result)
+      if result.exitCode ~= 0 then
+        status = "unpaired"
+        errorMessage = (result.stderr ~= "" and result.stderr) or "`opencode pair` falhou."
+        publish(true)
+        return
+      end
+      local found = tostring(result.stdout or ""):match("(https?://[^%s]+/auth/connect/[%w_%-]+)")
+      if not found then
+        status = "unpaired"
+        errorMessage = "Não encontrei o link no output de `opencode pair`."
+        publish(true)
+        return
+      end
+      api.pair(found, onPaired)
+    end, 20000)
+  end
+
+  -- Garante o servidor antes de pedir o link; no boot ele ainda não existe.
+  noctalia.runAsync({ binary, "service", "status" }, function(result)
+    if result and result.exitCode == 0 and serviceUrl(result.stdout) then
+      runPair()
       return
     end
-    local found = tostring(result.stdout or ""):match("(https?://[^%s]+/auth/connect/[%w_%-]+)")
-    if not found then
-      status = "unpaired"
-      errorMessage = "Não encontrei o link no output de `opencode pair`."
-      publish(true)
-      return
-    end
-    api.pair(found, onPaired)
-  end, 15000)
+    noctalia.runAsync({ binary, "service", "start" }, function(startResult)
+      if startResult and startResult.exitCode ~= 0 then
+        status = "unpaired"
+        errorMessage = "Não consegui iniciar o OpenCode. Abra o app ou rode `opencode serve`."
+        publish(true)
+        return
+      end
+      applyServiceUrl(serviceUrl(startResult and startResult.stdout))
+      runPair()
+    end, 20000)
+  end, 5000)
 end
 
 local PANEL_SIZE_PRESETS = {
@@ -1169,58 +1337,8 @@ local PANEL_SIZE_PRESETS = {
   large = { width = 620, height = 820 },
 }
 
-local function panelSizeFromManifest(text)
-  local width = nil
-  local height = nil
-  local inPanel = false
-  for line in (text .. "\n"):gmatch("(.-)\n") do
-    local trimmed = line:match("^%s*(.-)%s*$")
-    if trimmed == "[[panel]]" then
-      inPanel = true
-    elseif inPanel and trimmed:match("^%[%[") then
-      break
-    elseif inPanel then
-      local w = trimmed:match("^width%s*=%s*(%d+)")
-      if w then
-        width = tonumber(w)
-      end
-      local h = trimmed:match("^height%s*=%s*(%d+)")
-      if h then
-        height = tonumber(h)
-      end
-    end
-  end
-  return width, height
-end
-
-local function rewritePanelSize(text, width, height)
-  local out = {}
-  local inPanel = false
-  local sawWidth = false
-  local sawHeight = false
-  for line in (text .. "\n"):gmatch("(.-)\n") do
-    local trimmed = line:match("^%s*(.-)%s*$")
-    if trimmed == "[[panel]]" then
-      inPanel = true
-    elseif inPanel and trimmed:match("^%[%[") then
-      inPanel = false
-    end
-    if inPanel and trimmed:match("^width%s*=") then
-      table.insert(out, "width = " .. tostring(width))
-      sawWidth = true
-    elseif inPanel and trimmed:match("^height%s*=") then
-      table.insert(out, "height = " .. tostring(height))
-      sawHeight = true
-    else
-      table.insert(out, line)
-    end
-  end
-  if not (sawWidth and sawHeight) then
-    return nil
-  end
-  return table.concat(out, "\n")
-end
-
+-- A leitura/reescrita do manifesto é feita por um script externo: fazer isso
+-- no callback Luau estoura o orçamento de CPU do host e aborta o `update()`.
 local function applyPanelSize()
   local preset = tostring(noctalia.getConfig("panel_size") or "medium")
   local size = PANEL_SIZE_PRESETS[preset] or PANEL_SIZE_PRESETS.medium
@@ -1228,44 +1346,46 @@ local function applyPanelSize()
   if not dir then
     return
   end
+  local script = dir .. "/scripts/panel-size.sh"
+  if not noctalia.fileExists(script) then
+    noctalia.log("omyfedora-ai-chat: scripts/panel-size.sh ausente; tamanho não aplicado")
+    return
+  end
   local path = dir .. "/plugin.toml"
-  local text = noctalia.readFile(path)
-  if not text then
-    return
-  end
-  local width, height = panelSizeFromManifest(text)
-  if width == size.width and height == size.height then
-    return
-  end
-  local updated = rewritePanelSize(text, size.width, size.height)
-  if not updated then
-    noctalia.log("omyfedora-ai-chat: width/height do painel não encontrados no plugin.toml")
-    return
-  end
-  local backedUp, backupErr = noctalia.writeFile(path .. ".bak-size", text)
-  if not backedUp then
-    noctalia.log("omyfedora-ai-chat: falha ao criar backup do plugin.toml: " .. tostring(backupErr))
-  end
-  local ok, err = noctalia.writeFile(path, updated)
-  if not ok then
-    noctalia.log("omyfedora-ai-chat: falha ao gravar o tamanho do painel: " .. tostring(err))
-    noctalia.notifyError("omyfedora IA", "Não consegui redimensionar o painel: " .. tostring(err))
-    return
-  end
-  noctalia.log(
-    "omyfedora-ai-chat: painel " .. preset .. " (" .. tostring(size.width) .. "x" .. tostring(size.height) .. "); recarregando"
-  )
   local started = noctalia.runAsync(
-    "nohup sh -c 'sleep 0.2; noctalia msg plugins disable omyfedora/ai-chat; sleep 0.5; noctalia msg plugins enable omyfedora/ai-chat' >/dev/null 2>&1 &"
+    { "bash", script, path, tostring(size.width), tostring(size.height) },
+    function(result)
+      if result.exitCode == 0 then
+        return
+      end
+      if result.exitCode ~= 10 then
+        local message = noctalia.string.trim(result.stderr or "")
+        if message == "" then
+          message = "falha ao aplicar o tamanho do painel"
+        end
+        noctalia.log("omyfedora-ai-chat: " .. message)
+        noctalia.notifyError("omyfedora IA", "Não consegui redimensionar o painel: " .. message)
+        return
+      end
+      noctalia.log(
+        "omyfedora-ai-chat: painel " .. preset .. " (" .. tostring(size.width) .. "x" .. tostring(size.height) .. "); recarregando"
+      )
+      local reloaded = noctalia.runAsync(
+        "nohup sh -c 'sleep 0.2; noctalia msg plugins disable omyfedora/ai-chat; sleep 0.5; noctalia msg plugins enable omyfedora/ai-chat' >/dev/null 2>&1 &"
+      )
+      if not reloaded then
+        noctalia.notifyError("omyfedora IA", "Não consegui recarregar o plugin para aplicar o novo tamanho.")
+      end
+    end,
+    5000
   )
   if not started then
-    noctalia.notifyError("omyfedora IA", "Não consegui recarregar o plugin para aplicar o novo tamanho.")
+    noctalia.notifyError("omyfedora IA", "Não consegui redimensionar o painel.")
   end
 end
 
 local function init()
   generation = generation + 1
-  local gen = generation
   directory = noctalia.expandPath(noctalia.getConfig("directory") or "~/.omyfedora-ai-chat")
   agentId = noctalia.getConfig("agent") or "omyfedora-chat"
   autoPair = noctalia.getConfig("auto_pair") ~= false
@@ -1293,10 +1413,18 @@ local function init()
   statusMessage = ""
   errorMessage = ""
   agentMissing = false
+  agentStatus = "unknown"
+  agentCheckAttempts = 0
+  agentRecheckAt = 0
+  agentRecheckDelay = 5000
+  serviceStarting = false
+  serviceAttempts = 0
+  serviceRetryAt = 0
+  pairRetryAt = 0
+  pairingSuppressed = false
   revision = 0
   dirty = false
   lastPublish = 0
-  lastHealthCheck = 0
   reconnectAt = 0
   reconnectAttempt = 0
   streamGeneration = 0
@@ -1304,23 +1432,49 @@ local function init()
   if pairing then
     status = "offline"
     publish(true)
-    checkHealth(gen)
+    ensureService()
   else
     status = "unpaired"
     publish(true)
+    if autoPair then
+      doPair("")
+    end
   end
 end
 
 function onIpc(event, payload)
   if event == "sync" then
-    if pairing and status == "offline" then
-      checkHealth(generation)
+    if not pairing then
+      if autoPair then
+        pairingSuppressed = false
+        doPair("")
+      end
+      publish(true)
+      publishModels()
+      publishSessions()
+    elseif status == "offline" then
+      serviceAttempts = 0
+      serviceRetryAt = 0
+      ensureService()
     else
       publish(true)
       publishModels()
       publishSessions()
+      if agentStatus ~= "ok" then
+        loadAgents(generation)
+      end
+    end
+  elseif event == "start" then
+    serviceAttempts = 0
+    serviceRetryAt = 0
+    pairingSuppressed = false
+    if pairing then
+      ensureService()
+    else
+      doPair("")
     end
   elseif event == "pair" then
+    pairingSuppressed = false
     doPair(payload)
   elseif event == "unpair" then
     if stream then
@@ -1329,9 +1483,15 @@ function onIpc(event, payload)
     end
     store.clearPairing(directory)
     pairing = nil
+    pairingSuppressed = true
     status = "unpaired"
     statusMessage = ""
     errorMessage = ""
+    agentStatus = "unknown"
+    agentMissing = false
+    agentRecheckAt = 0
+    serviceAttempts = 0
+    serviceRetryAt = 0
     messages = {}
     pendingPermissions = {}
     pendingForms = {}
@@ -1362,6 +1522,10 @@ function onIpc(event, payload)
     if pairing then
       loadCatalog(generation)
     end
+  elseif event == "refresh_agents" then
+    if pairing and status ~= "offline" and status ~= "starting" and status ~= "pairing" then
+      loadAgents(generation)
+    end
   elseif event == "refresh_sessions" then
     if pairing then
       loadSessions(generation)
@@ -1376,27 +1540,50 @@ function onIpc(event, payload)
 end
 
 function update()
-  if dirty and noctalia.nowMs() - lastPublish >= PUBLISH_INTERVAL_MS then
+  local now = noctalia.nowMs()
+  if reinitPending then
+    reinitPending = false
+    init()
+  elseif panelSizePending then
+    panelSizePending = false
+    applyPanelSize()
+  end
+  if dirty and now - lastPublish >= PUBLISH_INTERVAL_MS then
     publish(true)
   end
-  if reconnectAt > 0 and noctalia.nowMs() >= reconnectAt then
+  if reconnectAt > 0 and now >= reconnectAt then
     reconnectAt = 0
     connectSse()
   end
-  if status == "offline" and pairing and noctalia.nowMs() - lastHealthCheck > 15000 then
-    checkHealth(generation)
+  if agentRecheckAt > 0 and now >= agentRecheckAt then
+    agentRecheckAt = 0
+    if pairing and status ~= "offline" and status ~= "starting" and status ~= "pairing" then
+      loadAgents(generation)
+    end
+  end
+  if pairing and not serviceStarting and status == "offline" then
+    if serviceRetryAt == 0 or now >= serviceRetryAt then
+      serviceAttempts = serviceAttempts + 1
+      serviceRetryAt = now + math.min(60, 5 * serviceAttempts)
+      ensureService()
+    end
+  elseif not pairing and autoPair and not pairingSuppressed and status == "unpaired" then
+    if pairRetryAt == 0 or now >= pairRetryAt then
+      pairRetryAt = now + 15000
+      doPair("")
+    end
   end
 end
 
 function onEnable()
   if pairing and status ~= "idle" then
-    checkHealth(generation)
+    ensureService()
   end
 end
 
 function onConfigChanged()
-  init()
-  applyPanelSize()
+  reinitPending = true
+  panelSizePending = true
 end
 
 function onExit(_signal, _reason)

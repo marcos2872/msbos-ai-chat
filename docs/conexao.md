@@ -7,42 +7,49 @@ O plugin conversa com o servidor local do OpenCode pela **API v2**, usando HTTP 
 ```mermaid
 flowchart LR
     PANEL["panel.luau"] -->|"IPC"| ENGINE["engine.luau"]
-    ENGINE -->|"GET /global/health"| OC["OpenCode<br/>127.0.0.1:porta"]
-    ENGINE -->|"HTTP + Basic auth"| OC
+    ENGINE -->|"opencode service status/start"| CLI["CLI opencode"]
+    ENGINE -->|"HTTP + Basic auth<br/>/api/agent, /api/model, /api/session"| OC["OpenCode<br/>127.0.0.1:porta"]
     OC -->|"SSE /api/event"| ENGINE
     ENGINE -->|"chat.snapshot"| PANEL
 ```
 
-O plugin **não inicia** o servidor do OpenCode. Se ele estiver offline, o painel mostra o estado `offline` e oferece **Tentar novamente** e **Abrir terminal** (`opencode pair`).
+O plugin **inicia o servidor do OpenCode por conta própria**: no boot (e sempre que o estado voltar a `offline`) o engine executa `opencode service status`; se não houver servidor, `opencode service start`, e adota a URL devolvida pelo CLI. Assim o chat conecta sem depender do app desktop ou de um terminal. Enquanto isso, o painel mostra o estado `starting`.
+
+O `service start` é disparado pelo processo do Noctalia, então o servidor herda o ambiente da sessão gráfica (`WAYLAND_DISPLAY`, `NIRI_SOCKET`, `PATH`), o que mantém as ferramentas `niri` do agente funcionando.
 
 ## Pareamento
 
 ### Automático
 
-1. O usuário clica em **Conectar automaticamente** (IPC `pair` sem payload).
-2. O engine executa `opencode pair` com timeout de **15 s**.
-3. O stdout é lido com a expressão `https?://.../auth/connect/<código>`.
-4. O engine faz `GET <baseUrl>/auth/connect/<código>` com `Accept: application/json`.
-5. O servidor devolve `{ "token": "..." }`.
-6. O engine grava `state/pairing.json` com `baseUrl`, `token`, `version` e `pairedAt`; o arquivo é gravado com modo `0600`.
-7. Em seguida chama `/global/health`, carrega modelos/agentes/sessões e abre o SSE.
+1. Sem `state/pairing.json` e com `auto_pair = true`, o engine pareia sozinho no `init()` e repete a cada **15 s** enquanto o estado for `unpaired`. O botão **Conectar automaticamente** (IPC `pair` sem payload) faz o mesmo na hora.
+2. O engine garante o servidor: `opencode service status`; se necessário, `opencode service start` (timeout de **20 s**). A URL devolvida é adotada como `baseUrl`.
+3. O engine executa `opencode pair` com timeout de **20 s**.
+4. O stdout é lido com a expressão `https?://.../auth/connect/<código>`.
+5. O engine faz `GET <baseUrl>/auth/connect/<código>` com `Accept: application/json`.
+6. O servidor devolve `{ "token": "..." }`.
+7. O engine grava `state/pairing.json` com `baseUrl`, `token`, `version` e `pairedAt`; o arquivo é gravado com modo `0600`.
+8. Em seguida faz a sonda autenticada em `/api/agent`, carrega modelos/sessões e abre o SSE.
 
 ```mermaid
 sequenceDiagram
     participant U as Usuário
     participant P as Painel
     participant E as engine
-    participant CLI as opencode pair
+    participant CLI as CLI opencode
     participant OC as OpenCode
 
     U->>P: Conectar automaticamente
     P->>E: IPC pair
-    E->>CLI: opencode pair (timeout 15 s)
+    E->>CLI: opencode service status
+    CLI-->>E: URL do servidor (ou vazio)
+    E->>CLI: opencode service start (se vazio)
+    CLI-->>E: URL
+    E->>CLI: opencode pair (timeout 20 s)
     CLI-->>E: link /auth/connect/<CODE>
     E->>OC: GET /auth/connect/<CODE><br/>Accept: application/json
     OC-->>E: { token }
     E->>E: pairing.json 0600
-    E->>OC: GET /global/health
+    E->>OC: GET /api/agent (sonda autenticada)
     E->>OC: GET /api/model + /api/agent + /api/session
     E->>OC: GET /api/event
     E-->>P: snapshot pareado
@@ -60,7 +67,7 @@ O link do `opencode pair` é de uso único e expira em poucos minutos (comportam
 
 ### Re-pareamento em `401`
 
-Quando o SSE cai com `401` e `auto_pair = true`, o engine chama `doPair("")` para obter um novo link. Se `auto_pair` estiver desligado, o estado volta para `unpaired` e o onboarding é exibido.
+Quando o SSE cai com `401` e `auto_pair = true`, o engine chama `doPair("")` para obter um novo link. O mesmo acontece quando a sonda autenticada (`/api/agent`) devolve `401`. Se `auto_pair` estiver desligado, o estado volta para `unpaired` e o onboarding é exibido.
 
 ## Autenticação
 
@@ -73,19 +80,22 @@ senha:   <token>
 
 No cliente, isso é configurado como `basic_username = "opencode"` e `basic_password = pairing.token`. O token não aparece em logs nem no snapshot.
 
-`/global/health` é consultado sem autenticação; o endpoint de pareamento também é uma chamada separada, sem Basic auth.
+## Conexão, sonda e recuperação
 
-## Health check
+O engine não usa `/global/health`: ele não exige autenticação e, no OpenCode v2, responde com o HTML da SPA (HTTP 200) mesmo quando não é o endpoint de saúde. A sonda real é **`GET /api/agent`** com Basic auth — ela valida servidor **e** token em uma chamada.
 
-| Item | Comportamento |
+| Situação | Comportamento |
 |---|---|
-| Endpoint | `GET /global/health` |
-| Autenticação | Não |
-| Sucesso | `{ healthy: true, version: "..." }` → estado `idle`, grava a versão em `pairing.json`, carrega catálogo/sessões e conecta o SSE. |
-| Falha | estado `offline`, erro “OpenCode não está respondendo.” |
-| Retry | a cada **15 s** enquanto `status == "offline"` e existe pairing. |
-| `onEnable` | refaz o health check se existe pairing e o estado não é `idle`. |
-| `sync` no painel | se estiver `offline`, refaz o health check; senão republica o estado. |
+| `init()` com pairing | estado `starting`; `ensureService()` |
+| `ensureService()` | `opencode service status`; se vazio, `opencode service start`; adota a URL devolvida em `pairing.baseUrl` (persistida) |
+| Sonda OK | estado `idle`; carrega catálogo/agentes/sessões; abre o SSE |
+| Sonda `401` | re-pareia (`auto_pair`) ou estado `unpaired` |
+| Sonda falha (rede) | estado `offline`, erro “OpenCode não está respondendo.” |
+| Retry automático | `offline` → `ensureService()` com backoff de 5 s a 60 s |
+| `sync` no painel | se `offline`, chama `ensureService()`; se não pareado, tenta parear; senão republica e revalida agentes |
+| `onEnable` | `ensureService()` se existe pairing e o estado não é `idle` |
+| Servidor trocou de porta | `service status` devolve a URL atual e o engine reescreve `pairing.json` |
+| Sem pairing + `auto_pair` | pareia automaticamente; o IPC `unpair` suspende o loop até um `pair`/`start` explícito |
 
 ## Escopo por diretório
 
@@ -131,17 +141,19 @@ stateDiagram-v2
 - A tentativa é zerada quando o stream é criado com sucesso.
 - Um `streamGeneration` descarta callbacks de conexões antigas após recarregar o plugin.
 - **Não há replay de eventos** nem `Last-Event-ID`. A reconciliação acontece ao selecionar uma sessão e ao final de uma execução (`/context`); após uma queda longa, o usuário pode reabrir/selecionar a sessão para forçar a leitura do contexto.
-- O health check de recuperação (`offline` → `idle`) recarrega sessões e, com isso, o contexto da sessão ativa.
+- O health check de recuperação (`offline` → `ensureService` → sonda) recarrega sessões e, com isso, o contexto da sessão ativa.
 
 ## Descoberta de modelos, agentes e sessões
 
 | Passo | Chamada | Uso |
 |---|---|---|
 | 1 | `GET /api/model` | Lista global; o engine mantém apenas `enabled != false` e `status != "deprecated"`, e publica `variants[].id`. |
-| 2 | `GET /api/agent` | Lista global; ignora subagentes/ocultos e detecta se `omyfedora-chat` existe (`agentMissing`). |
+| 2 | `GET /api/agent` | Lista global; ignora subagentes/ocultos e detecta se `omyfedora-chat` existe (`agentStatus = ok \| missing \| unknown`). Serve também como sonda autenticada. |
 | 3 | `GET /api/session?limit=50&order=desc&directory=...` | Lista as sessões do workspace. |
 | 4 | `GET /api/session/{id}/context` | Mensagens da sessão ativa. |
 | 5 | `GET /api/session/{id}/permission` e `/form` | Itens pendentes ao selecionar a sessão. |
+
+A listagem de agentes é revalidada: 3 tentativas a cada 2 s em caso de erro de rede; enquanto o agente estiver ausente, nova consulta em 5 s, 10 s, 20 s, 40 s e depois a cada 60 s; e em cada `sync` do painel (`agentStatus ~= ok`). Isso cobre o servidor recém-iniciado, que pode listar só os agentes embutidos por alguns instantes.
 
 ## Tratamento de falhas de transporte
 
@@ -153,8 +165,9 @@ stateDiagram-v2
 | `2xx` com JSON | Devolve o objeto decodificado. |
 | `2xx` vazio | Devolve `true`. |
 | `4xx`/`5xx` | Objeto `{ status, message }`; a mensagem tenta `message`, `error`, `error.message` ou `_tag`. |
-| `401` no SSE | Re-pareia ou volta para `unpaired`. |
+| `401` na sonda ou no SSE | Re-pareia ou volta para `unpaired`. |
 | `opencode` ausente | “Binário não encontrado: …”; ajuste `opencode_bin` ou o `PATH`. |
+| `opencode service start` falha | estado `offline` com o `stderr` do CLI; o painel oferece **Iniciar OpenCode** e **Abrir terminal**. |
 | `opencode pair` falha | Mostra `stderr` ou “`opencode pair` falhou.” |
 | Link inválido | “Link inválido. Cole o link completo exibido por `opencode pair`.” |
 

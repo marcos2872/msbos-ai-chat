@@ -4,9 +4,10 @@
 
 | Estado | Significado | O que fazer |
 |---|---|---|
-| `unpaired` | Sem token válido. | Conectar automaticamente ou colar link de `opencode pair`. |
+| `unpaired` | Sem token válido. | O engine pareia sozinho se `auto_pair`; ou use **Conectar automaticamente** / link de `opencode pair`. |
 | `pairing` | Pareamento em andamento. | Aguardar; se demorar, verificar `opencode pair`/logs. |
-| `offline` | Token existe, mas o health check falhou. | Abrir o app OpenCode ou `opencode serve`; **Tentar novamente**. |
+| `starting` | Engine executando `opencode service status/start`. | Aguardar alguns segundos; se falhar, o painel vai para `offline`. |
+| `offline` | Token existe, mas a sonda/serviço falhou. | O engine tenta iniciar o servidor (backoff 5–60 s); use **Iniciar OpenCode** ou **Abrir terminal** (`opencode serve`). |
 | `idle` | Pronto. | Usar o chat. |
 | `busy` | Execução em andamento. | Aguardar ou **Parar**. |
 | `error` | Última operação falhou. | Ler a mensagem no painel e o log. |
@@ -15,7 +16,10 @@
 
 | Mensagem | Causa provável | Resolução |
 |---|---|---|
-| “OpenCode não está respondendo.” | Servidor parado, porta errada ou health check falhou. | Abrir o app/`opencode serve`; conferir `baseUrl`; tentar novamente. |
+| “OpenCode não está respondendo.” | Servidor parado, porta errada ou sonda `/api/agent` falhou. | O engine tenta `opencode service start`; confira a `baseUrl`, use **Iniciar OpenCode**/**Abrir terminal**. |
+| “Sessão do OpenCode expirada. Pareie novamente.” | Sonda devolveu `401` com `auto_pair` desligado. | Rodar `opencode pair` e colar o link, ou ligar `auto_pair`. |
+| “Não consegui iniciar o OpenCode. Abra o app ou rode `opencode serve`.” | `opencode service start` falhou. | Ver **Abrir terminal** para ler o erro do CLI; conferir `opencode_bin`. |
+| “Agente omyfedora-chat indisponível” | `/api/agent` não listou o agente (servidor recém-iniciado ou agente não instalado). | O engine revalida com backoff; usar **Verificar novamente**; se persistir, rodar `./install.sh`. |
 | “Conecte o OpenCode primeiro.” | Ação de sessão/prompt sem pairing. | Parear. |
 | “OpenCode não está pareado.” | Requisição de dados sem token. | Parear. |
 | “Sem resposta do OpenCode.” | Falha de rede/host sem resposta HTTP. | Verificar servidor, firewall e túnel. |
@@ -47,8 +51,12 @@ noctalia msg plugins list
 # lint do plugin instalado
 noctalia plugins lint ~/.local/share/noctalia/plugins/omyfedora-ai-chat
 
-# saúde do OpenCode (sem auth)
-curl -s http://127.0.0.1:49374/global/health
+# estado do serviço do OpenCode (imprime a URL)
+opencode service status
+
+# sonda autenticada (troque pelo token de state/pairing.json)
+curl -s -o /dev/null -w '%{http_code}\n' -u "opencode:$(jq -r .token ~/.omyfedora-ai-chat/state/pairing.json)" \
+  http://127.0.0.1:49374/api/agent
 
 # log do Noctalia
 tail -n 200 ~/.cache/noctalia/noctalia.log
@@ -86,10 +94,10 @@ O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → 
 
 ### Painel offline mesmo com o OpenCode aberto
 
-- Confira a porta em `state/pairing.json` e `curl /global/health`.
-- Se o servidor mudou de porta, re-pareie.
-- Se o token expirou, o SSE pode voltar `401`; com `auto_pair` ele tenta re-parear.
-- O health check de recuperação roda a cada 15 s; **Tentar novamente** força `sync`.
+- Confira a porta em `state/pairing.json` e rode `opencode service status`.
+- Se o servidor mudou de porta, **Iniciar OpenCode** ou um `sync` faz o engine adotar a URL atual.
+- Se o token expirou, a sonda `/api/agent` volta `401`; com `auto_pair` o engine re-pareia.
+- `ensureService` roda com backoff de 5 s a 60 s; **Tentar novamente** força `sync`.
 
 ### SSE cai e não volta
 
@@ -149,7 +157,7 @@ O `frame` do plugin deve permanecer transparente; o host desenha o fundo. Não a
 
 ### Tamanho não muda
 
-- O host não tem API de resize; o preset reescreve o `plugin.toml` **instalado** e recarrega.
+- O host não tem API de resize; o preset reescreve o `plugin.toml` **instalado** via `scripts/panel-size.sh` e recarrega.
 - Confira `width`/`height` no arquivo instalado e o backup `plugin.toml.bak-size`.
 - Se o arquivo não for gravável, o engine notifica erro.
 - Recarregue manualmente o plugin.

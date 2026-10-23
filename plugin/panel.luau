@@ -57,6 +57,9 @@ local function subtitle()
   if snapshot.state == "unpaired" then
     return "não pareado"
   end
+  if snapshot.state == "starting" then
+    return "iniciando…"
+  end
   if snapshot.state == "offline" then
     return "offline"
   end
@@ -130,15 +133,15 @@ local function agentMissingCard()
   }, {
     ui.row({ gap = 6, align = "center" }, {
       ui.glyph({ name = "alert-triangle", size = 15, color = "error" }),
-      ui.label({ text = "Agente omyfedora-chat não encontrado", fontWeight = "bold", color = "error", fontSize = 11 }),
+      ui.label({ text = "Agente omyfedora-chat indisponível", fontWeight = "bold", color = "error", fontSize = 11 }),
     }),
     ui.label({
-      text = "Rode ./install.sh no projeto para instalar o agente. O chat usa o agente para seguir a skill omyfedora.",
+      text = "O OpenCode ainda não listou o agente. O chat tenta de novo automaticamente; se persistir, rode ./install.sh e verifique ~/.config/opencode/agents/omyfedora-chat.md.",
       fontSize = 10,
       color = "on_surface_variant",
       maxLines = 4,
     }),
-    ui.button({ text = "Abrir configurações do plugin", variant = "secondary", fontSize = 10, onClick = "onOpenSettings" }),
+    ui.button({ text = "Verificar novamente", variant = "secondary", fontSize = 10, onClick = "onRetryAgent" }),
   })
 end
 
@@ -492,7 +495,7 @@ local function chatView()
   if snapshot.error and snapshot.error ~= "" then
     table.insert(children, ui.label({ text = snapshot.error, color = "error", fontSize = 10 }))
   end
-  if snapshot.agentMissing then
+  if snapshot.agentStatus == "missing" and snapshot.state ~= "busy" then
     table.insert(children, agentMissingCard())
   end
 
@@ -512,7 +515,7 @@ local function onboardingView()
     ui.glyph({ name = "message-chatbot", size = 44, color = "primary" }),
     ui.label({ text = "Conecte o OpenCode", fontSize = 18, fontWeight = "bold", color = "on_surface" }),
     ui.label({
-      text = "O chat usa o OpenCode local como motor. Rode `opencode pair` ou clique em Conectar.",
+      text = "O chat conecta sozinho ao OpenCode local. Se precisar, rode `opencode pair` e cole o link abaixo.",
       fontSize = 12,
       color = "on_surface_variant",
       textAlign = "center",
@@ -534,7 +537,7 @@ local function onboardingView()
     }),
     ui.row({ gap = 8, align = "center" }, {
       ui.button({ text = "Copiar comando", variant = "ghost", glyph = "copy", onClick = "onCopyPairCommand" }),
-      ui.button({ text = "Abrir terminal", variant = "ghost", glyph = "terminal-2", onClick = "onOpenTerminal" }),
+      ui.button({ text = "Tentar novamente", variant = "ghost", glyph = "refresh", onClick = "onRetry" }),
     }),
   }
   if snapshot and snapshot.error and snapshot.error ~= "" then
@@ -554,19 +557,33 @@ local function offlineView()
     ui.glyph({ name = "cloud-off", size = 38, color = "on_surface_variant" }),
     ui.label({ text = "OpenCode offline", fontSize = 16, fontWeight = "bold", color = "on_surface" }),
     ui.label({
-      text = "Abra o app OpenCode ou rode `opencode serve`.",
+      text = "O chat inicia o servidor local automaticamente. Se não conectar, abra o app OpenCode ou rode `opencode serve`.",
       fontSize = 12,
       color = "on_surface_variant",
       textAlign = "center",
-      maxLines = 3,
+      maxLines = 4,
     }),
-    ui.button({ text = "Tentar novamente", variant = "primary", glyph = "refresh", onClick = "onRetry" }),
+    ui.button({ text = "Iniciar OpenCode", variant = "primary", glyph = "player-play", onClick = "onStartService" }),
+    ui.button({ text = "Tentar novamente", variant = "secondary", glyph = "refresh", onClick = "onRetry" }),
     ui.button({ text = "Abrir terminal", variant = "ghost", glyph = "terminal-2", onClick = "onOpenTerminal" }),
   }
   if snapshot and snapshot.error and snapshot.error ~= "" then
     table.insert(children, ui.label({ text = snapshot.error, color = "error", fontSize = 10, maxLines = 3 }))
   end
   return ui.column({ flexGrow = 1, gap = 12, padding = 20, align = "center", justify = "center" }, children)
+end
+
+local function startingView()
+  return ui.column({ flexGrow = 1, gap = 12, padding = 20, align = "center", justify = "center" }, {
+    ui.glyph({ name = "loader-2", size = 36, color = "primary" }),
+    ui.label({ text = "Iniciando o OpenCode…", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
+    ui.label({
+      text = "Isso leva alguns segundos na primeira vez.",
+      fontSize = 10,
+      color = "on_surface_variant",
+      textAlign = "center",
+    }),
+  })
 end
 
 local function pairingView()
@@ -908,6 +925,8 @@ render = function()
     panel.render(frame(onboardingView()))
   elseif snapshot.state == "pairing" then
     panel.render(frame(pairingView()))
+  elseif snapshot.state == "starting" then
+    panel.render(frame(startingView()))
   elseif snapshot.state == "offline" then
     panel.render(frame(offlineView()))
   else
@@ -1080,7 +1099,16 @@ function onCopyPairCommand()
 end
 
 function onOpenTerminal()
-  noctalia.runInTerminal("opencode pair")
+  -- Mantém o terminal aberto com o servidor em primeiro plano (diagnóstico).
+  noctalia.runInTerminal("opencode serve")
+end
+
+function onStartService()
+  sendCommand("start")
+end
+
+function onRetryAgent()
+  sendCommand("refresh_agents")
 end
 
 function onOpenSettings()

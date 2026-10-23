@@ -30,9 +30,12 @@ if command -v noctalia >/dev/null 2>&1; then
   noctalia plugins lint "$PLUGIN_DIR" || true
 
   # O shell descobre o plugin de forma assíncrona; aguarde até ~15s.
+  # Guarde a listagem antes do grep: com `pipefail`, `grep -q` fecha o pipe
+  # cedo e o SIGPIPE do noctalia faria a descoberta falhar.
   discovered=0
   for _ in $(seq 1 15); do
-    if noctalia msg plugins list 2>/dev/null | grep -q "$PLUGIN_ID"; then
+    listing="$(noctalia msg plugins list 2>/dev/null || true)"
+    if grep -q "$PLUGIN_ID" <<<"$listing"; then
       discovered=1
       break
     fi
@@ -58,8 +61,9 @@ Instalado.
    Settings → Bar → Widgets → "omyfedora/ai-chat:bar"
 2. Abra o painel:
    noctalia msg panel-toggle $PLUGIN_ID:panel
-3. No painel, clique em "Conectar automaticamente" ou cole o link de:
-   opencode pair
+3. No boot, o próprio chat inicia o servidor do OpenCode (opencode service
+   start) e pareia sozinho. Se precisar, use "Tentar novamente" no painel ou
+   rode opencode pair e cole o link.
 
 Sessões e espelhos: $WORKSPACE
 EOF

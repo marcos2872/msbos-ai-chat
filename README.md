@@ -2,7 +2,7 @@
 
 Chat de IA para o desktop **omyfedora** (Fedora + niri + Noctalia), exibido em um painel flutuante do Noctalia e conectado ao **OpenCode local**. O agente `omyfedora-chat` segue a skill `omyfedora` para propor mudanças no sistema, pedir confirmação, aplicar, validar e registrar o resultado.
 
-> Status: implementação local `0.1.0`, testada em Fedora 44, niri, Noctalia 5.3.0 (plugin API 34) e OpenCode 2.1.2.
+> Status: implementação local `0.1.0`, testada em Fedora 44, niri, Noctalia 5.3.0 (plugin API 34) e OpenCode 2.1.4.
 > O `MAPEAMENTO.md` registra o levantamento inicial. A documentação em [`docs/`](docs/index.md) reflete o código atual.
 
 ## Stack
@@ -16,11 +16,10 @@ Chat de IA para o desktop **omyfedora** (Fedora + niri + Noctalia), exibido em u
 
 - Fedora com niri e Noctalia 5.3 ou superior.
 - OpenCode 2.x instalado, com `opencode` no `PATH`.
-- Servidor do OpenCode acessível em loopback (o app desktop ou `opencode serve`).
 - Skill `omyfedora` instalada em `~/.agents/skills/omyfedora/` para o agente especialista.
 - `bash` e utilitários básicos (`cp`, `chmod`, `nohup`).
 
-O plugin **não** instala o OpenCode, o Noctalia nem a skill `omyfedora`; ele usa o que já está no sistema. Também não inicia o servidor do OpenCode.
+O plugin **não** instala o OpenCode, o Noctalia nem a skill `omyfedora`; ele usa o que já está no sistema. O servidor local do OpenCode é iniciado pelo próprio plugin (`opencode service start`) quando necessário — não é preciso abrir o app desktop nem um terminal.
 
 ## Instalação
 

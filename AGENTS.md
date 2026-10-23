@@ -20,7 +20,9 @@ Não há `package.json`, `Makefile`, workflow de CI, build step nem suíte autom
 | Recarregar após editar | desabilitar + habilitar (comandos acima) | `engine.luau`, `uninstall.sh` |
 | Abrir/fechar o painel | `noctalia msg panel-toggle omyfedora/ai-chat:panel` | `install.sh` |
 | Parear manualmente | `opencode pair` | `install.sh`, `engine.luau` |
-| Iniciar um servidor OpenCode local | `opencode serve` | `panel.luau` (estado offline) |
+| Ver o servidor OpenCode em uso | `opencode service status` | `plugin/engine.luau` |
+| Subir o servidor OpenCode (idempotente) | `opencode service start` | `plugin/engine.luau`, `plugin/panel.luau` |
+| Iniciar um servidor OpenCode em primeiro plano | `opencode serve` | `panel.luau` (botão "Abrir terminal") |
 | Listar plugins descobertos | `noctalia msg plugins list` | `install.sh` |
 
 ### Build, teste e lint
@@ -64,7 +66,7 @@ panel.luau --IPC--> engine.luau --HTTP/SSE--> OpenCode local
 - O SSE (`/api/event`) alimenta o streaming; `/context` reconcilia as mensagens ao selecionar a sessão e ao final da execução.
 - O seletor está dentro de `panel.luau`; não existem `picker.luau` nem `lib/sse.luau` no código atual.
 - O painel é `persistent = false`, `position = "top_right"`, `layer = "overlay"`; o host desenha fundo/borda. O frame do plugin é transparente.
-- O tamanho usa presets (`compact` 420×560, `medium` 460×640, `large` 620×820); o engine reescreve `width`/`height` do `plugin.toml` instalado e recarrega o plugin.
+- O tamanho usa presets (`compact` 420×560, `medium` 460×640, `large` 620×820); o engine roda `plugin/scripts/panel-size.sh` para reescrever `width`/`height` do `plugin.toml` instalado e recarrega o plugin.
 - Novas conversas herdam o modelo/variante atuais; a precedência é `opts.model` → `preferredModel` em `ui.json` → modelo da sessão ativa. `variant = "default"` é omitido.
 - Ao apagar a sessão ativa, o engine limpa a sessão ativa e o painel permanece no seletor; não abre a primeira sessão. Clicar em uma linha do seletor abre a sessão.
 - `shell`/`edit` são automáticos (sem cartão de permissão). Formulários da ferramenta `question` são renderizados e respondidos pelo painel.

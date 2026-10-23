@@ -166,6 +166,19 @@ function M.health(baseUrl, cb)
   end)
 end
 
+-- Sonda autenticada: valida o servidor e o token de pareamento de uma vez.
+-- `/global/health` não exige auth (e em algumas versões responde com o HTML da
+-- SPA), então não detecta token expirado nem um servidor ainda aquecendo.
+function M.ready(pairing, cb)
+  M.request(pairing, "GET", "/api/agent", nil, function(data, err)
+    if err then
+      cb(false, err)
+      return
+    end
+    cb(true)
+  end)
+end
+
 function M.listModels(pairing, cb)
   M.request(pairing, "GET", "/api/model", nil, function(data, err)
     if err then

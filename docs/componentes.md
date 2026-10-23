@@ -19,6 +19,8 @@ omyfedora-ai-chat/
 │   │   ├── api.luau
 │   │   ├── store.luau
 │   │   └── format.luau
+│   ├── scripts/
+│   │   └── panel-size.sh
 │   └── translations/
 │       ├── pt-BR.json
 │       └── en.json
@@ -162,21 +164,24 @@ noctalia msg plugin omyfedora/ai-chat:panel all open_picker
 | `replyPermission()` / `replyForm()` | Responde pendências. |
 | `handleEvent()` | Aplica eventos SSE. |
 | `connectSse()` | Abre/reabre o stream e agenda backoff. |
-| `checkHealth()` | Health, catálogo, sessões e SSE. |
-| `doPair()` / `onPaired()` | Pareamento automático/manual. |
-| `applyPanelSize()` | Reescreve o manifesto instalado e recarrega. |
-| `init()` | Reinicializa todo o estado a partir de settings/disco. |
+| `ensureService()` | `opencode service status` → `opencode service start`; adota a URL e chama `checkHealth`. |
+| `checkHealth()` | Sonda autenticada (`/api/agent`), catálogo, sessões e SSE. |
+| `loadAgents()` | Lista agentes, define `agentStatus` e agenda revalidação com backoff. |
+| `doPair()` / `onPaired()` | Pareamento automático/manual; `doPair` garante o serviço antes de pedir o link. |
+| `applyPanelSize()` | Executa `scripts/panel-size.sh` (fora do callback) e recarrega quando o manifesto muda. |
+| `init()` | Reinicializa todo o estado a partir de settings/disco; no boot chama `ensureService()` ou pareia sozinho. |
 | `onIpc()` | Comandos do painel/CLI. |
-| `update()` | Publicação com throttle, reconexão e health periódico. |
+| `update()` | Publicação com throttle, reconexão do SSE, `ensureService` com backoff e revalidação de agentes. |
 | `onEnable` / `onConfigChanged` / `onExit` | Ciclo de vida do serviço. |
 
 ### IPC recebido pelo engine
 
 | Evento | Payload | Ação |
 |---|---|---|
-| `sync` | — | Republica snapshot/modelos/sessões; se offline, health check. |
-| `pair` | link ou vazio | Pareia com link ou executa `opencode pair`. |
-| `unpair` | — | Para SSE e apaga `pairing.json`. |
+| `sync` | — | Republica snapshot/modelos/sessões; se offline, `ensureService`; se não pareado, tenta parear; senão revalida agentes. |
+| `start` | — | Força `ensureService` (ou pareamento, se não pareado). |
+| `pair` | link ou vazio | Pareia com link ou garante o serviço e executa `opencode pair`. |
+| `unpair` | — | Para SSE, apaga `pairing.json` e suspende o pareamento automático. |
 | `new_session` | JSON `{ model?, agent? }` | Cria sessão. |
 | `select_session` | ID | Carrega sessão. |
 | `delete_session` | ID | Apaga sessão no OpenCode. |
@@ -187,6 +192,7 @@ noctalia msg plugin omyfedora/ai-chat:panel all open_picker
 | `reply_permission` | JSON `{ requestID, decision }` | Responde permissão. |
 | `reply_form` | JSON `{ formID, answer }` | Responde formulário. |
 | `refresh_models` | — | Recarrega catálogo. |
+| `refresh_agents` | — | Recarrega a lista de agentes (usado pelo cartão “Verificar novamente”). |
 | `refresh_sessions` | — | Recarrega sessões. |
 | `export` | ID ou vazio | Exporta a sessão ativa/indicada. |
 | `toggle_panel` | — | Alterna o painel pelo host. |
@@ -201,7 +207,8 @@ noctalia msg plugin omyfedora/ai-chat:panel all open_picker
 | `pair(link, cb)` | `GET /auth/connect/{code}`. |
 | `request(pairing, method, path, body, cb, opts)` | HTTP com Basic auth e `directory`. |
 | `errorMessage(err)` | Normaliza erros. |
-| `health(baseUrl, cb)` | `GET /global/health`. |
+| `health(baseUrl, cb)` | `GET /global/health` (não usado: não valida token). |
+| `ready(pairing, cb)` | `GET /api/agent` com Basic auth: sonda de servidor + token. |
 | `listModels` | `GET /api/model`. |
 | `defaultModel` | `GET /api/model/default` (não usado). |
 | `listAgents` | `GET /api/agent`. |
@@ -221,7 +228,7 @@ noctalia msg plugin omyfedora/ai-chat:panel all open_picker
 | `exportSession` | `GET /api/experimental/session/{id}/export?sanitize=false`. |
 | `streamEvents` | `GET /api/event` (SSE). |
 
-O cliente não tem retry HTTP genérico; o tratamento de reconexão é específico do SSE e do health check.
+O cliente não tem retry HTTP genérico; o tratamento de reconexão é específico do SSE e da sonda de conexão (`ensureService` + `checkHealth`).
 
 ## `lib/store.luau` — persistência
 
