@@ -11,6 +11,7 @@ local pairLinkDraft = ""
 local toast = ""
 local toastAt = 0
 local expandedTools = {}
+local expandedPermissions = {}
 local expandedReasoning = {}
 local formDrafts = {}
 local view = "chat"
@@ -461,7 +462,22 @@ local function renderPermission(permission)
   end
   local detail = permissionDetail(permission)
   if detail ~= "" then
-    table.insert(children, ui.label({ text = detail, fontSize = 9, color = mutedColor(), maxLines = 8 }))
+    -- Mostra o alvo em bloco de código (monoespaçado) e permite expandir: o
+    -- comando/salvamento precisa ser lido por inteiro antes de aprovar.
+    local expanded = expandedPermissions[permission.id] == true
+    local preview = expanded and detail or format.truncate(detail, 280)
+    table.insert(children, ui.markdown({ text = "```text\n" .. preview .. "\n```" }))
+    if not expanded and #detail > 280 then
+      table.insert(children, ui.button({
+        text = "Ver o alvo completo",
+        variant = "ghost",
+        fontSize = 9,
+        onClick = function()
+          expandedPermissions[permission.id] = true
+          render()
+        end,
+      }))
+    end
   end
   table.insert(children, ui.row({ gap = 8, align = "center" }, {
     ui.button({
@@ -469,14 +485,18 @@ local function renderPermission(permission)
       variant = "primary",
       fontSize = 10,
       onClick = function()
+        expandedPermissions[permission.id] = nil
         sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "once" }))
       end,
     }),
+    -- "Sempre" é menos destacado de propósito; o escopo é o que o servidor definiu.
     ui.button({
       text = "Permitir sempre",
-      variant = "secondary",
+      variant = "ghost",
       fontSize = 10,
+      tooltip = "Permite sempre (escopo definido pelo OpenCode)",
       onClick = function()
+        expandedPermissions[permission.id] = nil
         sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "always" }))
       end,
     }),
@@ -485,6 +505,7 @@ local function renderPermission(permission)
       variant = "destructive",
       fontSize = 10,
       onClick = function()
+        expandedPermissions[permission.id] = nil
         sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "reject" }))
       end,
     }),
