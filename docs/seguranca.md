@@ -87,6 +87,18 @@ niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-p
 - Só os subcomandos do helper devem ser usados; não é um caminho para comandos arbitrários.
 - Se o host for reiniciado com um servidor standalone (sem `NoNewPrivs`), o `pkexec` direto também funciona; a instrução via niri continua válida.
 
+### Helper privilegiado (instalado pelo `install.sh`)
+
+O helper `/usr/local/libexec/msbos-priv` é a única porta para ações de root. O
+`install.sh` instala a cópia do pacote (`plugin/scripts/msbos-priv`) **somente
+quando o helper ainda não existe**; uma versão local modificada é preservada (o
+instalador só avisa que difere). Se não houver root na hora, ele imprime o
+comando manual:
+
+```bash
+pkexec install -m 0755 -- <plugin>/scripts/msbos-priv /usr/local/libexec/msbos-priv
+```
+
 ### Regra de polkit (aplicada pelo `install.sh`)
 
 O `install.sh` instala `/etc/polkit-1/rules.d/49-msbos-priv.rules`

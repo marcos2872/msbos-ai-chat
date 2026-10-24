@@ -21,6 +21,66 @@ echo "plugin:    $PLUGIN_DIR"
 echo "agente:    $AGENT_FILE"
 echo "workspace: $WORKSPACE"
 
+# ── Verificações de pré-requisitos ─────────────────────────────────────────
+# O plugin não instala o OpenCode, a skill `msbos` nem o terminal do polkit.
+# Em vez de falhar no meio do uso, o instalador diz em português o que falta e
+# como resolver. Nada aqui aborta a instalação: as pendências são listadas no
+# fim. Desative com MSBOS_AI_CHAT_CHECKS=0.
+PENDING=()
+ok()   { printf '  ✓ %s\n' "$1"; }
+miss() { printf '  ✗ %s\n      %s\n' "$1" "$2"; PENDING+=("$1"); }
+
+if [[ "${MSBOS_AI_CHAT_CHECKS:-1}" != "0" ]]; then
+  echo
+  echo "==> verificando pré-requisitos"
+
+  if command -v opencode >/dev/null 2>&1; then
+    ok "OpenCode no PATH ($(opencode --version 2>/dev/null | head -1))"
+    # A conta de IA é o que faz o painel ter modelos. Sem ela o chat abre, mas
+    # não responde — por isso a checagem e a instrução de login.
+    auth_list="$(opencode auth list 2>/dev/null || true)"
+    if grep -qi "stored" <<<"$auth_list"; then
+      ok "conta de IA configurada"
+    else
+      miss "nenhuma conta de IA configurada" "Conecte uma conta: opencode auth login"
+    fi
+  else
+    miss "OpenCode não encontrado no PATH" "Instale o OpenCode 2.x e confirme com: opencode --version"
+  fi
+
+  if command -v noctalia >/dev/null 2>&1; then
+    ok "Noctalia no PATH ($(noctalia --version 2>/dev/null | head -1))"
+  else
+    miss "Noctalia não encontrado no PATH" "Instale o Noctalia 5.3+ (sem ele não há barra nem painel)"
+  fi
+
+  if [[ -f "$HOME/.agents/skills/msbos/SKILL.md" ]]; then
+    ok "skill msbos instalada"
+  else
+    miss "skill msbos ausente" "Instale em ~/.agents/skills/msbos/ (o agente usa as regras de segurança dela)"
+  fi
+
+  if [[ -x /usr/local/libexec/msbos-priv ]]; then
+    ok "helper privilegiado instalado"
+  elif [[ -f "$ROOT/plugin/scripts/msbos-priv" ]]; then
+    echo "  • helper privilegiado ausente — será instalado agora (pede a senha)"
+  else
+    miss "helper privilegiado ausente" "Instale em /usr/local/libexec/msbos-priv (ações de root do agente)"
+  fi
+
+  if command -v alacritty >/dev/null 2>&1; then
+    ok "terminal alacritty presente"
+  else
+    miss "alacritty não encontrado" "Instale o alacritty (a janela de senha do polkit abre nele)"
+  fi
+
+  if command -v pkexec >/dev/null 2>&1; then
+    ok "pkexec presente"
+  else
+    miss "pkexec não encontrado" "Instale o polkit (é o portão das ações de root)"
+  fi
+fi
+
 mkdir -p "$AGENT_DIR"
 
 # Workspace: move as sessões/pareamento antigos sem perder o histórico.
@@ -106,6 +166,23 @@ else
   echo "Noctalia não encontrado no PATH; habilite o plugin pela GUI."
 fi
 
+# ── Helper privilegiado (root) ─────────────────────────────────────────────
+# O agente só faz ações de root por este helper (allowlist fechada). Ele é
+# instalado apenas quando ausente: uma cópia local modificada é preservada.
+HELPER_SRC="$PLUGIN_DIR/scripts/msbos-priv"
+HELPER_DST="/usr/local/libexec/msbos-priv"
+if [[ -f "$HELPER_SRC" && ! -x "$HELPER_DST" ]] && command -v pkexec >/dev/null 2>&1; then
+  echo "==> instalando o helper privilegiado (pode pedir a senha)"
+  if pkexec install -m 0755 -- "$HELPER_SRC" "$HELPER_DST" 2>/dev/null; then
+    echo "helper instalado: $HELPER_DST"
+  else
+    echo "helper NÃO instalado (sem root). Para instalar depois:"
+    echo "  pkexec install -m 0755 -- '$HELPER_SRC' '$HELPER_DST'"
+  fi
+elif [[ -x "$HELPER_DST" && -f "$HELPER_SRC" ]] && ! cmp -s "$HELPER_SRC" "$HELPER_DST"; then
+  echo "aviso: $HELPER_DST difere da cópia do pacote; mantendo a instalada."
+fi
+
 # ── Hardening (root): regra de polkit ──────────────────────────────────────
 # Impede `pkexec` de abrir um shell como root — defesa em profundidade contra o
 # agente usar `pkexec /bin/sh -c ...` e contornar a allowlist do helper. É
@@ -137,13 +214,20 @@ cat <<EOF
 
 Instalado.
 
-1. Adicione o widget na barra:
-   Settings → Bar → Widgets → "msbos/ai-chat:bar"
+1. Adicione o widget na barra (uma vez só):
+   Settings → Bar → Widgets → procure "msbos/ai-chat:bar"
+   Atalho: noctalia msg settings-open-plugin $PLUGIN_ID
 2. Abra o painel:
    noctalia msg panel-toggle $PLUGIN_ID:panel
-3. No boot, o próprio chat inicia o servidor do OpenCode (opencode service
-   start) e pareia sozinho. Se precisar, use "Tentar novamente" no painel ou
-   rode opencode pair e cole o link.
+3. O chat inicia o servidor do OpenCode sozinho (opencode service start) e
+   conecta sem pedir nada. Se não conectar, use "Tentar novamente" no painel.
 
-Sessões e espelhos: $WORKSPACE
+Suas conversas ficam salvas em $WORKSPACE (somente o seu usuário lê).
 EOF
+
+if [[ ${#PENDING[@]} -gt 0 ]]; then
+  echo
+  echo "Pendências (o chat funciona, mas estes recursos não):"
+  printf '  - %s\n' "${PENDING[@]}"
+  echo "Resolva e rode ./install.sh de novo para conferir."
+fi

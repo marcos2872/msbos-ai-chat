@@ -16,8 +16,11 @@ Chat de IA para o desktop **msbos** (Fedora + niri + Noctalia), exibido em um pa
 
 - Fedora com niri e Noctalia 5.3 ou superior.
 - OpenCode 2.x instalado, com `opencode` no `PATH`.
+- Uma conta de IA conectada ao OpenCode (`opencode auth login`). Sem isso o painel abre, mas não tem modelos para conversar.
 - Skill `msbos` instalada em `~/.agents/skills/msbos/` para o agente especialista.
-- `bash` e utilitários básicos (`cp`, `chmod`, `nohup`).
+- Helper privilegiado em `/usr/local/libexec/msbos-priv` (allowlist das ações de root). O `install.sh` instala a cópia de `plugin/scripts/msbos-priv` quando ele não existe.
+- `alacritty` e `pkexec` (a confirmação de root abre um terminal com a janela de senha do polkit).
+- `bash` e utilitários básicos (`cp`, `chmod`, `cmp`).
 
 O plugin **não** instala o OpenCode, o Noctalia nem a skill `msbos`; ele usa o que já está no sistema. O servidor local do OpenCode é iniciado pelo próprio plugin (`opencode service start`) quando necessário — não é preciso abrir o app desktop nem um terminal.
 
@@ -30,12 +33,15 @@ cd /caminho/para/msbos-ai-chat
 ./install.sh
 ```
 
-O instalador:
+Antes de copiar qualquer coisa, o instalador verifica OpenCode, conta de IA, Noctalia, skill `msbos`, helper privilegiado, `alacritty` e `pkexec`, e mostra em português o que falta e como resolver. Nada aborta a instalação: o que faltar aparece no fim como **Pendências** (o chat funciona, mas os recursos que dependem daquilo não). Para pular a verificação, use `MSBOS_AI_CHAT_CHECKS=0 ./install.sh`.
+
+Depois disso, o instalador:
 
 1. copia o plugin para `~/.local/share/noctalia/plugins/msbos-ai-chat/`;
 2. copia o agente para `~/.config/opencode/agents/msbos-chat.md` (com backup do anterior);
 3. cria `~/.msbos-ai-chat/{state,sessions}` com permissões restritas;
-4. roda o lint do plugin e tenta habilitá-lo no Noctalia.
+4. roda o lint do plugin e tenta habilitá-lo no Noctalia;
+5. instala o helper privilegiado (se ausente) e a regra de polkit que bloqueia `pkexec` para shells.
 
 ### Migrando da versão anterior
 
