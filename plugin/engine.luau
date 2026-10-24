@@ -1272,7 +1272,10 @@ onPaired = function(result, err)
     version = "",
     pairedAt = noctalia.nowMs(),
   }
-  store.writePairing(directory, pairing)
+  local saved, saveError = store.writePairing(directory, pairing)
+  if not saved then
+    noctalia.log("msbos-ai-chat: falha ao salvar o pareamento: " .. tostring(saveError))
+  end
   status = "idle"
   errorMessage = ""
   pairRetryAt = 0

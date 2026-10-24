@@ -28,6 +28,11 @@ function M.ensure(directory)
   noctalia.mkdirAll(root)
   noctalia.mkdirAll(root .. "/state")
   noctalia.mkdirAll(root .. "/sessions")
+  -- Reforça 0700: o install.sh faz isso para o caminho padrão; aqui cobre o
+  -- `directory` customizado e um workspace criado pelo próprio plugin.
+  for _, dir in ipairs({ root, root .. "/state", root .. "/sessions" }) do
+    noctalia.runAsync({ "chmod", "700", dir })
+  end
   local agents = root .. "/AGENTS.md"
   if not noctalia.fileExists(agents) then
     noctalia.writeFile(agents, AGENTS_MD)
@@ -59,16 +64,46 @@ function M.readJson(path)
   return nil
 end
 
+-- Escrita restrita: grava num temporário e usa `install -m <mode>` para o
+-- destino já nascer com o modo certo e de forma atômica — evita a janela em que
+-- o arquivo (ex.: pairing.json, com o token) ficaria 0644 entre o writeFile e o
+-- chmod assíncrono. Os caminhos vão como argumentos posicionais ($1/$2/$3),
+-- nunca interpolados, então não há injeção de shell.
+function M.writeFileMode(path, content, mode)
+  if not mode then
+    return noctalia.writeFile(path, content)
+  end
+  local tmp = path .. ".tmp"
+  local ok, err = noctalia.writeFile(tmp, content)
+  if not ok then
+    return false, err
+  end
+  local started = noctalia.runAsync({
+    "sh",
+    "-c",
+    'install -m "$3" -- "$1" "$2" && rm -f -- "$1"',
+    "msbos-write",
+    tmp,
+    path,
+    tostring(mode),
+  }, function(result)
+    if result and result.exitCode ~= 0 then
+      noctalia.log("msbos-ai-chat: falha na escrita restrita de " .. path .. ": " .. tostring(result.stderr))
+    end
+  end)
+  if not started then
+    noctalia.removeFile(tmp)
+    return false, "falha ao agendar a escrita restrita"
+  end
+  return true
+end
+
 function M.writeJson(path, value, mode)
   local encoded = noctalia.json.encode(value, true)
   if not encoded then
     return false, "falha ao codificar JSON"
   end
-  local ok, err = noctalia.writeFile(path, encoded)
-  if ok and mode then
-    noctalia.runAsync({ "chmod", tostring(mode), path })
-  end
-  return ok, err
+  return M.writeFileMode(path, encoded, mode)
 end
 
 function M.readPairing(directory)
@@ -177,8 +212,7 @@ function M.writeSession(directory, id, data, maxToolOutput)
   local mdPath = paths.sessions .. "/" .. safe .. ".md"
 
   local jsonOk = M.writeJson(jsonPath, data, "600")
-  local mdOk = noctalia.writeFile(mdPath, M.sessionMarkdown(data, maxToolOutput))
-  noctalia.runAsync({ "chmod", "600", mdPath })
+  local mdOk = M.writeFileMode(mdPath, M.sessionMarkdown(data, maxToolOutput), "600")
 
   local index = M.readJson(paths.index) or { sessions = {} }
   if type(index.sessions) ~= "table" then

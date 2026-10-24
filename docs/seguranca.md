@@ -29,12 +29,12 @@ Se o token vazar:
 
 | Caminho | Proteção |
 |---|---|
-| `~/.msbos-ai-chat/` | O instalador cria com `700`. |
+| `~/.msbos-ai-chat/` | O instalador cria com `700`; o plugin reforça `0700` em `state/` e `sessions/` no `init()`. |
 | `state/` e `sessions/` | O instalador cria com `700`. |
 | `pairing.json` | `0600`. |
 | `ui.json` | `0600`. |
 | `sessions/index.json` | `0600`. |
-| `sessions/<id>.json` e `.md` | `0600` (JSON na escrita; Markdown via `chmod` logo após). |
+| `sessions/<id>.json` e `.md` | `0600` (gravação atômica: temporário + `install -m 600`). |
 
 O export usa `sanitize=false`, então o texto real da conversa fica em disco. Isso é intencional para consulta/auditoria local, mas significa que:
 
