@@ -178,12 +178,14 @@ Quando o setting `panel_size` muda, o engine executa `scripts/panel-size.sh`, qu
 
 ## Permissões e formulários
 
-O agente atual tem `edit: allow`, `shell: allow`, `question: allow` e `task: deny`. O engine também responde automaticamente a `permission.asked`:
+O agente atual tem `edit: ask`, `shell: ask`, `question: allow`, `webfetch: deny` e `task: deny`.
 
-- `shell`, `edit`, `question` e `form` → `once`;
-- qualquer outra ação → `reject` (com notificação).
+- Em `permission_mode = "ask"` (padrão), `shell`/`edit` viram **cartão no painel** (Permitir uma vez / Recusar, com resumo em linguagem comum); o engine **não** autoaprova.
+- Em `permission_mode = "always"`, o engine autoaprova `shell`/`edit` (desliga a barreira; o ajuste avisa o risco).
+- `question`/`form` são respondidos pelo cartão do próprio painel.
+- Qualquer outra ação é recusada (com notificação).
 
-Assim, **não há cartão técnico de permissão** para shell/edit nesta versão. A confirmação de mudanças é conversacional, feita pelo ritual da skill `msbos`. Veja [Segurança](seguranca.md).
+Além da barreira técnica, vale o ritual conversacional da skill `msbos`. Veja [Segurança](seguranca.md).
 
 Formulários da ferramenta `question` chegam por `form.created` com o `sessionID` dentro de `data.form`; o engine trata esse evento antes do filtro de sessão para não descartá-lo. O painel renderiza os campos e envia `reply_form`.
 
@@ -196,7 +198,7 @@ Formulários da ferramenta `question` chegam por `form.created` com o `sessionID
 | IPC via CLI + estado compartilhado | Simples e isolado por VM, mas payload é argumento de linha de comando e a comunicação é assíncrona. |
 | SSE + `/context` | Streaming em tempo real com reconciliação no fim/reconexão. |
 | Fundo do painel desenhado pelo host | Evita o efeito de painel duplicado; o frame do plugin é transparente. |
-| Permissões automáticas | Menos atrito para o assistente de desktop, mas a barreira técnica de shell/edit não é usada. |
+| Permissão por cartão (padrão) | O usuário aprova cada `shell`/`edit` no painel; `permission_mode = always` troca isso por autoaprovação explícita. |
 | Exports `sanitize=false` | Preserva o texto real para consulta local; arquivos ficam `0600`. |
 
 ## Limitações conhecidas

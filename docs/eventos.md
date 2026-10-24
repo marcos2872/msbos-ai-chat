@@ -58,7 +58,7 @@ O parser:
 | `session.step.ended` | `finish` | Se `finish != "tool-calls"`, finaliza a execução. |
 | `session.status` | `status.type` | Se `idle`, finaliza a execução. |
 | `session.error` | `error` | Associa o erro à última mensagem do assistente e finaliza. |
-| `permission.asked` | `id`, `action` | Responde automaticamente: `shell`/`edit`/`question`/`form` → `once`; demais → `reject`. |
+| `permission.asked` | `id`, `action` | Em `permission_mode = ask` (padrão), `shell`/`edit` viram cartão pendente no painel; em `always`, são autoaprovados com `once`. `question`/`form` são respondidos pelo cartão do painel; demais ações → `reject`. |
 | `permission.replied` | `requestID` ou `id` | Remove a permissão pendente, se houver. |
 
 Eventos desconhecidos são ignorados.
@@ -135,11 +135,21 @@ Enquanto o formulário está pendente, ele aparece no fim da conversa. Se o pain
 
 ## Permissões
 
-`permission.asked` **não** cria um cartão no painel. O engine responde imediatamente:
+Em `permission_mode = "ask"` (padrão), `permission.asked` de `shell`/`edit` **vira um cartão pendente** (`pending.permissions`) e o engine espera a resposta do painel (`reply_permission` com `once`/`always`/`reject`). Em `permission_mode = "always"`, o engine responde `once` sozinho.
 
 ```lua
-local allowed = action == "shell" or action == "edit" or action == "question" or action == "form"
-local decision = allowed and "once" or "reject"
+-- resumo do comportamento
+if action == "shell" or action == "edit" then
+  if permissionMode == "always" then
+    reply("once")          -- autoaprovação explícita
+  else
+    pendingPermissions[id] = { ... }  -- cartão no painel
+  end
+elseif action == "question" or action == "form" then
+  -- respondidos pelo cartão do próprio formulário
+else
+  reply("reject")          -- registra no log e notifica
+end
 ```
 
 Se a ação for recusada, o engine registra no log e notifica “Ação sensível bloqueada automaticamente”.

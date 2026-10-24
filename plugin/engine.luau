@@ -353,7 +353,7 @@ local function parseChangeLine(line)
   return {
     when = when,
     what = format.truncate(what, 400),
-    undo = format.truncate(undo, 400),
+    undo = format.truncate(undo, 800),
   }
 end
 

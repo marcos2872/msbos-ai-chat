@@ -132,10 +132,10 @@ Arquivo instalado: `~/.config/opencode/agents/msbos-chat.md`.
 
 ```yaml
 permission:
-  edit: allow
-  shell: allow
+  edit: ask
+  shell: ask
   read: allow
-  webfetch: allow
+  webfetch: deny
   skill: allow
   question: allow
   task: deny
@@ -143,7 +143,7 @@ permission:
 
 - O agente é `primary`.
 - A skill `msbos` deve existir em `~/.agents/skills/msbos/` (ou em um dos diretórios globais descobertos pelo OpenCode).
-- A confirmação de mudanças é feita no texto; não há cartão de permissão para shell/edit no painel.
+- `edit`/`shell` em `ask` geram cartão no painel; o ajuste `permission_mode = always` autoaprova (desliga a barreira). `webfetch` é negado. A confirmação conversacional da skill continua valendo.
 - Para root, o agente usa `niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv ...` (TTY + polkit) porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
 - O instalador faz backup do agente anterior como `msbos-chat.md.bak-<timestamp>`.
 

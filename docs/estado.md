@@ -55,7 +55,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `session` | table/nil | Sessão ativa. |
 | `messages` | array | Mensagens mapeadas para a UI (apenas as últimas `MAX_SNAPSHOT_MESSAGES`, 24). |
 | `messagesTotal` | number | Total de mensagens no histórico interno; o painel avisa quando é maior que `#messages`. |
-| `pending.permissions` | array | Permissões carregadas por `/permission`; **não renderizadas** pelo painel atual. |
+| `pending.permissions` | array | Permissões pendentes de `shell`/`edit` (carregadas por `/permission`); o painel renderiza como cartão e responde por `reply_permission`. |
 | `pending.forms` | array | Formulários pendentes; renderizados no fim do chat. |
 | `lastEventAt` | number | `noctalia.nowMs()` da última publicação. |
 
@@ -305,5 +305,5 @@ stateDiagram-v2
 ## Persistência de formulários e permissões
 
 - Formulários pendentes existem em memória e são recarregados por `/form` ao selecionar a sessão.
-- Permissões pendentes são carregadas por `/permission`, mas não há UI para elas; o engine responde `permission.asked` automaticamente.
+- Permissões pendentes são carregadas por `/permission` e renderizadas como cartão; em `permission_mode = always`, o engine autoaprova `shell`/`edit`.
 - Rascunhos de formulário no painel ficam em `formDrafts` e são apagados após o envio; não são persistidos em disco.

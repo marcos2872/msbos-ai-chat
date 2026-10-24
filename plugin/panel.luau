@@ -586,6 +586,9 @@ local function permissionSummary(permission)
     if pkg then
       return "Remover o programa " .. pkg
     end
+    if command:match("msbos%-priv%s+dnf%-upgrade") then
+      return "Atualizar o sistema"
+    end
     local verb, unit = command:match("msbos%-priv%s+svc%-(%w+)%s+([%w%-%._@]+)")
     if verb and unit then
       local label = "Reiniciar"
@@ -721,7 +724,7 @@ local function renderPermission(permission)
       align = "stretch",
     }, {
       ui.label({
-        text = "Permitir sempre deixa o assistente repetir esta ação sem perguntar (o alcance é definido por ele). Você pode voltar a exigir confirmação em Configurações → msbos AI Chat → Confirmação.",
+        text = "Permitir sempre salva esta aprovação no assistente (o alcance é definido por ele, não pelo painel): ele pode repetir a ação sem perguntar. O ajuste “Confirmação” vale para os próximos pedidos; para revogar um “sempre” já salvo, use as permissões salvas do OpenCode.",
         fontSize = 10,
         color = mutedColor(),
         maxLines = 6,
@@ -1831,10 +1834,12 @@ function onConnectAccount()
 end
 
 function onRetryModels()
-  sendCommand("sync")
+  -- `sync` só republica o catálogo em memória; `refresh_models` recarrega do
+  -- servidor (necessário depois de `opencode auth login`).
+  sendCommand("refresh_models")
   toast = "Verificando os modelos de novo…"
-    toastError = false
   toastAt = noctalia.nowMs()
+  toastError = false
   render()
 end
 
