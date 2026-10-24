@@ -332,6 +332,55 @@ local function publishModels()
   noctalia.state.set("chat.models", list)
 end
 
+-- ── Histórico de alterações do sistema ─────────────────────────────────────
+-- A skill `msbos` registra cada mudança em ~/.local/state/msbos/agent-changes.log
+-- (data | o que mudou | desfazer: comando). O painel lê esse registro para
+-- oferecer "desfazer" sem depender do texto da conversa.
+local MAX_CHANGES = 30
+
+local function parseChangeLine(line)
+  -- O log da skill não é uniforme: aceita "2026-10-21 17:27", "…T17:28:27-03:00"
+  -- e o separador "|" depois da data é opcional.
+  local when, rest = line:match("^(%d%d%d%d%-%d%d%-%d%d[T ]%d%d:%d%d[%d:%.%+%-]*)%s*|?%s*(.*)$")
+  if not when then
+    return nil
+  end
+  local what, undo = rest:match("^(.-)%s*[;|]%s*[Dd]esfazer:%s*(.+)$")
+  if not what then
+    what = rest
+    undo = ""
+  end
+  return {
+    when = when,
+    what = format.truncate(what, 400),
+    undo = format.truncate(undo, 400),
+  }
+end
+
+-- Lê o arquivo inteiro e devolve as `MAX_CHANGES` mais recentes, da última
+-- para a primeira. Chamado sob demanda (sync/abrir a tela/fim de execução),
+-- nunca no `publish`, para não ler disco a cada 250 ms.
+local function refreshChanges()
+  local raw = noctalia.readFile(noctalia.expandPath("~/.local/state/msbos/agent-changes.log"))
+  local list = {}
+  if type(raw) == "string" and raw ~= "" then
+    local lines = {}
+    for line in raw:gmatch("[^\r\n]+") do
+      table.insert(lines, line)
+    end
+    for i = #lines, 1, -1 do
+      local change = parseChangeLine(lines[i])
+      if change then
+        table.insert(list, change)
+        if #list >= MAX_CHANGES then
+          break
+        end
+      end
+    end
+  end
+  noctalia.state.set("chat.changes", list)
+end
+
 local function publishSessions()
   local list = {}
   for _, session in ipairs(sessions) do
@@ -486,6 +535,9 @@ finishRun = function()
   busy = false
   status = errorMessage ~= "" and "error" or "idle"
   statusMessage = ""
+  -- O agente registra a mudança no log antes de terminar; relê para a tela de
+  -- alterações mostrar o que acabou de acontecer.
+  refreshChanges()
   if activeSession then
     refreshContext(activeSession.id)
     exportSession(activeSession.id)
@@ -1456,6 +1508,7 @@ local function init()
   permissionMode = tostring(noctalia.getConfig("permission_mode") or "ask")
 
   store.ensure(directory)
+  refreshChanges()
 
   local ui = store.readUi(directory)
   preferredModel = copyModelRef(ui.preferredModel) or copyModelRef(ui.model)
@@ -1536,6 +1589,7 @@ end
 
 function onIpc(event, payload)
   if event == "sync" then
+    refreshChanges()
     if not pairing then
       if autoPair then
         pairingSuppressed = false
@@ -1609,6 +1663,8 @@ function onIpc(event, payload)
     interrupt()
   elseif event == "regenerate" then
     regenerate()
+  elseif event == "refresh_changes" then
+    refreshChanges()
   elseif event == "load_previous" then
     loadPrevious()
   elseif event == "reply_permission" then

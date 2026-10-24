@@ -189,6 +189,9 @@ noctalia msg plugin msbos/ai-chat:panel all open_picker
 | `set_agent` | ID | Troca agente da sessão ativa (sem UI dedicada). |
 | `prompt` | texto | Envia mensagem; cria sessão se não houver ativa. |
 | `interrupt` | — | Interrompe execução. |
+| `regenerate` | — | Reenvia o último pedido do usuário (a API não tem regenerar nativo). |
+| `load_previous` | — | Amplia a janela do snapshot em `MAX_SNAPSHOT_MESSAGES` (botão **Carregar anteriores**). |
+| `refresh_changes` | — | Relê `~/.local/state/msbos/agent-changes.log` e republica `chat.changes`. |
 | `reply_permission` | JSON `{ requestID, decision }` | Responde permissão. |
 | `reply_form` | JSON `{ formID, answer }` | Responde formulário. |
 | `refresh_models` | — | Recarrega catálogo. |
@@ -197,7 +200,7 @@ noctalia msg plugin msbos/ai-chat:panel all open_picker
 | `export` | ID ou vazio | Exporta a sessão ativa/indicada. |
 | `toggle_panel` | — | Alterna o painel pelo host. |
 
-> `reply_permission` existe no IPC, mas o painel atual não renderiza cartões de permissão; o engine responde `permission.asked` automaticamente.
+> `reply_permission` responde ao cartão do painel (`once`/`always`/`reject`). O engine só autoaprova `shell`/`edit` quando o ajuste `permission_mode` é `always`; `question`/`form` são respondidos pelo próprio cartão.
 
 ## `lib/api.luau` — cliente OpenCode
 

@@ -8,6 +8,7 @@
 | `chat.status` | `engine.luau` | `bar.luau` |
 | `chat.models` | `engine.luau` | `panel.luau` (seletor) |
 | `chat.sessions` | `engine.luau` | `panel.luau` (seletor) |
+| `chat.changes` | `engine.luau` | `panel.luau` (tela de alterações) |
 | `chat.panel_open` | `panel.luau` | `engine.luau` |
 | `state/pairing.json` | `engine.luau`/`store.luau` | `engine.luau` |
 | `state/ui.json` | `engine.luau`/`store.luau` | `engine.luau` |
@@ -171,6 +172,25 @@ O engine filtra modelos com `enabled == false` ou `status == "deprecated"`.
 ```
 
 Lista limitada a 50, ordenada por atualização decrescente.
+
+## `chat.changes`
+
+```lua
+{
+  {
+    when = "2026-10-24 16:50:06",
+    what = "dnf-install btop concluído (btop-1.4.7-1.fc44)",
+    undo = "pkexec /usr/local/libexec/msbos-priv dnf-remove btop",
+  },
+  ...
+}
+```
+
+As 30 entradas mais recentes de `~/.local/state/msbos/agent-changes.log`, da última
+para a primeira. O engine lê o arquivo sob demanda (`sync`, `refresh_changes` e
+fim de execução), nunca no `publish`, e tolera os formatos variados do log
+(`2026-10-21 17:27`, ISO com fuso, `|` opcional depois da data). `undo` fica
+vazio quando a linha não tem `desfazer:`.
 
 ## `chat.panel_open`
 

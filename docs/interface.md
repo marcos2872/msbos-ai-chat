@@ -43,6 +43,9 @@ stateDiagram-v2
     Offline --> Chat: sonda ok
     Chat --> Seletor: histórico
     Seletor --> Chat: voltar/abrir sessão
+    Chat --> Alteracoes: alterações no sistema
+    Seletor --> Alteracoes: alterações no sistema
+    Alteracoes --> Chat: voltar
 ```
 
 A view `picker` é local ao painel (não é um painel separado). O comando `open_picker` também pode ser enviado por IPC.
@@ -145,8 +148,17 @@ Clicar na linha abre a sessão (`select_session`) e volta ao chat. A lixeira abr
 
 O rodapé do seletor tem:
 
+- **Alterações no sistema** (ghost; abre a tela de alterações, IPC `open_changes`);
 - **Posição e tamanho do painel** (ghost; abre Settings);
 - **Apagar sessão** (`destructive`) com confirmação inline, quando há uma sessão selecionada.
+
+### Alterações no sistema
+
+View `changes` (IPC `open_changes`, também pelo rodapé do seletor), alimentada por `chat.changes`:
+
+- Lista as 30 mudanças mais recentes do log da skill, da última para a primeira, cada uma com data, descrição e **Pedir para desfazer** (envia `prompt` pedindo a reversão — o assistente explica e passa pelo cartão de permissão) e **Copiar comando** (copia o `desfazer:` registrado, quando existe).
+- O painel não executa nada sozinho: desfazer é uma mensagem como qualquer outra.
+- Estado vazio: “Nenhuma alteração registrada ainda.”; rodapé mostra o caminho do log.
 
 ### Nova conversa
 

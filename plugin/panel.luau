@@ -21,6 +21,7 @@ local showTechnical = false
 local sessionQuery = ""
 local models = noctalia.state.get("chat.models") or {}
 local sessions = noctalia.state.get("chat.sessions") or {}
+local changes = noctalia.state.get("chat.changes") or {}
 local selectedModelIndex = 0
 local selectedSessionIndex = 0
 local selectedReasoningId = "default"
@@ -1358,6 +1359,13 @@ local function pickerView()
 
   local bottom = {
     ui.button({
+      text = "Alterações no sistema",
+      variant = "ghost",
+      glyph = "history-toggle",
+      fontSize = 9,
+      onClick = "onOpenChanges",
+    }),
+    ui.button({
       text = "Posição e tamanho do painel",
       variant = "ghost",
       glyph = "settings",
@@ -1406,6 +1414,96 @@ local function pickerView()
   return ui.column({ flexGrow = 1, gap = 8, align = "stretch", paddingV = 8 }, children)
 end
 
+-- Histórico de alterações do sistema (log da skill msbos), com desfazer.
+local function changesView()
+  local children = {
+    ui.row({
+      gap = 8,
+      align = "center",
+      paddingH = 12,
+      paddingV = 8,
+      fill = "surface_variant/0.18",
+      border = "outline/0.35",
+      borderWidth = 1,
+      radius = 12,
+    }, {
+      ui.button({ glyph = "arrow-left", variant = "ghost", tooltip = "Voltar ao chat", onClick = "onBackToChat" }),
+      ui.column({ gap = 0, flexGrow = 1 }, {
+        ui.label({ text = "Alterações no sistema", fontSize = 15, fontWeight = "bold", color = textColor() }),
+        ui.label({ text = "O que mudou e como desfazer", fontSize = 10, color = mutedColor() }),
+      }),
+      ui.button({ glyph = "minus", variant = "ghost", tooltip = "Minimizar", onClick = "onMinimize" }),
+    }),
+  }
+
+  if #changes == 0 then
+    table.insert(children, ui.column({ gap = 8, align = "center", padding = 20, justify = "center", flexGrow = 1 }, {
+      ui.glyph({ name = "history-toggle", size = 32, color = mutedColor() }),
+      ui.label({ text = "Nenhuma alteração registrada ainda.", fontSize = 12, fontWeight = "bold", color = textColor() }),
+      ui.label({
+        text = "Quando o assistente mudar algo no seu sistema, o registro aparece aqui com a forma de desfazer.",
+        fontSize = 10,
+        color = mutedColor(),
+        textAlign = "center",
+        maxLines = 4,
+      }),
+    }))
+  else
+    local rows = {}
+    for index, change in ipairs(changes) do
+      local undo = tostring(change.undo or "")
+      table.insert(rows, ui.column({
+        fill = "surface_variant/0.18",
+        border = "outline/0.35",
+        borderWidth = 1,
+        radius = 10,
+        padding = 10,
+        gap = 6,
+        align = "stretch",
+      }, {
+        ui.label({ text = tostring(change.when or ""), fontSize = 9, color = mutedColor() }),
+        ui.label({ text = tostring(change.what or ""), fontSize = 10, color = textColor(), maxLines = 5 }),
+        (function()
+          local actions = {
+            ui.button({
+              text = "Pedir para desfazer",
+              variant = "secondary",
+              fontSize = 10,
+              glyph = "arrow-back-up",
+              onClick = function()
+                onUndoChange(index)
+              end,
+            }),
+          }
+          if undo ~= "" then
+            table.insert(actions, ui.button({
+              text = "Copiar comando",
+              variant = "ghost",
+              fontSize = 9,
+              glyph = "copy",
+              tooltip = undo,
+              onClick = function()
+                onCopyUndo(index)
+              end,
+            }))
+          end
+          return ui.row({ gap = 8, align = "center" }, actions)
+        end)(),
+      }))
+    end
+    table.insert(children, ui.scroll({ flexGrow = 1, gap = 8, paddingH = 12 }, rows))
+  end
+
+  table.insert(children, ui.label({
+    text = "Registro: ~/.local/state/msbos/agent-changes.log",
+    fontSize = 9,
+    color = mutedColor(),
+    paddingH = 12,
+  }))
+
+  return ui.column({ flexGrow = 1, gap = 8, align = "stretch", paddingV = 8 }, children)
+end
+
 -- Inset que o host aplica ao conteúdo do plugin: Style::panelPadding (14 px) ×
 -- contentScale (1.0 por padrão). O frame usa esse valor como padding negativo
 -- para o fundo preto cobrir também a borda/raio do painel.
@@ -1441,6 +1539,10 @@ render = function()
   end
   if view == "picker" then
     panel.render(frame(pickerView()))
+    return
+  end
+  if view == "changes" then
+    panel.render(frame(changesView()))
     return
   end
   if snapshot == nil then
@@ -1495,6 +1597,8 @@ function onIpc(event, _payload)
     deleteConfirm = nil
     syncPickerSelection()
     render()
+  elseif event == "open_changes" then
+    onOpenChanges()
   elseif event == "back" then
     view = "chat"
     deleteConfirm = nil
@@ -1556,6 +1660,46 @@ end
 
 function onSessionQueryChange(text)
   sessionQuery = text or ""
+  render()
+end
+
+function onOpenChanges()
+  view = "changes"
+  sendCommand("refresh_changes")
+  render()
+end
+
+-- Pede ao assistente para desfazer. Ele explica e passa pelo cartão de
+-- permissão como qualquer outra ação — o painel não executa nada sozinho.
+function onUndoChange(index)
+  local change = changes[index]
+  if change == nil then
+    return
+  end
+  local what = tostring(change.what or "")
+  local undo = tostring(change.undo or "")
+  local text = "Desfaça esta mudança que você fez no sistema"
+  if what ~= "" then
+    text = text .. ": " .. what
+  end
+  if undo ~= "" then
+    text = text .. "\n\nForma de desfazer registrada: " .. undo
+  end
+  text = text .. "\n\nExplique em uma frase o que vai fazer, peça minha confirmação e valide o resultado depois."
+  view = "chat"
+  sendCommand("prompt", text)
+  render()
+end
+
+function onCopyUndo(index)
+  local change = changes[index]
+  local undo = change and tostring(change.undo or "") or ""
+  if undo == "" then
+    return
+  end
+  noctalia.copyToClipboard(undo, "text/plain")
+  toast = "Comando de desfazer copiado."
+  toastAt = noctalia.nowMs()
   render()
 end
 
@@ -1723,6 +1867,15 @@ noctalia.state.watch("chat.sessions", function(value)
     sessions = value
     if isOpen and view == "picker" then
       syncPickerSelection()
+      render()
+    end
+  end
+end)
+
+noctalia.state.watch("chat.changes", function(value)
+  if type(value) == "table" then
+    changes = value
+    if isOpen and view == "changes" then
       render()
     end
   end
