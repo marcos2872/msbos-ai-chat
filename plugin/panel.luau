@@ -183,6 +183,14 @@ end
 
 local function busyIndicator()
   local activity = currentActivity()
+  -- A ferramenta `question` espera o usuário: dizer isso é mais claro do que
+  -- "Executando: Pergunta ao usuário".
+  local text = "Pensando…"
+  if activity == "question" then
+    text = "Aguardando a sua resposta…"
+  elseif activity then
+    text = "Executando: " .. format.toolLabel(activity) .. "…"
+  end
   return ui.row({ gap = 6, align = "center" }, {
     ui.label({
       text = spinnerFrames[spinnerFrame],
@@ -192,7 +200,7 @@ local function busyIndicator()
       color = "primary",
     }),
     ui.label({
-      text = activity and ("Executando: " .. format.toolLabel(activity) .. "…") or "Pensando…",
+      text = text,
       fontSize = 10,
       color = mutedColor(),
       maxLines = 1,

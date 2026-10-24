@@ -21,7 +21,7 @@ O `frame()` do `panel.luau` pinta o painel inteiro com um fundo **preto fixo tra
 
 - **Abrir:** `onOpen` define `chat.panel_open = true`, liga `panel.setWantsSecondTicks(true)` e `panel.setNeedsFrameTick(true)`, pede `sync` e renderiza.
 - **Fechar/minimizar:** `onClose` define `chat.panel_open = false` e desliga os ticks. O serviço continua rodando.
-- **Spinner:** `onFrameTick` avança `◐ ◓ ◑ ◒` a cada ~400 ms quando o estado é `busy` e a view é o chat.
+- **Spinner:** `onFrameTick` avança `◐ ◓ ◑ ◒` a cada ~400 ms quando o estado é `busy` e a view é o chat; o texto mostra “Executando: <ferramenta>…” ou “Aguardando a sua resposta…” quando a ferramenta é `question`.
 - **Atualização:** o painel observa `chat.snapshot`, `chat.models` e `chat.sessions`; `update()` limpa toasts após 5 s.
 - **Sem conta de IA:** quando `chat.models` está vazio, o estado vazio e o seletor mostram o cartão **“Falta conectar uma conta de IA”** (com **Conectar conta**, que abre `opencode auth login` num terminal, e **Já conectei**, que pede `refresh_models`) em vez de um select desabilitado.
 
@@ -91,7 +91,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Usuário | Coluna com `fill = primary/0.12`, label “Você” e markdown. |
 | Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming, horário relativo e botões **Regenerar** (na última resposta; reenvia o último pedido) e **copiar**. |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
-| Ferramenta | Cartão com glifo, nome, status, seta de expansão; entrada e saída truncadas. |
+| Ferramenta | Cartão com glifo, **nome comum** (`format.toolLabel`: “Executar comando”, “Pergunta ao usuário”), status, seta de expansão; entrada e saída truncadas. O nome técnico fica no tooltip. |
 | Permissão | Cartão `tertiary/0.10` em duas camadas: primeiro o resumo em linguagem comum (“O assistente quer: Instalar o programa htop”, derivado de `action`/`resources`), com **Permitir uma vez** / **Recusar** e **Ver o comando** (bloco de código, colapsado). **Permitir sempre** fica atrás de **Mais opções**, com aviso de risco e de como voltar a exigir confirmação; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 

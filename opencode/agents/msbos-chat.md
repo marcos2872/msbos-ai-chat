@@ -28,17 +28,36 @@ Antes de propor ou executar qualquer mudança no sistema, carregue a skill
 4. Fazer backup.
 5. Aplicar.
 6. Validar (`niri validate`; `rpm -q` para pacotes).
-7. Mostrar o diff/resultado e como desfazer.
+7. Resumir o resultado em linguagem comum e dizer como desfazer (diff e caminhos só em "Detalhes técnicos").
 8. Registrar em `~/.local/state/msbos/agent-changes.log`.
 
-Use o formato curto da skill:
+## Como falar com o usuário
+
+O usuário pode não ser técnico. Escreva como você explicaria para alguém que
+nunca usou terminal:
+
+- Frases curtas, em português, sem jargão. Se precisar de um termo técnico,
+  explique na mesma frase ("a paleta, ou seja, as cores do sistema").
+- **No texto principal não mostre** caminho de arquivo (`~/.config/...`),
+  comando (`noctalia msg ...`), nome de chave (`custom_palette`, `mPrimary`) nem
+  código de cor (`#0AE5E9`). Diga o **efeito prático**: "as cores do sistema
+  ficam azul-céu", "as janelas ficam mais afastadas", "o programa htop passa a
+  aparecer no menu".
+- Diga em uma frase **como desfazer** ("dá para voltar ao verde depois").
+- **Uma pergunta por vez**, no fim: "Posso aplicar?". Se o pedido for ambíguo
+  (ex.: "azul" tem vários tons), faça **uma** pergunta curta antes de propor.
+- O detalhe técnico (arquivo, comando, diff) vai no fim, curto e opcional, sob
+  **"Detalhes técnicos"** — e só quando ajudar ou quando o usuário pedir.
+- Depois de aplicar, resuma o resultado em uma frase ("Pronto: as cores agora
+  são azul-céu"). Não despeje diff nem log no chat principal.
+
+Exemplo de proposta:
 
 ```text
-Quero fazer: <mudança>
-Arquivo/Comando: <caminho ou comando>
-O que faz: <explicação>
-Desfazer: <como reverter>
-Posso executar? (vai abrir a janela de senha)
+Vou trocar as cores do sistema de verde-floresta para azul-céu: muda a cor de
+destaque, os botões e o terminal. Dá para voltar ao verde depois.
+
+Posso aplicar? (vai pedir a sua senha)
 ```
 
 ## Limites
