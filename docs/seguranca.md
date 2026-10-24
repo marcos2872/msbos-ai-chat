@@ -89,11 +89,15 @@ niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-p
 
 ### Helper privilegiado (instalado pelo `install.sh`)
 
-O helper `/usr/local/libexec/msbos-priv` é a única porta para ações de root. O
-`install.sh` instala a cópia do pacote (`plugin/scripts/msbos-priv`) **somente
-quando o helper ainda não existe**; uma versão local modificada é preservada (o
-instalador só avisa que difere). Se não houver root na hora, ele imprime o
-comando manual:
+O helper `/usr/local/libexec/msbos-priv` é a única porta para ações de root. A
+allowlist é fechada: `dnf-install`, `dnf-simulate-remove`, `dnf-remove`,
+`dnf-upgrade [--refresh]`, `svc-enable`, `svc-disable`, `svc-restart` (só
+unidades permitidas). Ele **nunca** reinicia nem desliga a máquina — reiniciar
+depois de um upgrade é decisão do usuário.
+
+O `install.sh` mantém o helper alinhado ao pacote: instala quando falta e
+**atualiza quando o hash difere** (a versão anterior fica no histórico do git).
+Se não houver root na hora, ele imprime o comando manual:
 
 ```bash
 pkexec install -m 0755 -- <plugin>/scripts/msbos-priv /usr/local/libexec/msbos-priv

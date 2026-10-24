@@ -77,7 +77,8 @@ Depois do spawn:
 Regras:
 
 - Só execute depois do "sim" explícito do usuário, com a mudança já descrita.
-- Use somente os subcomandos da skill: `dnf-install`, `dnf-simulate-remove`, `dnf-remove`, `svc-enable`, `svc-disable`, `svc-restart`. Não use `niri msg action spawn` para comandos arbitrários.
+- Use somente os subcomandos da skill: `dnf-install`, `dnf-simulate-remove`, `dnf-remove`, `dnf-upgrade`, `svc-enable`, `svc-disable`, `svc-restart`. Não use `niri msg action spawn` para comandos arbitrários.
+- `dnf-upgrade [--refresh]` atualiza o sistema (sem nomes de pacote). Depois do upgrade, avise que o reinício é necessário e deixe o usuário reiniciar no terminal dele: o helper **não** reinicia nem desliga a máquina.
 - Antes, valide os argumentos sem privilégio: `/usr/local/libexec/msbos-priv --dry-run <subcomando> ...`.
 - Prefira o Alacritty porque ele fornece um TTY e o polkit abre de forma confiável. Se o Alacritty não existir, use `niri msg action spawn -- /usr/bin/pkexec ...` e confira/foca a janela do polkit.
 - `niri msg action spawn` retorna 0 mesmo se o filho falhar; `rc=0` **não** é prova de execução. O comando também não entrega stdout/stderr do helper.

@@ -39,7 +39,9 @@ if [[ "${MSBOS_AI_CHAT_CHECKS:-1}" != "0" ]]; then
     # A conta de IA é o que faz o painel ter modelos. Sem ela o chat abre, mas
     # não responde — por isso a checagem e a instrução de login.
     auth_list="$(opencode auth list 2>/dev/null || true)"
-    if grep -qi "stored" <<<"$auth_list"; then
+    # A última coluna de `opencode auth list` é o estado ("stored"); casar a
+    # coluna evita falso positivo de "stored" no meio de outro texto.
+    if awk 'tolower($NF) == "stored" { achou = 1 } END { exit(achou ? 0 : 1) }' <<<"$auth_list"; then
       ok "conta de IA configurada"
     else
       miss "nenhuma conta de IA configurada" "Conecte uma conta: opencode auth login"
@@ -167,20 +169,27 @@ else
 fi
 
 # ── Helper privilegiado (root) ─────────────────────────────────────────────
-# O agente só faz ações de root por este helper (allowlist fechada). Ele é
-# instalado apenas quando ausente: uma cópia local modificada é preservada.
+# O agente só faz ações de root por este helper (allowlist fechada). A cópia do
+# pacote é a fonte: instala quando falta e atualiza quando o hash muda (a versão
+# anterior fica no histórico do git).
 HELPER_SRC="$PLUGIN_DIR/scripts/msbos-priv"
 HELPER_DST="/usr/local/libexec/msbos-priv"
-if [[ -f "$HELPER_SRC" && ! -x "$HELPER_DST" ]] && command -v pkexec >/dev/null 2>&1; then
-  echo "==> instalando o helper privilegiado (pode pedir a senha)"
+helper_needs_install=0
+if [[ -f "$HELPER_SRC" && ! -x "$HELPER_DST" ]]; then
+  helper_needs_install=1
+  helper_action="instalando"
+elif [[ -f "$HELPER_SRC" && -x "$HELPER_DST" ]] && ! cmp -s "$HELPER_SRC" "$HELPER_DST"; then
+  helper_needs_install=1
+  helper_action="atualizando"
+fi
+if [[ "$helper_needs_install" == 1 ]] && command -v pkexec >/dev/null 2>&1; then
+  echo "==> $helper_action o helper privilegiado (pode pedir a senha)"
   if pkexec install -m 0755 -- "$HELPER_SRC" "$HELPER_DST" 2>/dev/null; then
-    echo "helper instalado: $HELPER_DST"
+    echo "helper pronto: $HELPER_DST"
   else
-    echo "helper NÃO instalado (sem root). Para instalar depois:"
+    echo "helper NÃO $helper_action (sem root). Para aplicar depois:"
     echo "  pkexec install -m 0755 -- '$HELPER_SRC' '$HELPER_DST'"
   fi
-elif [[ -x "$HELPER_DST" && -f "$HELPER_SRC" ]] && ! cmp -s "$HELPER_SRC" "$HELPER_DST"; then
-  echo "aviso: $HELPER_DST difere da cópia do pacote; mantendo a instalada."
 fi
 
 # ── Hardening (root): regra de polkit ──────────────────────────────────────
@@ -194,14 +203,14 @@ RULE_DST="/etc/polkit-1/rules.d/49-msbos-priv.rules"
 # Selo com o hash da regra aplicada: /etc/polkit-1/rules.d não é legível pelo
 # usuário, então a idempotência é feita por hash, não por `cmp` no destino.
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/msbos"
-STAMP="$STATE_DIR/polkit-rule.sha"
+RULE_STAMP="$STATE_DIR/polkit-rule.sha"
 if [[ "$HARDEN" != "0" && -f "$RULE_SRC" ]] && command -v pkexec >/dev/null 2>&1; then
   want_hash="$(sha256sum "$RULE_SRC" | awk '{print $1}')"
-  have_hash="$(cat "$STAMP" 2>/dev/null || true)"
+  have_hash="$(cat "$RULE_STAMP" 2>/dev/null || true)"
   if [[ "$want_hash" != "$have_hash" ]]; then
     echo "==> aplicando regra de polkit (pode pedir a senha)"
     if pkexec install -m 0644 -- "$RULE_SRC" "$RULE_DST" 2>/dev/null; then
-      mkdir -p "$STATE_DIR" && printf '%s\n' "$want_hash" > "$STAMP"
+      mkdir -p "$STATE_DIR" && printf '%s\n' "$want_hash" > "$RULE_STAMP"
       echo "regra de polkit aplicada: $RULE_DST"
     else
       echo "regra de polkit NÃO aplicada (sem root). Para aplicar depois:"
