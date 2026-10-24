@@ -136,7 +136,18 @@ function M.writeUi(directory, ui)
 end
 
 local function safeId(id)
-  return tostring(id or "session"):gsub("[^%w_%-]", "_")
+  local raw = tostring(id or "session")
+  local safe = raw:gsub("[^%w_%-]", "_")
+  if safe ~= raw then
+    -- Ids distintos podem colidir após a sanitização (`a/b` e `a_b`); um hash
+    -- determinístico desambigua o nome do arquivo do espelho.
+    local hash = 0
+    for i = 1, #raw do
+      hash = (hash * 31 + raw:byte(i)) % 2147483647
+    end
+    safe = safe .. "-" .. string.format("%08x", hash)
+  end
+  return safe
 end
 
 function M.sessionMarkdown(data, maxToolOutput)

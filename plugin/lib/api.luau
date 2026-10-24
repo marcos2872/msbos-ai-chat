@@ -100,13 +100,13 @@ end
 
 local function encodeBody(body)
   if body == nil then
-    return nil
+    return nil, nil
   end
   local ok, encoded = pcall(noctalia.json.encode, body)
-  if not ok then
-    return nil
+  if not ok or not encoded then
+    return nil, "falha ao codificar o corpo da requisição"
   end
-  return encoded
+  return encoded, nil
 end
 
 function M.request(pairing, method, path, body, cb, opts)
@@ -136,7 +136,11 @@ function M.request(pairing, method, path, body, cb, opts)
     basic_username = "opencode",
     basic_password = pairing.token,
   }
-  local encoded = encodeBody(body)
+  local encoded, encodeError = encodeBody(body)
+  if encodeError then
+    cb(nil, encodeError)
+    return
+  end
   if encoded then
     request.body = encoded
   end
@@ -383,7 +387,7 @@ function M.exportSession(pairing, directory, id, cb)
 end
 
 function M.streamEvents(pairing, onEvent, onClose)
-  if type(pairing) ~= "table" or type(pairing.baseUrl) ~= "string" then
+  if type(pairing) ~= "table" or type(pairing.baseUrl) ~= "string" or type(pairing.token) ~= "string" then
     return nil
   end
   return noctalia.httpStream({

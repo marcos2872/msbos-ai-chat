@@ -16,6 +16,12 @@ if [[ ! -f "$manifest" ]]; then
   exit 1
 fi
 
+# Só inteiros de até 5 dígitos entram no awk — evita corromper o manifesto.
+if [[ ! "$width" =~ ^[0-9]{1,5}$ || ! "$height" =~ ^[0-9]{1,5}$ ]]; then
+  echo "largura/altura inválidas: '$width' x '$height'" >&2
+  exit 1
+fi
+
 read_size() {
   awk -v key="$1" '
     /^\[\[panel\]\]/ { inpanel = 1; next }
@@ -35,14 +41,18 @@ if [[ "$current_width" == "$width" && "$current_height" == "$height" ]]; then
   exit 0
 fi
 
+# Temporário imprevisível no mesmo diretório (evita symlink/TOCTOU).
+tmp="$(mktemp "$manifest.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
 awk -v w="$width" -v h="$height" '
   /^\[\[panel\]\]/ { inpanel = 1; print; next }
   inpanel && /^\[\[/ { inpanel = 0 }
   inpanel && /^width[ \t]*=/ { print "width = " w; next }
   inpanel && /^height[ \t]*=/ { print "height = " h; next }
   { print }
-' "$manifest" > "$manifest.tmp"
+' "$manifest" > "$tmp"
 
 cp -a "$manifest" "$manifest.bak-size"
-mv "$manifest.tmp" "$manifest"
+mv "$tmp" "$manifest"
 exit 10

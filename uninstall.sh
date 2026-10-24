@@ -37,6 +37,13 @@ if [[ -f "$OLD_AGENT" ]]; then
 fi
 
 if [[ "${1:-}" == "--purge" ]]; then
+  # Recusa apagar caminhos perigosos (env MSBOS_AI_CHAT_DIR pode apontar para /).
+  case "$WORKSPACE" in
+    ""|"/"|"$HOME"|"$HOME/")
+      echo "recuso apagar '$WORKSPACE' com --purge (caminho amplo demais)" >&2
+      exit 1
+      ;;
+  esac
   echo "==> apagando workspace $WORKSPACE"
   rm -rf "$WORKSPACE" "$OLD_WORKSPACE"
 else

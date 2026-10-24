@@ -55,6 +55,8 @@ if command -v noctalia >/dev/null 2>&1; then
 fi
 
 cp -r "$ROOT/plugin/." "$PLUGIN_DIR/"
+# Não leva backups de desenvolvimento para o plugin instalado.
+rm -f "$PLUGIN_DIR"/plugin.toml.bak-* "$PLUGIN_DIR"/*.bak-* "$PLUGIN_DIR"/*.bak 2>/dev/null || true
 cp "$ROOT/opencode/agents/msbos-chat.md" "$AGENT_FILE"
 
 # O plugin antigo não tem dados do usuário (as settings ficam no Noctalia);

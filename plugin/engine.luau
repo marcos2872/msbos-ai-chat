@@ -1405,9 +1405,11 @@ local function applyPanelSize()
       noctalia.log(
         "msbos-ai-chat: painel " .. preset .. " (" .. tostring(size.width) .. "x" .. tostring(size.height) .. "); recarregando"
       )
-      local reloaded = noctalia.runAsync(
-        "nohup sh -c 'sleep 0.2; noctalia msg plugins disable msbos/ai-chat; sleep 0.5; noctalia msg plugins enable msbos/ai-chat' >/dev/null 2>&1 &"
-      )
+      local reloadScript = dir .. "/scripts/reload.sh"
+      local reloaded = false
+      if noctalia.fileExists(reloadScript) then
+        reloaded = noctalia.runAsync({ "bash", reloadScript }, function() end, 8000)
+      end
       if not reloaded then
         noctalia.notifyError("msbos IA", "Não consegui recarregar o plugin para aplicar o novo tamanho.")
       end
