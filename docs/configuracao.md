@@ -16,6 +16,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos
 | `max_tool_output` | int | `4000` (500–20000) | Limite de saída de ferramenta no **Markdown exportado**. |
 | `panel_size` | select | `medium` | Preset de tamanho; reescreve o manifesto instalado e recarrega. |
 | `background_opacity` | int | `45` (0–100) | Alfa do fundo preto fixo do painel; o resto deixa passar a transparência/blur do sistema. `0` = transparente. |
+| `permission_mode` | select | `ask` | `ask` = cartão de confirmação para `shell`/`edit`; `always` = autoaprova sem perguntar. |
 | `glyph` (widget) | glyph | `message-chatbot` | Ícone Tabler do widget. |
 
 ### Observações de comportamento
@@ -24,6 +25,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos
 - `max_tool_output` é usado por `store.sessionMarkdown` no export. No chat, o snapshot já entrega o `output` truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) e a entrada limitada a 1200 por `format.toolInput`; o painel trunca de novo em 4000, mas o valor exibido já vem limitado a 2000.
 - `panel_size` não altera o tamanho em runtime: o Noctalia não expõe API de resize. O engine edita a cópia instalada do `plugin.toml`.
 - `background_opacity` é o alfa do fundo preto fixo do painel: `0` = totalmente transparente, `100` = totalmente preto. O frame usa padding negativo (`Style::panelPadding` = 14 px) para o preto cobrir o painel inteiro, então a borda e o raio do tema ficam atrás do fundo. Com o padrão `45`, o preto fica como um vidro escuro, deixando a transparência e o blur do sistema passarem.
+- `permission_mode` decide a barreira: em `ask` (padrão), `shell`/`edit` viram **cartão de confirmação** no painel; em `always`, o engine **autoaprova** `shell`/`edit` (sem perguntar). A mudança vale no próximo tick (o engine relê a config sem recarregar o plugin).
 - `auto_pair` controla o pareamento automático (sem pairing) e a recuperação de `401` na sonda e no SSE.
 
 ## Manifesto

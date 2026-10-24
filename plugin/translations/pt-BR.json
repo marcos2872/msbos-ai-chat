@@ -22,6 +22,10 @@
   "settings.panel_size.large": "Grande",
   "settings.background_opacity.label": "Transparência do fundo preto",
   "settings.background_opacity.description": "Opacidade (0–100) do fundo preto fixo do painel. O resto deixa passar a transparência e o blur do sistema; 0 = totalmente transparente.",
+  "settings.permission_mode.label": "Confirmação de shell/edição",
+  "settings.permission_mode.description": "Se o agente deve pedir confirmação (cartão no painel) para cada comando/edição ou permitir sempre, sem perguntar.",
+  "settings.permission_mode.ask": "Perguntar (cartão)",
+  "settings.permission_mode.always": "Permitir sempre",
   "settings.glyph.label": "Ícone da barra",
   "settings.glyph.description": "Glifo Tabler usado no widget da barra."
 }

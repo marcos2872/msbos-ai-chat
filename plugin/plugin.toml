@@ -89,6 +89,17 @@ default = 45
 min = 0
 max = 100
 
+[[setting]]
+key = "permission_mode"
+type = "select"
+label_key = "settings.permission_mode.label"
+description_key = "settings.permission_mode.description"
+default = "ask"
+options = [
+  { value = "ask", label_key = "settings.permission_mode.ask" },
+  { value = "always", label_key = "settings.permission_mode.always" },
+]
+
 # ── Serviço ─────────────────────────────────────────────────────────────────
 [[service]]
 id = "engine"

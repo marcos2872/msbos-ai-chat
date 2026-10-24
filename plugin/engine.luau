@@ -12,6 +12,8 @@ local autoPair = true
 local autoExport = true
 local notifyOnFinish = true
 local maxToolOutput = 4000
+-- "ask" = cada shell/edit vira cartão; "always" = autoaprova (ajuste do plugin).
+local permissionMode = "ask"
 
 -- O snapshot publicado é copiado para o estado compartilhado e reconstruído
 -- pelo painel a cada mudança. Manter o payload curto evita estourar o
@@ -1098,11 +1100,12 @@ handleEvent = function(event)
     errorMessage = format.errorText(data.error) ~= "" and format.errorText(data.error) or "Erro na execução."
     finishRun()
   elseif eventType == "permission.asked" then
-    -- Só perguntas/formulários seguem direto. `shell`/`edit` (e qualquer ação
-    -- desconhecida) ficam PENDENTES para o usuário decidir no painel: sem essa
-    -- barreira, uma injeção de prompt executaria comandos sem confirmação.
+    -- question/form seguem direto sempre. `shell`/`edit` seguem direto só no
+    -- modo "always" (ajuste do plugin); no modo "ask" viram cartão no painel.
     local action = tostring(data.action or "")
-    if action == "question" or action == "form" then
+    local allowedActions = action == "shell" or action == "edit" or action == "bash"
+    local auto = action == "question" or action == "form" or (permissionMode == "always" and allowedActions)
+    if auto then
       if activeSession and data.id then
         api.replyPermission(pairing, directory, activeSession.id, data.id, "once", function(ok, err)
           if not ok then
@@ -1429,6 +1432,7 @@ local function init()
   autoExport = noctalia.getConfig("auto_export") ~= false
   notifyOnFinish = noctalia.getConfig("notify_on_finish") ~= false
   maxToolOutput = tonumber(noctalia.getConfig("max_tool_output")) or 4000
+  permissionMode = tostring(noctalia.getConfig("permission_mode") or "ask")
 
   store.ensure(directory)
 

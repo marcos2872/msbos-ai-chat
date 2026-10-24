@@ -114,10 +114,17 @@ fi
 HARDEN="${MSBOS_AI_CHAT_HARDEN:-1}"
 RULE_SRC="$PLUGIN_DIR/scripts/msbos-priv.rules"
 RULE_DST="/etc/polkit-1/rules.d/49-msbos-priv.rules"
+# Selo com o hash da regra aplicada: /etc/polkit-1/rules.d não é legível pelo
+# usuário, então a idempotência é feita por hash, não por `cmp` no destino.
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/msbos"
+STAMP="$STATE_DIR/polkit-rule.sha"
 if [[ "$HARDEN" != "0" && -f "$RULE_SRC" ]] && command -v pkexec >/dev/null 2>&1; then
-  if [[ ! -f "$RULE_DST" ]] || ! cmp -s "$RULE_SRC" "$RULE_DST"; then
+  want_hash="$(sha256sum "$RULE_SRC" | awk '{print $1}')"
+  have_hash="$(cat "$STAMP" 2>/dev/null || true)"
+  if [[ "$want_hash" != "$have_hash" ]]; then
     echo "==> aplicando regra de polkit (pode pedir a senha)"
     if pkexec install -m 0644 -- "$RULE_SRC" "$RULE_DST" 2>/dev/null; then
+      mkdir -p "$STATE_DIR" && printf '%s\n' "$want_hash" > "$STAMP"
       echo "regra de polkit aplicada: $RULE_DST"
     else
       echo "regra de polkit NÃO aplicada (sem root). Para aplicar depois:"

@@ -96,6 +96,9 @@ para interpretadores de shell** (`/bin/sh`, `/bin/bash`, `/bin/zsh`,
 allowlist do helper, **sem** afetar apps de desktop que usam `pkexec` com o
 próprio binário nem o helper allowlisted.
 
+- O `install.sh` só reaplica a regra quando o hash muda (selo em
+  `~/.local/state/msbos/polkit-rule.sha`), porque `/etc/polkit-1/rules.d` não é
+  legível pelo usuário.
 - Desative com `MSBOS_AI_CHAT_HARDEN=0 ./install.sh`.
 - Aplicar/atualizar manualmente:
   `pkexec install -m 0644 -- <plugin>/scripts/msbos-priv.rules /etc/polkit-1/rules.d/49-msbos-priv.rules`
@@ -112,16 +115,18 @@ deste repositório.
 
 ### Permissões no engine
 
-Além da configuração do agente, o engine responde `permission.asked` assim:
+Além da configuração do agente, o engine responde `permission.asked` conforme o
+ajuste **`permission_mode`**:
 
 ```text
-question, form -> once  (automático)
-qualquer outra -> PENDENTE (cartão no painel)
+modo ask (padrão):  question, form -> once        | shell, edit -> PENDENTE
+modo always:        question, form -> once        | shell, edit -> once
 ```
 
-`shell` e `edit` **não** são autoaprovados: viram um **cartão de permissão** no
-painel do chat, mostrando a ação e o recurso (comando/caminho), com **Permitir
-uma vez** / **Recusar**. A resposta volta por IPC (`reply_permission`).
+No modo `ask`, `shell`/`edit` viram um **cartão de permissão** no painel com
+**Permitir uma vez** / **Permitir sempre** / **Recusar** (`once`/`always`/`reject`).
+No modo `always`, o engine autoaprova `shell`/`edit` — sem barreira técnica.
+A resposta volta por IPC (`reply_permission`).
 
 ## Servidor OpenCode
 
