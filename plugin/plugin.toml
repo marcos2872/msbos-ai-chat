@@ -80,6 +80,15 @@ options = [
   { value = "large", label_key = "settings.panel_size.large" },
 ]
 
+[[setting]]
+key = "background_opacity"
+type = "int"
+label_key = "settings.background_opacity.label"
+description_key = "settings.background_opacity.description"
+default = 45
+min = 0
+max = 100
+
 # ── Serviço ─────────────────────────────────────────────────────────────────
 [[service]]
 id = "engine"

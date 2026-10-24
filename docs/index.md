@@ -41,6 +41,7 @@ Documentação técnica do plugin de chat do Noctalia que usa o OpenCode local c
 | [0003](adr/0003-painel-transparente-e-tamanho-por-manifesto.md) | Fundo desenhado pelo host e tamanho aplicado via `plugin.toml`. |
 | [0004](adr/0004-permissoes-automaticas-e-formularios.md) | Permissões `shell`/`edit` automáticas e formulários para decisões. |
 | [0005](adr/0005-modelo-e-variante-em-novos-chats.md) | Modelo e variante propagados para novas conversas. |
+| [0006](adr/0006-fundo-preto-fixo-do-chat.md) | Fundo preto fixo translúcido no painel do chat (revisa o fundo do ADR 0003). |
 
 ## Mapa em uma página
 

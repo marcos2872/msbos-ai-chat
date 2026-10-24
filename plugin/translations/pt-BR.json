@@ -20,6 +20,8 @@
   "settings.panel_size.compact": "Compacto",
   "settings.panel_size.medium": "Médio",
   "settings.panel_size.large": "Grande",
+  "settings.background_opacity.label": "Transparência do fundo preto",
+  "settings.background_opacity.description": "Opacidade (0–100) do fundo preto fixo do painel. O resto deixa passar a transparência e o blur do sistema; 0 = totalmente transparente.",
   "settings.glyph.label": "Ícone da barra",
   "settings.glyph.description": "Glifo Tabler usado no widget da barra."
 }

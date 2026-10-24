@@ -20,6 +20,8 @@
   "settings.panel_size.compact": "Compact",
   "settings.panel_size.medium": "Medium",
   "settings.panel_size.large": "Large",
+  "settings.background_opacity.label": "Black background opacity",
+  "settings.background_opacity.description": "Opacity (0–100) of the panel's fixed black background. The rest lets the system transparency and blur through; 0 = fully transparent.",
   "settings.glyph.label": "Bar icon",
   "settings.glyph.description": "Tabler glyph used by the bar widget."
 }

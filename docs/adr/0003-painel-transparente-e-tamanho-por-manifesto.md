@@ -2,7 +2,7 @@
 
 ## Status
 
-aceito
+aceito — o fundo foi revisto pelo [ADR 0006](0006-fundo-preto-fixo-do-chat.md); o tamanho por manifesto continua.
 
 ## Contexto
 

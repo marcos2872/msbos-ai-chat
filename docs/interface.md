@@ -13,9 +13,9 @@
 | `open_near_click` | `false` |
 | `keyboard_focus` | `on_demand` |
 | Tamanho padrão | 460 × 640 |
-| Fundo/borda | Desenhados pelo host; o frame do plugin é transparente. |
+| Fundo | Preto fixo translúcido desenhado pelo plugin, cobrindo o painel inteiro (inclusive a borda do tema); a intensidade vem do setting `background_opacity`. |
 
-O painel **não** desenha um segundo fundo/borda. O `frame()` do `panel.luau` só organiza o conteúdo com `flexGrow = 1`; isso evita o efeito de painel duplicado. A transparência, o raio e a sombra vêm do tema/host do Noctalia.
+O `frame()` do `panel.luau` pinta o painel inteiro com um fundo **preto fixo translúcido** (`fill = "#000000"` com o alfa de `background_opacity`, `radius = 12`). O preto **não** segue a cor de superfície do tema — é uma exceção pedida pelo usuário —, e o alfa (padrão 45) mantém a transparência e o blur do sistema visíveis através dele. Como o host inseta o conteúdo do plugin em `Style::panelPadding` (14 px), o frame usa um padding negativo de 14 px para o preto alcançar a borda/raio do painel e cobri-los; um segundo container com padding de 14 px devolve o conteúdo à posição original. A borda, o raio e a sombra do painel continuam vindo do host (a borda fica escondida atrás do preto). Ver [ADR 0006](adr/0006-fundo-preto-fixo-do-chat.md).
 
 ## Ciclo de vida
 
@@ -50,8 +50,8 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 
 ```text
 ┌──────────────────────────────────────────────┐
-│ [ícone] msbos IA        [+][histórico][−]│
-│ título da sessão                             │
+│ [ícone] msbos IA   agente: …   modelo: …     │
+│ título da sessão        [+][histórico][−]    │
 ├──────────────────────────────────────────────┤
 │ Você                                         │
 │ ┌──────────────────────────────────────────┐ │
@@ -67,14 +67,14 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 │ │ opções + responder                     │ │
 │ └──────────────────────────────────────────┘ │
 ├──────────────────────────────────────────────┤
-│ [ Pergunte sobre o sistema…              ]   │
-│ agente: … · modelo: …              [enviar]  │
+│ [ Pergunte sobre o sistema…       ] [enviar] │
 └──────────────────────────────────────────────┘
 ```
 
 ### Header
 
 - Glifo `message-chatbot` e título “msbos IA”.
+- Na mesma linha do título, `agente: <id>   modelo: <provider/id · variante>` (`snapshot.session` via `format.modelLabel`); mostra “modelo padrão” quando não há modelo. Trunca com `maxLines = 1`.
 - Subtítulo: “executando…”, título da sessão, “não pareado”, “iniciando…”, “offline” ou “pronto”.
 - **+** — nova conversa.
 - **Histórico** — abre o seletor.
@@ -94,11 +94,11 @@ O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radiu
 
 ### Compositor
 
-- `ui.input` multiline, `submitOnEnter = true`, altura **36**, `frameVisible = false`, foco ao abrir.
+- `ui.input` de 1 linha, `submitOnEnter = true`, `controlSize = "sm"` (32 px, mesma altura do botão), `frameVisible = false`, foco ao abrir. **Enter** envia.
 - O rascunho fica em `draft`; a `key` do input muda após envio para limpar o campo.
 - **Enter** envia; o botão de enviar também.
 - Durante `busy`, o botão vira **Parar** (`player-stop`, `destructive`).
-- Rodapé: `agente: <id> · modelo: <provider/id · variante>` ou “modelo: padrão”.
+- Ação (enviar/parar) fica **na mesma linha** do input, à direita (`ui.row` com o input em `flexGrow = 1`); sem texto de `agente`/`modelo` (migraram para o header).
 - Sem anexos de arquivo/imagem nesta versão.
 
 ### Estados vazios e avisos
@@ -214,12 +214,12 @@ Se o host não aplicar o novo tamanho, confira o `plugin.toml` instalado e recar
 
 - O painel usa os roles do tema do Noctalia (`primary`, `on_primary`, `on_surface`, `on_surface_variant`, `surface_variant`, `outline`, `error`, `tertiary`).
 - Não há tema claro/escuro próprio.
-- O fundo do painel é do host; os cards internos usam `surface_variant` com alfa.
+- O fundo do painel é preto fixo (`#000000` com alfa de `background_opacity`), fora do tema; os cards internos usam `surface_variant` com alfa.
 - A seleção de sessões/opções segue o padrão: selecionado `primary`, não selecionado translúcido.
 
 ## Teclado e foco
 
 - `keyboard_focus = "on_demand"`: o painel não rouba o foco ao abrir.
 - O compositor usa `focus = true` e `submitOnEnter`.
-- **Enter** envia; o input é multiline, e o tratamento de quebra de linha com modificadores é do host.
+- **Enter** envia; o input é de 1 linha.
 - Não há captura global de teclas nem atalho próprio; o widget da barra é o ponto de abertura.

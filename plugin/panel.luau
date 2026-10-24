@@ -25,6 +25,20 @@ local spinnerFrame = 1
 local spinnerAccum = 0
 local render
 
+-- Fundo preto fixo do painel (não segue a cor de superfície do tema — exceção
+-- explícita pedida pelo usuário). A intensidade vem do ajuste `background_opacity`
+-- (0–100): é o alfa do preto, e o restante deixa passar a transparência e o blur
+-- do sistema.
+local function backgroundColor()
+  local opacity = tonumber(noctalia.getConfig("background_opacity")) or 45
+  if opacity < 0 then
+    opacity = 0
+  elseif opacity > 100 then
+    opacity = 100
+  end
+  return string.format("#000000%02x", math.floor(opacity * 255 / 100 + 0.5))
+end
+
 local function sendCommand(event, payload)
   local argv = { "noctalia", "msg", "plugin", "msbos/ai-chat:engine", "all", event }
   if type(payload) == "string" and payload ~= "" then
@@ -66,6 +80,26 @@ local function subtitle()
   return "pronto"
 end
 
+-- Agente e modelo da conversa (snapshot.session), no formato "agente: …   modelo: …".
+local function metaLabel()
+  local agent = "—"
+  local model = "modelo padrão"
+  if snapshot and snapshot.session then
+    agent = tostring(snapshot.session.agent or "—")
+    local label = format.modelLabel(snapshot.session.model)
+    if label ~= "" then
+      model = label
+    end
+  end
+  return ui.label({
+    text = "agente: " .. agent .. "   modelo: " .. model,
+    fontSize = 9,
+    color = "on_surface_variant",
+    maxLines = 1,
+    flexGrow = 1,
+  })
+end
+
 local function header()
   return ui.row({
     gap = 8,
@@ -78,8 +112,11 @@ local function header()
     radius = 12,
   }, {
     ui.glyph({ name = "message-chatbot", size = 18, color = "primary" }),
-    ui.column({ gap = 0, flexGrow = 1 }, {
-      ui.label({ text = "msbos IA", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
+    ui.column({ gap = 3, flexGrow = 1 }, {
+      ui.row({ gap = 10, align = "center" }, {
+        ui.label({ text = "msbos IA", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
+        metaLabel(),
+      }),
       ui.label({ text = subtitle(), fontSize = 10, color = "on_surface_variant", maxLines = 1 }),
     }),
     ui.button({ glyph = "plus", variant = "ghost", tooltip = "Nova conversa", onClick = "onNewSession" }),
@@ -416,45 +453,37 @@ local function renderMessage(message)
 end
 
 local function composer()
-  local footer = ""
-  if snapshot and snapshot.session then
-    local model = format.modelLabel(snapshot.session.model)
-    footer = "agente: " .. tostring(snapshot.session.agent or "—") .. " · modelo: " .. (model ~= "" and model or "padrão")
-  end
-
   local action
   if snapshot and snapshot.state == "busy" then
-    action = ui.button({ glyph = "player-stop", variant = "destructive", tooltip = "Parar", onClick = "onStop" })
+    action = ui.button({ glyph = "player-stop", variant = "destructive", controlSize = "sm", tooltip = "Parar", onClick = "onStop" })
   else
-    action = ui.button({ glyph = "send", variant = "primary", tooltip = "Enviar (Enter)", onClick = "onSend" })
+    action = ui.button({ glyph = "send", variant = "primary", controlSize = "sm", tooltip = "Enviar (Enter)", onClick = "onSend" })
   end
 
-  return ui.column({
+  -- Input e botão lado a lado na mesma linha.
+  return ui.row({
     gap = 6,
+    align = "center",
     paddingH = 12,
     paddingV = 8,
     fill = "surface_variant/0.18",
     border = "outline/0.35",
     borderWidth = 1,
     radius = 12,
-    align = "stretch",
   }, {
     ui.input({
       key = "composer-" .. tostring(composerKey),
       value = draft,
       placeholder = "Pergunte sobre o sistema…",
-      multiline = true,
       submitOnEnter = true,
-      height = 36,
+      controlSize = "sm",
       frameVisible = false,
       focus = true,
+      flexGrow = 1,
       onChange = "onDraftChange",
       onSubmit = "onSubmit",
     }),
-    ui.row({ gap = 6, align = "center", justify = "space_between" }, {
-      ui.label({ text = footer, fontSize = 9, color = "on_surface_variant", maxLines = 1, flexGrow = 1 }),
-      action,
-    }),
+    action,
   })
 end
 
@@ -896,14 +925,36 @@ local function pickerView()
   return ui.column({ flexGrow = 1, gap = 8, align = "stretch", paddingV = 8 }, children)
 end
 
+-- Inset que o host aplica ao conteúdo do plugin: Style::panelPadding (14 px) ×
+-- contentScale (1.0 por padrão). O frame usa esse valor como padding negativo
+-- para o fundo preto cobrir também a borda/raio do painel.
+local PANEL_INSET = 14
+
 local function frame(content)
-  -- O painel do Noctalia já desenha o fundo e a borda. O frame só organiza
-  -- o conteúdo; desenhar outro fundo aqui criava o efeito de "painel duplicado".
+  -- Fundo preto fixo do chat (exceção pedida pelo usuário: não segue a cor de
+  -- superfície do tema). O alfa vem de `background_opacity` e mantém a
+  -- transparência e o blur do sistema visíveis através do preto.
+  --
+  -- O host inseta o conteúdo em Style::panelPadding (14 px) e desenha a borda/raio
+  -- do painel por baixo. O padding negativo faz o fundo preto vazar esses 14 px e
+  -- cobrir o painel inteiro (borda inclusive); o padding interno devolve o
+  -- conteúdo à posição original. O raio 12 acompanha o raio do painel
+  -- (Style::radiusXl × corner_radius_scale, 1.0 por padrão).
   return ui.column({
     flexGrow = 1,
     gap = 0,
     align = "stretch",
-  }, { content })
+    padding = -PANEL_INSET,
+  }, {
+    ui.column({
+      flexGrow = 1,
+      gap = 0,
+      align = "stretch",
+      fill = backgroundColor(),
+      radius = 12,
+      padding = PANEL_INSET,
+    }, { content }),
+  })
 end
 
 render = function()
