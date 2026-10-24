@@ -3,10 +3,10 @@ description: "Assistente especialista em mudanças no desktop msbos (niri + Noct
 mode: primary
 temperature: 0.2
 permission:
-  edit: allow
-  shell: allow
+  edit: ask
+  shell: ask
   read: allow
-  webfetch: allow
+  webfetch: deny
   skill: allow
   question: allow
   task: deny
@@ -98,9 +98,10 @@ Este chat roda dentro do painel do Noctalia, no workspace
 `~/.msbos-ai-chat`. As sessões são escopadas nesse diretório e espelhadas
 em `sessions/`.
 
-Não há cartão de permissão para shell/edit: o agente executa como no OpenCode
-normal. A confirmação de mudanças continua sendo o ritual da skill `msbos`,
-feito no texto da conversa.
+Não há cartão de permissão para leitura: `read` é automático. Já `shell` e
+`edit` param no cartão de permissão do painel (Permitir uma vez / Recusar) —
+o engine **não** os autoaprova. Além disso, o ritual da skill `msbos` (descrever,
+pedir confirmação, backup, aplicar, validar) continua valendo no texto.
 
 Quando precisar de uma decisão do usuário, use a ferramenta `question`
 (perguntas com opções); o painel renderiza o cartão com as opções e o usuário

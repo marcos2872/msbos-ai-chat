@@ -396,6 +396,79 @@ local function renderForm(form)
   }, children)
 end
 
+-- Cartão de permissão: o engine não autoaprova shell/edit; o usuário decide aqui.
+local function permissionDetail(permission)
+  local lines = {}
+  local resources = permission.resources
+  if type(resources) == "table" then
+    for _, key in ipairs({ "command", "path", "file", "pattern", "url" }) do
+      local value = resources[key]
+      if type(value) == "string" and value ~= "" then
+        table.insert(lines, key .. ": " .. value)
+      end
+    end
+    if #lines == 0 then
+      for key, value in pairs(resources) do
+        if type(value) == "string" and value ~= "" then
+          table.insert(lines, tostring(key) .. ": " .. value)
+        end
+      end
+    end
+  end
+  return table.concat(lines, "\n")
+end
+
+local function renderPermission(permission)
+  local children = {
+    ui.row({ gap = 6, align = "center" }, {
+      ui.glyph({ name = "shield-lock", size = 15, color = "tertiary" }),
+      ui.label({
+        text = "Permissão: " .. tostring(permission.action or "ação"),
+        fontSize = 11,
+        fontWeight = "bold",
+        color = "on_surface",
+        flexGrow = 1,
+        maxLines = 1,
+      }),
+    }),
+  }
+  local message = tostring(permission.message or "")
+  if message ~= "" then
+    table.insert(children, ui.label({ text = message, fontSize = 10, color = "on_surface", maxLines = 4 }))
+  end
+  local detail = permissionDetail(permission)
+  if detail ~= "" then
+    table.insert(children, ui.label({ text = detail, fontSize = 9, color = "on_surface_variant", maxLines = 8 }))
+  end
+  table.insert(children, ui.row({ gap = 8, align = "center" }, {
+    ui.button({
+      text = "Permitir uma vez",
+      variant = "primary",
+      fontSize = 10,
+      onClick = function()
+        sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "once" }))
+      end,
+    }),
+    ui.button({
+      text = "Recusar",
+      variant = "destructive",
+      fontSize = 10,
+      onClick = function()
+        sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "reject" }))
+      end,
+    }),
+  }))
+  return ui.column({
+    fill = "tertiary/0.10",
+    border = "tertiary/0.40",
+    borderWidth = 1,
+    radius = 10,
+    padding = 10,
+    gap = 6,
+    align = "stretch",
+  }, children)
+end
+
 local function renderMessage(message)
   if message.role == "user" then
     return ui.column({
@@ -511,6 +584,9 @@ local function chatView()
   end
 
   local pending = snapshot.pending or {}
+  for _, permission in ipairs(pending.permissions or {}) do
+    table.insert(children, renderPermission(permission))
+  end
   for _, form in ipairs(pending.forms or {}) do
     table.insert(children, renderForm(form))
   end

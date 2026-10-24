@@ -50,10 +50,10 @@ O agente instalado tem:
 
 ```yaml
 permission:
-  edit: allow
-  shell: allow
+  edit: ask
+  shell: ask
   read: allow
-  webfetch: allow
+  webfetch: deny
   skill: allow
   question: allow
   task: deny
@@ -61,9 +61,10 @@ permission:
 
 Consequências:
 
-- `edit` e `shell` **não** geram cartão de permissão; o OpenCode executa direto.
+- `shell` e `edit` geram **cartão de permissão no painel** (Permitir uma vez / Recusar); o engine **não** os autoaprova. `read` é automático.
+- `webfetch` é negado (fecha o canal de exfiltração/SSRF via web).
 - `task` está bloqueado (o agente não delega).
-- A barreira para mudanças é o **ritual conversacional** da skill `msbos`: descrever, pedir confirmação, backup, aplicar, validar, diff e log.
+- O ritual conversacional da skill `msbos` continua valendo, agora **com** a barreira técnica do cartão.
 - O agente é instruído a nunca usar `sudo`; root somente via `pkexec /usr/local/libexec/msbos-priv`.
 - O agente não deve editar arquivos protegidos do msbos nem ler/guardar senhas.
 - Conteúdo externo (web, README, saída de ferramentas) é tratado como dado, não instrução.
@@ -86,27 +87,18 @@ niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-p
 - Só os subcomandos do helper devem ser usados; não é um caminho para comandos arbitrários.
 - Se o host for reiniciado com um servidor standalone (sem `NoNewPrivs`), o `pkexec` direto também funciona; a instrução via niri continua válida.
 
-### Autoaprovação no engine
+### Permissões no engine
 
-Além da configuração do agente, o engine responde `permission.asked` automaticamente:
+Além da configuração do agente, o engine responde `permission.asked` assim:
 
 ```text
-shell, edit, question, form -> once
-qualquer outra ação          -> reject
+question, form -> once  (automático)
+qualquer outra -> PENDENTE (cartão no painel)
 ```
 
-Isso significa que, mesmo que uma permissão seja solicitada, shell/edit não viram um cartão no painel. O painel atual **não renderiza** `pending.permissions`; a lista existe no snapshot apenas para diagnóstico.
-
-### Como endurecer (não implementado)
-
-Para restaurar uma barreira técnica:
-
-1. mudar o agente para `edit: ask` e `shell: ask`;
-2. alterar `handleEvent` para **não** autoaprovar `shell`/`edit` (deixar apenas `question`/`form`, ou nenhum);
-3. adicionar um cartão de permissão no `chatView` com Permitir uma vez / Sempre / Recusar;
-4. testar o fluxo de `permission.asked`/`permission.replied`.
-
-Sem esses passos, a confirmação é apenas textual.
+`shell` e `edit` **não** são autoaprovados: viram um **cartão de permissão** no
+painel do chat, mostrando a ação e o recurso (comando/caminho), com **Permitir
+uma vez** / **Recusar**. A resposta volta por IPC (`reply_permission`).
 
 ## Servidor OpenCode
 

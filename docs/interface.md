@@ -88,6 +88,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Assistente | Glifo `sparkles`, texto em markdown e “…” enquanto streaming. |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
 | Ferramenta | Cartão com glifo, nome, status, seta de expansão; entrada e saída truncadas. |
+| Permissão | Cartão `tertiary/0.10` (glifo `shield-lock` + ação + recurso) com **Permitir uma vez** / **Recusar**; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) caracteres; a entrada em 1200.

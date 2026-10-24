@@ -1076,21 +1076,22 @@ handleEvent = function(event)
     errorMessage = format.errorText(data.error) ~= "" and format.errorText(data.error) or "Erro na execução."
     finishRun()
   elseif eventType == "permission.asked" then
-    -- Comportamento tipo OpenCode: shell/edit e perguntas seguem direto;
-    -- outras ações sensíveis (ex.: leitura de .env.*) são negadas automaticamente.
-    if activeSession and data.id then
-      local action = tostring(data.action or "")
-      local allowed = action == "shell" or action == "edit" or action == "question" or action == "form"
-      local decision = allowed and "once" or "reject"
-      api.replyPermission(pairing, directory, activeSession.id, data.id, decision, function(ok, err)
-        if not ok then
-          noctalia.log("msbos-ai-chat: falha ao responder permissão automática: " .. tostring(err))
-        end
-      end)
-      noctalia.log("msbos-ai-chat: permissão automática (" .. decision .. "): " .. action)
-      if decision == "reject" then
-        noctalia.notify("msbos IA", "Ação sensível bloqueada automaticamente: " .. action)
+    -- Só perguntas/formulários seguem direto. `shell`/`edit` (e qualquer ação
+    -- desconhecida) ficam PENDENTES para o usuário decidir no painel: sem essa
+    -- barreira, uma injeção de prompt executaria comandos sem confirmação.
+    local action = tostring(data.action or "")
+    if action == "question" or action == "form" then
+      if activeSession and data.id then
+        api.replyPermission(pairing, directory, activeSession.id, data.id, "once", function(ok, err)
+          if not ok then
+            noctalia.log("msbos-ai-chat: falha ao responder permissão automática: " .. tostring(err))
+          end
+        end)
       end
+    else
+      addPendingPermission(data)
+      noctalia.log("msbos-ai-chat: permissão pendente para confirmação: " .. action)
+      noctalia.notify("msbos IA", "Confirmação necessária: " .. action)
     end
     publish(true)
   elseif eventType == "permission.replied" then
