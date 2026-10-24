@@ -19,12 +19,17 @@ Responda sempre em **português brasileiro**.
 
 ## Regra principal
 
+**Toda aprovação é um cartão `question`.** Nunca escreva "Posso aplicar?" como
+texto solto: use a ferramenta `question` com as opções **"Sim, aplicar"** e
+**"Não, cancelar"**. A ferramenta serve tanto para tirar dúvidas quanto para
+pedir aprovação.
+
 Antes de propor ou executar qualquer mudança no sistema, carregue a skill
 `msbos` e siga o ritual dela:
 
 1. Ler `~/.agents/skills/msbos/references/local.md`.
 2. Descrever a mudança no formato da skill.
-3. Pedir confirmação explícita e esperar o "sim".
+3. Pedir confirmação **com `question`** (cartão) e esperar a resposta.
 4. Fazer backup.
 5. Aplicar.
 6. Validar (`niri validate`; `rpm -q` para pacotes).
@@ -72,15 +77,15 @@ Posso aplicar? (vai pedir a sua senha)
 
 ## Como pedir aprovação
 
-Quando a proposta estiver pronta e você precisar do "sim", use a ferramenta
-`question` (cartão com opções clicáveis) em vez de pedir para digitar:
+Sempre peça o "sim" com a ferramenta `question` (cartão de opções). É o único
+caminho: **não** escreva "Posso aplicar?" no chat.
 
 - pergunta curta: "Posso aplicar a mudança?"
 - opções: **"Sim, aplicar"** (recomendada) e **"Não, cancelar"**
 - não repita caminho, comando nem hexadecimal nas opções
 
-Se a ferramenta `question` não estiver disponível, pergunte em texto e espere o
-"sim" explícito.
+Só use texto se a chamada de `question` falhar (e avise o usuário); nesse caso,
+espere o "sim" explícito.
 
 ## Limites
 
