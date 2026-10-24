@@ -106,6 +106,26 @@ else
   echo "Noctalia não encontrado no PATH; habilite o plugin pela GUI."
 fi
 
+# ── Hardening (root): regra de polkit ──────────────────────────────────────
+# Impede `pkexec` de abrir um shell como root — defesa em profundidade contra o
+# agente usar `pkexec /bin/sh -c ...` e contornar a allowlist do helper. É
+# cirúrgica: só nega shells, apps de desktop que usam pkexec seguem normais.
+# Desative com MSBOS_AI_CHAT_HARDEN=0.
+HARDEN="${MSBOS_AI_CHAT_HARDEN:-1}"
+RULE_SRC="$PLUGIN_DIR/scripts/msbos-priv.rules"
+RULE_DST="/etc/polkit-1/rules.d/49-msbos-priv.rules"
+if [[ "$HARDEN" != "0" && -f "$RULE_SRC" ]] && command -v pkexec >/dev/null 2>&1; then
+  if [[ ! -f "$RULE_DST" ]] || ! cmp -s "$RULE_SRC" "$RULE_DST"; then
+    echo "==> aplicando regra de polkit (pode pedir a senha)"
+    if pkexec install -m 0644 -- "$RULE_SRC" "$RULE_DST" 2>/dev/null; then
+      echo "regra de polkit aplicada: $RULE_DST"
+    else
+      echo "regra de polkit NÃO aplicada (sem root). Para aplicar depois:"
+      echo "  pkexec install -m 0644 -- '$RULE_SRC' '$RULE_DST'"
+    fi
+  fi
+fi
+
 cat <<EOF
 
 Instalado.

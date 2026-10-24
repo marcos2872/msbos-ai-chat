@@ -87,6 +87,29 @@ niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-p
 - Só os subcomandos do helper devem ser usados; não é um caminho para comandos arbitrários.
 - Se o host for reiniciado com um servidor standalone (sem `NoNewPrivs`), o `pkexec` direto também funciona; a instrução via niri continua válida.
 
+### Regra de polkit (aplicada pelo `install.sh`)
+
+O `install.sh` instala `/etc/polkit-1/rules.d/49-msbos-priv.rules`
+(`plugin/scripts/msbos-priv.rules`) via `pkexec`. A regra nega `pkexec` **apenas
+para interpretadores de shell** (`/bin/sh`, `/bin/bash`, `/bin/zsh`,
+`/usr/bin/env`, …): isso fecha o vetor `pkexec /bin/sh -c '…'` que contornaria a
+allowlist do helper, **sem** afetar apps de desktop que usam `pkexec` com o
+próprio binário nem o helper allowlisted.
+
+- Desative com `MSBOS_AI_CHAT_HARDEN=0 ./install.sh`.
+- Aplicar/atualizar manualmente:
+  `pkexec install -m 0644 -- <plugin>/scripts/msbos-priv.rules /etc/polkit-1/rules.d/49-msbos-priv.rules`
+- É defesa em profundidade: não impede `pkexec <outro-binário>`; a barreira
+  principal continua sendo o cartão de permissão de `shell`/`edit`.
+
+### Skills
+
+As skills ficam em `~/.agents/skills/` (gravável pelo usuário). O agente é
+instruído a não editá-las e o `edit` de `*/.agents/skills/msbos/*` está negado
+no config global do OpenCode. Para endurecer de fato, torne o diretório
+somente-leitura para o usuário (`chown root` / `chmod 755`), fora do escopo
+deste repositório.
+
 ### Permissões no engine
 
 Além da configuração do agente, o engine responde `permission.asked` assim:

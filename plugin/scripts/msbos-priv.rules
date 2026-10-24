@@ -1,0 +1,27 @@
+// Regra de polkit do plugin msbos/ai-chat.
+// Instalada por install.sh em /etc/polkit-1/rules.d/49-msbos-priv.rules.
+//
+// Objetivo: impedir que o agente (ou qualquer processo do usuário) use
+// `pkexec` para abrir um shell interativo como root — o vetor que contorna a
+// allowlist do helper /usr/local/libexec/msbos-priv.
+//
+// Cirúrgica: nega pkexec só para interpretadores de shell; todo o resto
+// continua com a política padrão (apps de desktop que usam pkexec seguem
+// funcionando) e o helper allowlisted é tratado pelo padrão.
+polkit.addRule(function(action, subject) {
+    if (action.id !== "org.freedesktop.policykit.exec") {
+        return polkit.Result.NOT_HANDLED;
+    }
+    var prog = action.lookup("program");
+    var shells = [
+        "/bin/sh", "/usr/bin/sh",
+        "/bin/bash", "/usr/bin/bash",
+        "/bin/dash", "/usr/bin/dash",
+        "/bin/zsh", "/usr/bin/zsh",
+        "/usr/bin/env",
+    ];
+    if (shells.indexOf(prog) !== -1) {
+        return polkit.Result.NO;
+    }
+    return polkit.Result.NOT_HANDLED;
+});
