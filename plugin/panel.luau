@@ -599,7 +599,7 @@ local function renderMessage(message, isLast)
       glyph = "refresh",
       variant = "ghost",
       fontSize = 9,
-      tooltip = "Gerar outra resposta",
+      tooltip = "Reenvia o último pedido para gerar outra resposta",
       onClick = function()
         sendCommand("regenerate")
       end,

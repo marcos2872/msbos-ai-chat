@@ -1509,11 +1509,20 @@ local function regenerate()
   if not activeSession or not pairing or busy then
     return
   end
-  api.generate(pairing, directory, activeSession.id, function(ok, err)
-    if not ok then
-      setError(err)
+  local lastUser
+  for i = #messages, 1, -1 do
+    if messages[i].role == "user" and messages[i].text ~= "" then
+      lastUser = messages[i].text
+      break
     end
-  end)
+  end
+  if not lastUser then
+    setError("Não há pedido anterior para regenerar.")
+    return
+  end
+  -- A API não tem "regenerar": reenviamos o último pedido, gerando outra
+  -- resposta (o OpenCode registra um novo turno de usuário).
+  sendPromptTo(activeSession.id, lastUser)
 end
 
 local function loadPrevious()

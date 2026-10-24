@@ -85,7 +85,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Elemento | Renderização |
 |---|---|
 | Usuário | Coluna com `fill = primary/0.12`, label “Você” e markdown. |
-| Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming, horário relativo e botões **Regenerar** (na última resposta) e **copiar**. |
+| Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming, horário relativo e botões **Regenerar** (na última resposta; reenvia o último pedido) e **copiar**. |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
 | Ferramenta | Cartão com glifo, nome, status, seta de expansão; entrada e saída truncadas. |
 | Permissão | Cartão `tertiary/0.10` (glifo `shield-lock` + ação + alvo em **bloco de código**, com “Ver o alvo completo”) e **Permitir uma vez** / **Permitir sempre** (`ghost`) / **Recusar**; resposta por IPC `reply_permission`. |
