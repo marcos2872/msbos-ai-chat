@@ -16,6 +16,7 @@ local expandedReasoning = {}
 local formDrafts = {}
 local view = "chat"
 local showPairAdvanced = false
+local showTechnical = false
 local sessionQuery = ""
 local models = noctalia.state.get("chat.models") or {}
 local sessions = noctalia.state.get("chat.sessions") or {}
@@ -190,7 +191,51 @@ local EXAMPLES = {
   "Troque o tema do Noctalia",
 }
 
+-- Sem nenhum modelo, o OpenCode está instalado mas não tem conta de IA. A tela
+-- explica em linguagem comum e oferece abrir o login num terminal.
+local function noModelsCard()
+  local children = {
+    ui.row({ gap = 6, align = "center" }, {
+      ui.glyph({ name = "key", size = 16, color = "tertiary" }),
+      ui.label({ text = "Falta conectar uma conta de IA", fontSize = 12, fontWeight = "bold", color = textColor(), flexGrow = 1 }),
+    }),
+    ui.label({
+      text = "O chat já está instalado, mas o assistente ainda não tem um modelo para responder. Conecte sua conta uma vez — depois é só conversar.",
+      fontSize = 10,
+      color = mutedColor(),
+      maxLines = 5,
+    }),
+    ui.row({ gap = 8, align = "center" }, {
+      ui.button({ text = "Conectar conta", variant = "primary", glyph = "plug", fontSize = 10, onClick = "onConnectAccount" }),
+      ui.button({ text = "Já conectei", variant = "secondary", glyph = "refresh", fontSize = 10, onClick = "onRetryModels" }),
+    }),
+    ui.button({
+      text = showTechnical and "Ocultar detalhes técnicos" or "Detalhes técnicos",
+      variant = "ghost",
+      fontSize = 9,
+      onClick = "onToggleTechnical",
+    }),
+  }
+  if showTechnical then
+    table.insert(children, ui.markdown({
+      text = "```text\nopencode auth login\nopencode models\n```",
+    }))
+  end
+  return ui.column({
+    fill = "tertiary/0.10",
+    border = "tertiary/0.40",
+    borderWidth = 1,
+    radius = 10,
+    padding = 12,
+    gap = 8,
+    align = "stretch",
+  }, children)
+end
+
 local function emptyState()
+  if #models == 0 then
+    return ui.column({ gap = 10, align = "center", padding = 16 }, { noModelsCard() })
+  end
   local chips = {}
   for _, example in ipairs(EXAMPLES) do
     table.insert(chips, ui.button({
@@ -971,7 +1016,6 @@ local function pickerView()
   if not hasModels then
     modelOptions = { "Nenhum modelo carregado" }
   end
-
   local currentModel = models[selectedModelIndex]
   local currentVariants = currentModel and currentModel.variants or {}
 
@@ -1000,34 +1044,39 @@ local function pickerView()
     end
   end
 
-  local modelChildren = {
-    ui.label({ text = "Modelo", fontSize = 10, color = mutedColor() }),
-    ui.select({
-      options = modelOptions,
-      selectedIndex = hasModels and math.max(0, selectedModelIndex - 1) or 0,
-      enabled = hasModels,
-      onChange = function(index)
-        local model = models[index + 1]
-        if model == nil then
-          return
-        end
-        local previousReasoning = selectedReasoningId
-        selectedModelIndex = index + 1
-        selectedReasoningId = "default"
-        local variants = model.variants or {}
-        if previousReasoning ~= "default" then
-          for _, variant in ipairs(variants) do
-            if tostring(variant.id or "") == previousReasoning then
-              selectedReasoningId = previousReasoning
-              break
+  local modelChildren
+  if hasModels then
+    modelChildren = {
+      ui.label({ text = "Modelo", fontSize = 10, color = mutedColor() }),
+      ui.select({
+        options = modelOptions,
+        selectedIndex = math.max(0, selectedModelIndex - 1),
+        onChange = function(index)
+          local model = models[index + 1]
+          if model == nil then
+            return
+          end
+          local previousReasoning = selectedReasoningId
+          selectedModelIndex = index + 1
+          selectedReasoningId = "default"
+          local variants = model.variants or {}
+          if previousReasoning ~= "default" then
+            for _, variant in ipairs(variants) do
+              if tostring(variant.id or "") == previousReasoning then
+                selectedReasoningId = previousReasoning
+                break
+              end
             end
           end
-        end
-        applySelectedModel()
-        render()
-      end,
-    }),
-  }
+          applySelectedModel()
+          render()
+        end,
+      }),
+    }
+  else
+    -- Sem conta de IA: em vez de um select desabilitado, explica o que fazer.
+    modelChildren = { noModelsCard() }
+  end
 
   if #currentVariants > 0 then
     table.insert(modelChildren, ui.label({ text = "Raciocínio", fontSize = 10, color = mutedColor() }))
@@ -1445,6 +1494,24 @@ end
 
 function onRetryAgent()
   sendCommand("refresh_agents")
+end
+
+-- Abre o login da conta de IA num terminal (é interativo; não dá para fazer
+-- dentro do painel). Ao terminar, "Já conectei" recarrega o catálogo.
+function onConnectAccount()
+  noctalia.runInTerminal("opencode auth login")
+end
+
+function onRetryModels()
+  sendCommand("sync")
+  toast = "Verificando os modelos de novo…"
+  toastAt = noctalia.nowMs()
+  render()
+end
+
+function onToggleTechnical()
+  showTechnical = not showTechnical
+  render()
 end
 
 function onOpenSettings()
