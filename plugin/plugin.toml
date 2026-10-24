@@ -90,6 +90,17 @@ min = 0
 max = 100
 
 [[setting]]
+key = "background_mode"
+type = "select"
+label_key = "settings.background_mode.label"
+description_key = "settings.background_mode.description"
+default = "black"
+options = [
+  { value = "black", label_key = "settings.background_mode.black" },
+  { value = "theme", label_key = "settings.background_mode.theme" },
+]
+
+[[setting]]
 key = "permission_mode"
 type = "select"
 label_key = "settings.permission_mode.label"

@@ -25,18 +25,36 @@ local spinnerFrame = 1
 local spinnerAccum = 0
 local render
 
--- Fundo preto fixo do painel (não segue a cor de superfície do tema — exceção
--- explícita pedida pelo usuário). A intensidade vem do ajuste `background_opacity`
--- (0–100): é o alfa do preto, e o restante deixa passar a transparência e o blur
--- do sistema.
-local function backgroundColor()
-  local opacity = tonumber(noctalia.getConfig("background_opacity")) or 45
-  if opacity < 0 then
-    opacity = 0
-  elseif opacity > 100 then
-    opacity = 100
+-- Fundo do painel: "black" (preto fixo — exceção pedida) ou "theme" (segue o
+-- tema). A intensidade do preto vem de `background_opacity` (0–100).
+local backgroundModeValue = "black"
+local backgroundOpacity = 45
+
+local function refreshBackground()
+  backgroundModeValue = tostring(noctalia.getConfig("background_mode") or "black")
+  backgroundOpacity = tonumber(noctalia.getConfig("background_opacity")) or 45
+  if backgroundOpacity < 0 then
+    backgroundOpacity = 0
+  elseif backgroundOpacity > 100 then
+    backgroundOpacity = 100
   end
-  return string.format("#000000%02x", math.floor(opacity * 255 / 100 + 0.5))
+end
+
+refreshBackground()
+
+local function frameFill()
+  return string.format("#000000%02x", math.floor(backgroundOpacity * 255 / 100 + 0.5))
+end
+
+-- Cores de texto: com fundo preto fixo, um tema claro deixaria o texto escuro
+-- sobre preto. Nesses tons claros garantimos contraste; no modo "theme" voltam
+-- aos roles do tema.
+local function textColor()
+  return backgroundModeValue == "theme" and "on_surface" or "#F5F7FA"
+end
+
+local function mutedColor()
+  return backgroundModeValue == "theme" and "on_surface_variant" or "#C7CCD9"
 end
 
 local function sendCommand(event, payload)
@@ -94,7 +112,7 @@ local function metaLabel()
   return ui.label({
     text = "agente: " .. agent .. "   modelo: " .. model,
     fontSize = 9,
-    color = "on_surface_variant",
+    color = mutedColor(),
     maxLines = 1,
     flexGrow = 1,
   })
@@ -114,10 +132,10 @@ local function header()
     ui.glyph({ name = "message-chatbot", size = 18, color = "primary" }),
     ui.column({ gap = 3, flexGrow = 1 }, {
       ui.row({ gap = 10, align = "center" }, {
-        ui.label({ text = "msbos IA", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
+        ui.label({ text = "msbos IA", fontSize = 15, fontWeight = "bold", color = textColor() }),
         metaLabel(),
       }),
-      ui.label({ text = subtitle(), fontSize = 10, color = "on_surface_variant", maxLines = 1 }),
+      ui.label({ text = subtitle(), fontSize = 10, color = mutedColor(), maxLines = 1 }),
     }),
     ui.button({ glyph = "plus", variant = "ghost", tooltip = "Nova conversa", onClick = "onNewSession" }),
     ui.button({ glyph = "history", variant = "ghost", tooltip = "Modelos e sessões", onClick = "onOpenPicker" }),
@@ -134,25 +152,25 @@ local function busyIndicator()
       textAlign = "center",
       color = "primary",
     }),
-    ui.label({ text = "Pensando…", fontSize = 10, color = "on_surface_variant" }),
+    ui.label({ text = "Pensando…", fontSize = 10, color = mutedColor() }),
   })
 end
 
 local function emptyState()
   return ui.column({ gap = 10, align = "center", padding = 20 }, {
     ui.glyph({ name = "sparkles", size = 34, color = "primary" }),
-    ui.label({ text = "Pergunte sobre o seu sistema", fontSize = 16, fontWeight = "bold", color = "on_surface" }),
+    ui.label({ text = "Pergunte sobre o seu sistema", fontSize = 16, fontWeight = "bold", color = textColor() }),
     ui.label({
       text = "Ex.: “ajuste o gap do niri para 8”, “instale o htop”, “troque o tema do Noctalia”.",
       fontSize = 11,
-      color = "on_surface_variant",
+      color = mutedColor(),
       textAlign = "center",
       maxLines = 4,
     }),
     ui.label({
       text = "Toda mudança é confirmada antes de ser aplicada.",
       fontSize = 10,
-      color = "on_surface_variant",
+      color = mutedColor(),
       textAlign = "center",
     }),
   })
@@ -175,7 +193,7 @@ local function agentMissingCard()
     ui.label({
       text = "O OpenCode ainda não listou o agente. O chat tenta de novo automaticamente; se persistir, rode ./install.sh e verifique ~/.config/opencode/agents/msbos-chat.md.",
       fontSize = 10,
-      color = "on_surface_variant",
+      color = mutedColor(),
       maxLines = 4,
     }),
     ui.button({ text = "Verificar novamente", variant = "secondary", fontSize = 10, onClick = "onRetryAgent" }),
@@ -184,7 +202,7 @@ end
 
 local function renderTool(tool)
   local expanded = expandedTools[tool.id] == true
-  local color = "on_surface_variant"
+  local color = mutedColor()
   if tool.status == "error" then
     color = "error"
   elseif tool.status == "ok" or tool.status == "completed" then
@@ -193,7 +211,7 @@ local function renderTool(tool)
 
   local headerChildren = {
     ui.glyph({ name = format.toolGlyph(tool.name), size = 13, color = color }),
-    ui.label({ text = tostring(tool.name or "tool"), fontSize = 10, fontWeight = "bold", color = "on_surface" }),
+    ui.label({ text = tostring(tool.name or "tool"), fontSize = 10, fontWeight = "bold", color = textColor() }),
     ui.label({ text = format.toolStatusLabel(tool.status), fontSize = 9, color = color }),
     ui.spacer({ flexGrow = 1 }),
     ui.button({
@@ -210,7 +228,7 @@ local function renderTool(tool)
   if expanded then
     local input = format.toolInput(tool.input)
     if input ~= "" then
-      table.insert(children, ui.label({ text = input, fontSize = 9, color = "on_surface_variant", maxLines = 12 }))
+      table.insert(children, ui.label({ text = input, fontSize = 9, color = mutedColor(), maxLines = 12 }))
     end
     if tool.output and tool.output ~= "" then
       table.insert(children, ui.markdown({ text = format.truncate(tool.output, 4000) }))
@@ -243,12 +261,12 @@ local function renderForm(form)
   local children = {
     ui.row({ gap = 6, align = "center" }, {
       ui.glyph({ name = "forms", size = 15, color = "primary" }),
-      ui.label({ text = tostring(form.title or "Formulário"), fontSize = 11, fontWeight = "bold", color = "on_surface" }),
+      ui.label({ text = tostring(form.title or "Formulário"), fontSize = 11, fontWeight = "bold", color = textColor() }),
     }),
     ui.label({
       text = "Confira o pedido antes de responder; o texto vem do modelo, não do painel.",
       fontSize = 9,
-      color = "on_surface_variant",
+      color = mutedColor(),
     }),
   }
 
@@ -258,7 +276,7 @@ local function renderForm(form)
       table.insert(children, ui.label({
         text = description,
         fontSize = 10,
-        color = "on_surface",
+        color = textColor(),
         maxLines = 6,
       }))
     end
@@ -308,7 +326,7 @@ local function renderForm(form)
         text = tostring(option.label or option.value),
         fontSize = 9,
         fontWeight = "bold",
-        color = selected and "on_primary" or "on_surface",
+        color = selected and "on_primary" or textColor(),
         maxLines = 2,
       }),
     }
@@ -317,7 +335,7 @@ local function renderForm(form)
       table.insert(optionChildren, ui.label({
         text = description,
         fontSize = 9,
-        color = selected and "on_primary/0.85" or "on_surface_variant",
+        color = selected and "on_primary/0.85" or mutedColor(),
         maxLines = 3,
       }))
     end
@@ -327,7 +345,7 @@ local function renderForm(form)
   for _, field in ipairs(form.fields or {}) do
     local label = tostring(field.title or field.key or "campo")
     if field.type == "boolean" then
-      table.insert(children, ui.label({ text = label, fontSize = 10, color = "on_surface_variant" }))
+      table.insert(children, ui.label({ text = label, fontSize = 10, color = mutedColor() }))
       addDescription(field)
       table.insert(children, ui.row({ gap = 8, align = "center" }, {
         ui.spacer({ flexGrow = 1 }),
@@ -340,7 +358,7 @@ local function renderForm(form)
         }),
       }))
     elseif field.type == "string" and type(field.options) == "table" and #field.options > 0 then
-      table.insert(children, ui.label({ text = label, fontSize = 10, color = "on_surface_variant" }))
+      table.insert(children, ui.label({ text = label, fontSize = 10, color = mutedColor() }))
       addDescription(field)
       local buttons = {}
       for _, option in ipairs(field.options) do
@@ -348,7 +366,7 @@ local function renderForm(form)
       end
       table.insert(children, ui.row({ gap = 6, align = "start" }, buttons))
     elseif field.type == "multiselect" then
-      table.insert(children, ui.label({ text = label, fontSize = 10, color = "on_surface_variant" }))
+      table.insert(children, ui.label({ text = label, fontSize = 10, color = mutedColor() }))
       addDescription(field)
       local selected = draftForm[field.key]
       if type(selected) ~= "table" then
@@ -367,7 +385,7 @@ local function renderForm(form)
       end
       table.insert(children, ui.row({ gap = 6, align = "start" }, buttons))
     else
-      table.insert(children, ui.label({ text = label, fontSize = 10, color = "on_surface_variant" }))
+      table.insert(children, ui.label({ text = label, fontSize = 10, color = mutedColor() }))
       addDescription(field)
       table.insert(children, ui.input({
         key = "form-" .. tostring(form.id) .. "-" .. tostring(field.key),
@@ -431,7 +449,7 @@ local function renderPermission(permission)
         text = "Permissão: " .. tostring(permission.action or "ação"),
         fontSize = 11,
         fontWeight = "bold",
-        color = "on_surface",
+        color = textColor(),
         flexGrow = 1,
         maxLines = 1,
       }),
@@ -439,11 +457,11 @@ local function renderPermission(permission)
   }
   local message = tostring(permission.message or "")
   if message ~= "" then
-    table.insert(children, ui.label({ text = message, fontSize = 10, color = "on_surface", maxLines = 4 }))
+    table.insert(children, ui.label({ text = message, fontSize = 10, color = textColor(), maxLines = 4 }))
   end
   local detail = permissionDetail(permission)
   if detail ~= "" then
-    table.insert(children, ui.label({ text = detail, fontSize = 9, color = "on_surface_variant", maxLines = 8 }))
+    table.insert(children, ui.label({ text = detail, fontSize = 9, color = mutedColor(), maxLines = 8 }))
   end
   table.insert(children, ui.row({ gap = 8, align = "center" }, {
     ui.button({
@@ -499,7 +517,7 @@ local function renderMessage(message)
   local children = {}
   local headerChildren = {
     ui.glyph({ name = "sparkles", size = 13, color = "primary" }),
-    ui.label({ text = "Assistente", fontSize = 9, fontWeight = "bold", color = "on_surface_variant" }),
+    ui.label({ text = "Assistente", fontSize = 9, fontWeight = "bold", color = mutedColor() }),
   }
   if message.streaming then
     table.insert(headerChildren, ui.label({ text = "…", color = "primary" }))
@@ -577,7 +595,7 @@ local function historyNotice(shown, total)
   return ui.label({
     text = "Mostrando as últimas " .. tostring(shown) .. " de " .. tostring(total) .. " mensagens.",
     fontSize = 9,
-    color = "on_surface_variant",
+    color = mutedColor(),
     textAlign = "center",
   })
 end
@@ -631,11 +649,11 @@ end
 local function onboardingView()
   local children = {
     ui.glyph({ name = "message-chatbot", size = 44, color = "primary" }),
-    ui.label({ text = "Conecte o OpenCode", fontSize = 18, fontWeight = "bold", color = "on_surface" }),
+    ui.label({ text = "Conecte o OpenCode", fontSize = 18, fontWeight = "bold", color = textColor() }),
     ui.label({
       text = "O chat conecta sozinho ao OpenCode local. Se precisar, rode `opencode pair` e cole o link abaixo.",
       fontSize = 12,
-      color = "on_surface_variant",
+      color = mutedColor(),
       textAlign = "center",
       maxLines = 4,
     }),
@@ -672,12 +690,12 @@ end
 
 local function offlineView()
   local children = {
-    ui.glyph({ name = "cloud-off", size = 38, color = "on_surface_variant" }),
-    ui.label({ text = "OpenCode offline", fontSize = 16, fontWeight = "bold", color = "on_surface" }),
+    ui.glyph({ name = "cloud-off", size = 38, color = mutedColor() }),
+    ui.label({ text = "OpenCode offline", fontSize = 16, fontWeight = "bold", color = textColor() }),
     ui.label({
       text = "O chat inicia o servidor local automaticamente. Se não conectar, abra o app OpenCode ou rode `opencode serve`.",
       fontSize = 12,
-      color = "on_surface_variant",
+      color = mutedColor(),
       textAlign = "center",
       maxLines = 4,
     }),
@@ -694,11 +712,11 @@ end
 local function startingView()
   return ui.column({ flexGrow = 1, gap = 12, padding = 20, align = "center", justify = "center" }, {
     ui.glyph({ name = "loader-2", size = 36, color = "primary" }),
-    ui.label({ text = "Iniciando o OpenCode…", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
+    ui.label({ text = "Iniciando o OpenCode…", fontSize = 15, fontWeight = "bold", color = textColor() }),
     ui.label({
       text = "Isso leva alguns segundos na primeira vez.",
       fontSize = 10,
-      color = "on_surface_variant",
+      color = mutedColor(),
       textAlign = "center",
     }),
   })
@@ -707,8 +725,8 @@ end
 local function pairingView()
   return ui.column({ flexGrow = 1, gap = 12, padding = 20, align = "center", justify = "center" }, {
     ui.glyph({ name = "loader-2", size = 36, color = "primary" }),
-    ui.label({ text = "Pareando com o OpenCode…", color = "on_surface_variant" }),
-    ui.label({ text = "Isso deve levar só um instante.", fontSize = 10, color = "on_surface_variant" }),
+    ui.label({ text = "Pareando com o OpenCode…", color = mutedColor() }),
+    ui.label({ text = "Isso deve levar só um instante.", fontSize = 10, color = mutedColor() }),
   })
 end
 
@@ -804,8 +822,8 @@ local function pickerView()
     }, {
       ui.button({ glyph = "arrow-left", variant = "ghost", tooltip = "Voltar ao chat", onClick = "onBackToChat" }),
       ui.column({ gap = 0, flexGrow = 1 }, {
-        ui.label({ text = "Modelo e sessão", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
-        ui.label({ text = "Ajustes do chat", fontSize = 10, color = "on_surface_variant" }),
+        ui.label({ text = "Modelo e sessão", fontSize = 15, fontWeight = "bold", color = textColor() }),
+        ui.label({ text = "Ajustes do chat", fontSize = 10, color = mutedColor() }),
       }),
       ui.button({ glyph = "minus", variant = "ghost", tooltip = "Minimizar", onClick = "onMinimize" }),
     }),
@@ -849,7 +867,7 @@ local function pickerView()
   end
 
   local modelChildren = {
-    ui.label({ text = "Modelo", fontSize = 10, color = "on_surface_variant" }),
+    ui.label({ text = "Modelo", fontSize = 10, color = mutedColor() }),
     ui.select({
       options = modelOptions,
       selectedIndex = hasModels and math.max(0, selectedModelIndex - 1) or 0,
@@ -878,7 +896,7 @@ local function pickerView()
   }
 
   if #currentVariants > 0 then
-    table.insert(modelChildren, ui.label({ text = "Raciocínio", fontSize = 10, color = "on_surface_variant" }))
+    table.insert(modelChildren, ui.label({ text = "Raciocínio", fontSize = 10, color = mutedColor() }))
     table.insert(modelChildren, ui.select({
       key = "reasoning-"
         .. tostring(currentModel and currentModel.providerID or "")
@@ -938,7 +956,7 @@ local function pickerView()
         ui.label({
           text = sessionText(session),
           fontSize = 10,
-          color = selected and "on_primary" or "on_surface",
+          color = selected and "on_primary" or textColor(),
           maxLines = 1,
           flexGrow = 1,
         }),
@@ -956,11 +974,11 @@ local function pickerView()
     }))
   end
   if #sessionRows == 0 then
-    table.insert(sessionRows, ui.label({ text = "Nenhuma sessão ainda.", fontSize = 10, color = "on_surface_variant" }))
+    table.insert(sessionRows, ui.label({ text = "Nenhuma sessão ainda.", fontSize = 10, color = mutedColor() }))
   end
 
   table.insert(children, ui.column({ gap = 8, flexGrow = 1, paddingH = 12, align = "stretch" }, {
-    ui.label({ text = "Sessões", fontSize = 10, color = "on_surface_variant" }),
+    ui.label({ text = "Sessões", fontSize = 10, color = mutedColor() }),
     ui.scroll({ flexGrow = 1, gap = 4 }, sessionRows),
   }))
 
@@ -996,7 +1014,7 @@ local function pickerView()
         ui.label({
           text = "A conversa será removida do OpenCode. O espelho local em sessions/ não é apagado.",
           fontSize = 9,
-          color = "on_surface_variant",
+          color = mutedColor(),
           maxLines = 3,
         }),
         ui.row({ gap = 8, align = "center" }, {
@@ -1020,15 +1038,12 @@ end
 local PANEL_INSET = 14
 
 local function frame(content)
-  -- Fundo preto fixo do chat (exceção pedida pelo usuário: não segue a cor de
-  -- superfície do tema). O alfa vem de `background_opacity` e mantém a
-  -- transparência e o blur do sistema visíveis através do preto.
-  --
-  -- O host inseta o conteúdo em Style::panelPadding (14 px) e desenha a borda/raio
-  -- do painel por baixo. O padding negativo faz o fundo preto vazar esses 14 px e
-  -- cobrir o painel inteiro (borda inclusive); o padding interno devolve o
-  -- conteúdo à posição original. O raio 12 acompanha o raio do painel
-  -- (Style::radiusXl × corner_radius_scale, 1.0 por padrão).
+  -- Modo "theme": o host desenha o fundo/borda e o frame só organiza o conteúdo.
+  if backgroundModeValue == "theme" then
+    return ui.column({ flexGrow = 1, gap = 0, align = "stretch" }, { content })
+  end
+  -- Modo "black": fundo preto fixo cobrindo o painel inteiro (padding negativo
+  -- alcança a borda/raio do tema). O alfa preserva a transparência e o blur.
   return ui.column({
     flexGrow = 1,
     gap = 0,
@@ -1039,7 +1054,7 @@ local function frame(content)
       flexGrow = 1,
       gap = 0,
       align = "stretch",
-      fill = backgroundColor(),
+      fill = frameFill(),
       radius = 12,
       padding = PANEL_INSET,
     }, { content }),
@@ -1057,7 +1072,7 @@ render = function()
   if snapshot == nil then
     panel.render(frame(ui.column({ flexGrow = 1, gap = 8, align = "center", justify = "center" }, {
       ui.glyph({ name = "loader-2", size = 30, color = "primary" }),
-      ui.label({ text = "Carregando…", color = "on_surface_variant" }),
+      ui.label({ text = "Carregando…", color = mutedColor() }),
     })))
     return
   end
@@ -1094,6 +1109,7 @@ function onClose()
 end
 
 function onConfigChanged()
+  refreshBackground()
   render()
 end
 
