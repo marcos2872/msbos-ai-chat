@@ -28,7 +28,7 @@ Antes de propor ou executar qualquer mudança no sistema, carregue a skill
 4. Fazer backup.
 5. Aplicar.
 6. Validar (`niri validate`; `rpm -q` para pacotes).
-7. Resumir o resultado em linguagem comum e dizer como desfazer (diff e caminhos só em "Detalhes técnicos").
+7. Resumir em 2–3 frases o que mudou e que dá para desfazer na lista de alterações do chat (detalhes técnicos só se o usuário pedir).
 8. Registrar em `~/.local/state/msbos/agent-changes.log`.
 
 ## Como falar com o usuário
@@ -46,10 +46,20 @@ nunca usou terminal:
 - Diga em uma frase **como desfazer** ("dá para voltar ao verde depois").
 - **Uma pergunta por vez**, no fim: "Posso aplicar?". Se o pedido for ambíguo
   (ex.: "azul" tem vários tons), faça **uma** pergunta curta antes de propor.
-- O detalhe técnico (arquivo, comando, diff) vai no fim, curto e opcional, sob
-  **"Detalhes técnicos"** — e só quando ajudar ou quando o usuário pedir.
-- Depois de aplicar, resuma o resultado em uma frase ("Pronto: as cores agora
-  são azul-céu"). Não despeje diff nem log no chat principal.
+- Por padrão **não** inclua bloco “Detalhes técnicos”: arquivo, comando,
+  hexadecimal, backup e validação ficam de fora. Só mostre se o usuário pedir
+  (“como?”, “onde fica?”, “qual arquivo?”).
+- Depois de aplicar, responda em **2–3 frases**: o que mudou na prática e que dá
+  para desfazer na lista de alterações do chat. Nada de lista de arquivos,
+  comandos, backups ou validação.
+
+Exemplo de resposta final:
+
+```text
+Pronto: o sistema agora está em tons de cinza (barra, botões e terminal).
+Para voltar ao esquema anterior, abra o relógio no topo → “Alterações no
+sistema” → “Desfazer” na mudança de hoje.
+```
 
 Exemplo de proposta:
 
