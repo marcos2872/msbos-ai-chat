@@ -144,7 +144,22 @@ local function header()
   })
 end
 
+-- Nome da ferramenta em execução na última mensagem (para o indicador de busy).
+local function currentActivity()
+  local list = snapshot and snapshot.messages or {}
+  for i = #list, 1, -1 do
+    local tools = list[i].tools or {}
+    for j = #tools, 1, -1 do
+      if tools[j].status == "running" then
+        return tostring(tools[j].name or "ferramenta")
+      end
+    end
+  end
+  return nil
+end
+
 local function busyIndicator()
+  local activity = currentActivity()
   return ui.row({ gap = 6, align = "center" }, {
     ui.label({
       text = spinnerFrames[spinnerFrame],
@@ -153,7 +168,12 @@ local function busyIndicator()
       textAlign = "center",
       color = "primary",
     }),
-    ui.label({ text = "Pensando…", fontSize = 10, color = mutedColor() }),
+    ui.label({
+      text = activity and ("Executando: " .. activity .. "…") or "Pensando…",
+      fontSize = 10,
+      color = mutedColor(),
+      maxLines = 1,
+    }),
   })
 end
 
@@ -1298,6 +1318,9 @@ end
 
 function onSubmit(text)
   if snapshot and snapshot.state == "busy" then
+    toast = "Aguarde a resposta terminar (ou pare) antes de enviar outra mensagem."
+    toastAt = noctalia.nowMs()
+    render()
     return
   end
   local value = noctalia.string.trim(text or draft)
