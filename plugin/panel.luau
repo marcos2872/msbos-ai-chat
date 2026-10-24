@@ -177,17 +177,28 @@ local function busyIndicator()
   })
 end
 
+local EXAMPLES = {
+  "Ajuste o gap do niri para 8",
+  "Instale o htop",
+  "Troque o tema do Noctalia",
+}
+
 local function emptyState()
+  local chips = {}
+  for _, example in ipairs(EXAMPLES) do
+    table.insert(chips, ui.button({
+      text = example,
+      variant = "secondary",
+      fontSize = 10,
+      onClick = function()
+        sendCommand("prompt", example)
+      end,
+    }))
+  end
   return ui.column({ gap = 10, align = "center", padding = 20 }, {
     ui.glyph({ name = "sparkles", size = 34, color = "primary" }),
     ui.label({ text = "Pergunte sobre o seu sistema", fontSize = 16, fontWeight = "bold", color = textColor() }),
-    ui.label({
-      text = "Ex.: “ajuste o gap do niri para 8”, “instale o htop”, “troque o tema do Noctalia”.",
-      fontSize = 11,
-      color = mutedColor(),
-      textAlign = "center",
-      maxLines = 4,
-    }),
+    ui.column({ gap = 6, align = "center" }, chips),
     ui.label({
       text = "Toda mudança é confirmada antes de ser aplicada.",
       fontSize = 10,
