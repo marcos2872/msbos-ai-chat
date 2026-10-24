@@ -13,6 +13,7 @@ local toastAt = 0
 local toastError = false
 local expandedTools = {}
 local expandedPermissions = {}
+local expandedChanges = {}
 local showAlwaysPermission = {}
 local expandedReasoning = {}
 local formDrafts = {}
@@ -1479,6 +1480,65 @@ local function changesView()
     local rows = {}
     for index, change in ipairs(changes) do
       local undo = tostring(change.undo or "")
+      local what = tostring(change.what or "")
+      local key = tostring(change.when or "") .. "|" .. what
+      local expanded = expandedChanges[key] == true
+
+      local itemChildren = {
+        ui.label({ text = format.changeWhen(change.when), fontSize = 10, color = mutedColor() }),
+        ui.label({
+          text = format.changeTitle(what),
+          fontSize = 12,
+          fontWeight = "bold",
+          color = textColor(),
+          maxLines = 2,
+        }),
+      }
+      if expanded then
+        table.insert(itemChildren, ui.label({
+          text = what,
+          fontSize = 10,
+          color = mutedColor(),
+          maxLines = 6,
+        }))
+      end
+
+      local actions = {
+        ui.button({
+          text = "Desfazer",
+          variant = "secondary",
+          fontSize = 10,
+          glyph = "arrow-back-up",
+          tooltip = "Pede ao assistente para desfazer; ele confirma antes",
+          onClick = function()
+            onUndoChange(index)
+          end,
+        }),
+        ui.button({
+          text = expanded and "Ocultar detalhes" or "Ver detalhes",
+          variant = "ghost",
+          fontSize = 10,
+          glyph = expanded and "chevron-up" or "chevron-down",
+          onClick = function()
+            expandedChanges[key] = not expanded
+            render()
+          end,
+        }),
+      }
+      if undo ~= "" then
+        table.insert(actions, ui.button({
+          text = "Copiar comando",
+          variant = "ghost",
+          fontSize = 10,
+          glyph = "copy",
+          tooltip = undo,
+          onClick = function()
+            onCopyUndo(index)
+          end,
+        }))
+      end
+      table.insert(itemChildren, ui.row({ gap = 8, align = "center" }, actions))
+
       table.insert(rows, ui.column({
         fill = "surface_variant/0.18",
         border = "outline/0.35",
@@ -1487,46 +1547,10 @@ local function changesView()
         padding = 10,
         gap = 6,
         align = "stretch",
-      }, {
-        ui.label({ text = tostring(change.when or ""), fontSize = 10, color = mutedColor() }),
-        ui.label({ text = tostring(change.what or ""), fontSize = 10, color = textColor(), maxLines = 5 }),
-        (function()
-          local actions = {
-            ui.button({
-              text = "Pedir para desfazer",
-              variant = "secondary",
-              fontSize = 10,
-              glyph = "arrow-back-up",
-              onClick = function()
-                onUndoChange(index)
-              end,
-            }),
-          }
-          if undo ~= "" then
-            table.insert(actions, ui.button({
-              text = "Copiar comando",
-              variant = "ghost",
-              fontSize = 10,
-              glyph = "copy",
-              tooltip = undo,
-              onClick = function()
-                onCopyUndo(index)
-              end,
-            }))
-          end
-          return ui.row({ gap = 8, align = "center" }, actions)
-        end)(),
-      }))
+      }, itemChildren))
     end
     table.insert(children, ui.scroll({ flexGrow = 1, gap = 8, paddingH = 12 }, rows))
   end
-
-  table.insert(children, ui.label({
-    text = "Registro: ~/.local/state/msbos/agent-changes.log",
-    fontSize = 10,
-    color = mutedColor(),
-    paddingH = 12,
-  }))
 
   return ui.column({ flexGrow = 1, gap = 8, align = "stretch", paddingV = 8 }, children)
 end

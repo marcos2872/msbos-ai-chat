@@ -156,9 +156,12 @@ O rodapé do seletor tem:
 
 View `changes` (IPC `open_changes`, também pelo rodapé do seletor), alimentada por `chat.changes`:
 
-- Lista as 30 mudanças mais recentes do log da skill, da última para a primeira, cada uma com data, descrição e **Pedir para desfazer** (envia `prompt` pedindo a reversão — o assistente explica e passa pelo cartão de permissão) e **Copiar comando** (copia o `desfazer:` registrado, quando existe).
+- Lista as 30 mudanças mais recentes do log da skill, da última para a primeira. Cada item mostra:
+  - a data em linguagem comum (`format.changeWhen`: “hoje, 16:50”, “ontem, 15:22”, “24/10, 16:50”);
+  - um **título em linguagem comum** (`format.changeTitle`), derivado da linha do log: “Instalou o programa btop”, “Trocou as cores do sistema (azul → roxo)”, “Desativou a inicialização automática do JetBrains Toolbox”, “Ajustou o espaçamento das janelas” etc. Quando o tipo não é reconhecido, cai em “Alterou o sistema”;
+  - **Desfazer** (envia `prompt` pedindo a reversão — o assistente explica e passa pelo cartão de permissão), **Ver detalhes** (mostra a linha crua do log) e **Copiar comando** (copia o `desfazer:` registrado, quando existe).
 - O painel não executa nada sozinho: desfazer é uma mensagem como qualquer outra.
-- Estado vazio: “Nenhuma alteração registrada ainda.”; rodapé mostra o caminho do log.
+- Estado vazio: “Nenhuma alteração registrada ainda.”.
 
 ### Nova conversa
 
