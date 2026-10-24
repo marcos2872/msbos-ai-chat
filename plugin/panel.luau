@@ -245,6 +245,11 @@ local function renderForm(form)
       ui.glyph({ name = "forms", size = 15, color = "primary" }),
       ui.label({ text = tostring(form.title or "Formulário"), fontSize = 11, fontWeight = "bold", color = "on_surface" }),
     }),
+    ui.label({
+      text = "Confira o pedido antes de responder; o texto vem do modelo, não do painel.",
+      fontSize = 9,
+      color = "on_surface_variant",
+    }),
   }
 
   local function addDescription(field)
