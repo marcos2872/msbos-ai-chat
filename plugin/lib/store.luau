@@ -6,6 +6,7 @@ local format = require("./format.luau")
 local M = {}
 
 local AGENTS_MD = [=[
+<!-- msbos-agents:1 -->
 # msbos AI Chat — workspace
 
 Este diretório é o workspace do chat de IA do msbos.
@@ -34,7 +35,11 @@ function M.ensure(directory)
     noctalia.runAsync({ "chmod", "700", dir })
   end
   local agents = root .. "/AGENTS.md"
-  if not noctalia.fileExists(agents) then
+  -- Regrava quando o arquivo falta ou está desatualizado (versão anterior usava
+  -- os nomes "omyfedora" e nunca era corrigida). O marcador preserva edições
+  -- futuras do usuário.
+  local existing = noctalia.readFile(agents)
+  if not existing or not existing:find("msbos-agents:1", 1, true) then
     noctalia.writeFile(agents, AGENTS_MD)
   end
   return root

@@ -521,9 +521,12 @@ loadAgents = function(gen)
 
     agentCheckAttempts = 0
     agents = {}
+    if type(data) ~= "table" then
+      data = {}
+    end
     local found = false
-    for _, agent in ipairs(data or {}) do
-      if agent.mode ~= "subagent" and agent.hidden ~= true then
+    for _, agent in ipairs(data) do
+      if type(agent) == "table" and agent.mode ~= "subagent" and agent.hidden ~= true then
         table.insert(agents, agent)
         if agent.id == agentId then
           found = true
@@ -798,8 +801,27 @@ local function setModel(model)
   end)
 end
 
+local function agentAllowed(agent)
+  -- Sem catálogo carregado (lista vazia) não bloqueia; com catálogo, só aceita
+  -- agentes conhecidos e não-subagentes — evita `set_agent` via IPC apontar para
+  -- um agente arbitrário/permissivo.
+  if #agents == 0 then
+    return true
+  end
+  for _, item in ipairs(agents) do
+    if item.id == agent then
+      return true
+    end
+  end
+  return false
+end
+
 local function setAgent(agent)
   if not activeSession or type(agent) ~= "string" or agent == "" then
+    return
+  end
+  if not agentAllowed(agent) then
+    setError("Agente não permitido: " .. agent)
     return
   end
   api.setAgent(pairing, directory, activeSession.id, agent, function(ok, err)
@@ -1518,7 +1540,10 @@ function onIpc(event, payload)
   elseif event == "delete_session" then
     deleteSession(payload)
   elseif event == "set_model" then
-    setModel(decode(payload))
+    local data = decode(payload)
+    if type(data) == "table" then
+      setModel(data)
+    end
   elseif event == "set_agent" then
     setAgent(payload)
   elseif event == "prompt" then
@@ -1527,10 +1552,14 @@ function onIpc(event, payload)
     interrupt()
   elseif event == "reply_permission" then
     local data = decode(payload)
-    replyPermission(data.requestID, data.decision)
+    if type(data) == "table" then
+      replyPermission(data.requestID, data.decision)
+    end
   elseif event == "reply_form" then
     local data = decode(payload)
-    replyForm(data.formID, data.answer)
+    if type(data) == "table" then
+      replyForm(data.formID, data.answer)
+    end
   elseif event == "refresh_models" then
     if pairing then
       loadCatalog(generation)
