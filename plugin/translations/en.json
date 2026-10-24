@@ -26,10 +26,10 @@
   "settings.background_mode.description": "Fixed black (ignores the theme) or follow the theme color. In black mode, text uses light tones to keep contrast.",
   "settings.background_mode.black": "Fixed black",
   "settings.background_mode.theme": "Follow theme",
-  "settings.permission_mode.label": "Shell/edit confirmation",
-  "settings.permission_mode.description": "Whether the agent must ask (panel card) for each shell/edit, or always allow without asking.",
-  "settings.permission_mode.ask": "Ask (card)",
-  "settings.permission_mode.always": "Always allow",
+  "settings.permission_mode.label": "Command and edit confirmation",
+  "settings.permission_mode.description": "Ask (recommended) shows a card so you approve each command or edit. Always allow turns that barrier off and lets the assistant act without asking — use only if you trust the request.",
+  "settings.permission_mode.ask": "Ask (recommended)",
+  "settings.permission_mode.always": "Always allow (no asking — risk)",
   "settings.glyph.label": "Bar icon",
   "settings.glyph.description": "Tabler glyph used by the bar widget."
 }

@@ -26,10 +26,10 @@
   "settings.background_mode.description": "Preto fixo (não segue o tema) ou seguir a cor do tema. No modo preto, o texto usa tons claros para manter o contraste.",
   "settings.background_mode.black": "Preto fixo",
   "settings.background_mode.theme": "Seguir o tema",
-  "settings.permission_mode.label": "Confirmação de shell/edição",
-  "settings.permission_mode.description": "Se o agente deve pedir confirmação (cartão no painel) para cada comando/edição ou permitir sempre, sem perguntar.",
-  "settings.permission_mode.ask": "Perguntar (cartão)",
-  "settings.permission_mode.always": "Permitir sempre",
+  "settings.permission_mode.label": "Confirmação de comandos e edições",
+  "settings.permission_mode.description": "Perguntar (recomendado) mostra um cartão para você aprovar cada comando ou edição. Permitir sempre desliga essa barreira e deixa o assistente agir sem perguntar — use só se você confia no pedido.",
+  "settings.permission_mode.ask": "Perguntar (recomendado)",
+  "settings.permission_mode.always": "Permitir sempre (sem perguntar — risco)",
   "settings.glyph.label": "Ícone da barra",
   "settings.glyph.description": "Glifo Tabler usado no widget da barra."
 }

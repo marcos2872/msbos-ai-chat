@@ -89,7 +89,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming, horário relativo e botões **Regenerar** (na última resposta; reenvia o último pedido) e **copiar**. |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
 | Ferramenta | Cartão com glifo, nome, status, seta de expansão; entrada e saída truncadas. |
-| Permissão | Cartão `tertiary/0.10` (glifo `shield-lock` + ação + alvo em **bloco de código**, com “Ver o alvo completo”) e **Permitir uma vez** / **Permitir sempre** (`ghost`) / **Recusar**; resposta por IPC `reply_permission`. |
+| Permissão | Cartão `tertiary/0.10` em duas camadas: primeiro o resumo em linguagem comum (“O assistente quer: Instalar o programa htop”, derivado de `action`/`resources`), com **Permitir uma vez** / **Recusar** e **Ver o comando** (bloco de código, colapsado). **Permitir sempre** fica atrás de **Mais opções**, com aviso de risco e de como voltar a exigir confirmação; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) caracteres; a entrada em 1200.
@@ -107,10 +107,10 @@ O snapshot publica as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens; quando h�
 
 ### Estados vazios e avisos
 
-- Sem mensagens: cartão com “Pergunte sobre o seu sistema” e exemplos.
+- Sem mensagens: cartão com “Pergunte sobre o seu sistema” e exemplos. Sem modelos (`chat.models` vazio), o cartão “Falta conectar uma conta de IA” substitui os exemplos.
 - `snapshot.notice`: aviso em `primary` (ex.: retry).
 - `snapshot.error`: erro em `error`.
-- `agentStatus == "missing"`: cartão vermelho “Agente msbos-chat indisponível” com **Verificar novamente** (IPC `refresh_agents`); o engine revalida sozinho com backoff. Não aparece durante `busy`; `unknown` (erro de rede) não mostra cartão.
+- `agentStatus == "missing"`: cartão vermelho “Assistente especialista indisponível” com **Verificar novamente** (IPC `refresh_agents`) e os detalhes técnicos sob demanda; o engine revalida sozinho com backoff. Não aparece durante `busy`; `unknown` (erro de rede) não mostra cartão.
 - Toast de falha de IPC: label de erro por 5 s.
 
 ## Seletor de modelo e sessões

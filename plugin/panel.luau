@@ -12,6 +12,7 @@ local toast = ""
 local toastAt = 0
 local expandedTools = {}
 local expandedPermissions = {}
+local showAlwaysPermission = {}
 local expandedReasoning = {}
 local formDrafts = {}
 local view = "chat"
@@ -546,43 +547,120 @@ local function permissionDetail(permission)
   return table.concat(lines, "\n")
 end
 
+-- Nome do arquivo sem o caminho completo (o caminho fica no detalhe técnico).
+local function baseName(path)
+  local value = tostring(path or "")
+  return value:match("([^/]+)$") or value
+end
+
+-- Resume o pedido em linguagem comum. O comando real continua disponível em
+-- "Ver o comando": quem não lê shell aprova pelo resumo, não às cegas.
+local function permissionSummary(permission)
+  local action = tostring(permission.action or "")
+  local resources = type(permission.resources) == "table" and permission.resources or {}
+  local command = tostring(resources.command or "")
+  local path = tostring(resources.path or resources.file or "")
+  local url = tostring(resources.url or "")
+
+  if command ~= "" then
+    local pkg = command:match("msbos%-priv%s+dnf%-install%s+([%w%-%._]+)")
+    if pkg then
+      return "Instalar o programa " .. pkg
+    end
+    pkg = command:match("msbos%-priv%s+dnf%-remove%s+([%w%-%._]+)")
+    if pkg then
+      return "Remover o programa " .. pkg
+    end
+    local verb, unit = command:match("msbos%-priv%s+svc%-(%w+)%s+([%w%-%._@]+)")
+    if verb and unit then
+      local label = "Reiniciar"
+      if verb == "enable" then
+        label = "Ativar"
+      elseif verb == "disable" then
+        label = "Desativar"
+      end
+      return label .. " o serviço " .. unit
+    end
+    if command:match("^%s*(dnf|rpm)%s") then
+      return "Alterar programas instalados"
+    end
+    if command:match("^%s*(systemctl|service)%s") then
+      return "Alterar um serviço do sistema"
+    end
+    if command:match("^%s*(cp|mv|install|mkdir|chmod|chown|rm)%s") then
+      return "Alterar arquivos do sistema"
+    end
+    return "Executar um comando no sistema"
+  end
+
+  if url ~= "" then
+    return "Acessar o site " .. url:gsub("^https?://", ""):sub(1, 60)
+  end
+
+  if path ~= "" then
+    if action == "edit" or action == "write" then
+      return "Editar o arquivo " .. baseName(path)
+    elseif action == "read" then
+      return "Ler o arquivo " .. baseName(path)
+    end
+  end
+
+  local labels = {
+    shell = "Executar um comando no sistema",
+    bash = "Executar um comando no sistema",
+    edit = "Editar um arquivo",
+    write = "Editar um arquivo",
+    read = "Ler um arquivo",
+    webfetch = "Acessar um site",
+  }
+  return labels[action] or ("Usar a ferramenta " .. (action ~= "" and action or "desconhecida"))
+end
+
 local function renderPermission(permission)
+  local summary = permissionSummary(permission)
   local children = {
     ui.row({ gap = 6, align = "center" }, {
       ui.glyph({ name = "shield-lock", size = 15, color = "tertiary" }),
       ui.label({
-        text = "Permissão: " .. tostring(permission.action or "ação"),
+        text = "O assistente quer: " .. summary,
         fontSize = 11,
         fontWeight = "bold",
         color = textColor(),
         flexGrow = 1,
-        maxLines = 1,
+        maxLines = 2,
       }),
     }),
+    ui.label({
+      text = "Nada é aplicado sem a sua confirmação.",
+      fontSize = 9,
+      color = mutedColor(),
+      maxLines = 2,
+    }),
   }
-  local message = tostring(permission.message or "")
-  if message ~= "" then
-    table.insert(children, ui.label({ text = message, fontSize = 10, color = textColor(), maxLines = 4 }))
-  end
+
   local detail = permissionDetail(permission)
+  local expanded = expandedPermissions[permission.id] == true
   if detail ~= "" then
-    -- Mostra o alvo em bloco de código (monoespaçado) e permite expandir: o
-    -- comando/salvamento precisa ser lido por inteiro antes de aprovar.
-    local expanded = expandedPermissions[permission.id] == true
-    local preview = expanded and detail or format.truncate(detail, 280)
-    table.insert(children, ui.markdown({ text = "```text\n" .. preview .. "\n```" }))
-    if not expanded and #detail > 280 then
-      table.insert(children, ui.button({
-        text = "Ver o alvo completo",
-        variant = "ghost",
-        fontSize = 9,
-        onClick = function()
-          expandedPermissions[permission.id] = true
-          render()
-        end,
-      }))
+    table.insert(children, ui.button({
+      text = expanded and "Ocultar o comando" or "Ver o comando",
+      variant = "ghost",
+      fontSize = 9,
+      glyph = expanded and "chevron-up" or "chevron-down",
+      onClick = function()
+        expandedPermissions[permission.id] = not expanded
+        render()
+      end,
+    }))
+    if expanded then
+      table.insert(children, ui.markdown({ text = "```text\n" .. detail .. "\n```" }))
+      local message = tostring(permission.message or "")
+      if message ~= "" then
+        table.insert(children, ui.label({ text = message, fontSize = 9, color = mutedColor(), maxLines = 4 }))
+      end
     end
   end
+
+  local alwaysOpen = showAlwaysPermission[permission.id] == true
   table.insert(children, ui.row({ gap = 8, align = "center" }, {
     ui.button({
       text = "Permitir uma vez",
@@ -590,18 +668,8 @@ local function renderPermission(permission)
       fontSize = 10,
       onClick = function()
         expandedPermissions[permission.id] = nil
+        showAlwaysPermission[permission.id] = nil
         sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "once" }))
-      end,
-    }),
-    -- "Sempre" é menos destacado de propósito; o escopo é o que o servidor definiu.
-    ui.button({
-      text = "Permitir sempre",
-      variant = "ghost",
-      fontSize = 10,
-      tooltip = "Permite sempre (escopo definido pelo OpenCode)",
-      onClick = function()
-        expandedPermissions[permission.id] = nil
-        sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "always" }))
       end,
     }),
     ui.button({
@@ -610,10 +678,52 @@ local function renderPermission(permission)
       fontSize = 10,
       onClick = function()
         expandedPermissions[permission.id] = nil
+        showAlwaysPermission[permission.id] = nil
         sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "reject" }))
       end,
     }),
+    ui.button({
+      text = alwaysOpen and "Menos opções" or "Mais opções",
+      variant = "ghost",
+      fontSize = 9,
+      onClick = function()
+        showAlwaysPermission[permission.id] = not alwaysOpen
+        render()
+      end,
+    }),
   }))
+
+  -- "Sempre" fica atrás de uma camada com aviso: é a única opção que desliga a
+  -- confirmação, e o alcance é definido pelo servidor, não pelo painel.
+  if alwaysOpen then
+    table.insert(children, ui.column({
+      fill = "error/0.08",
+      border = "error/0.35",
+      borderWidth = 1,
+      radius = 8,
+      padding = 8,
+      gap = 6,
+      align = "stretch",
+    }, {
+      ui.label({
+        text = "Permitir sempre deixa o assistente repetir esta ação sem perguntar (o alcance é definido por ele). Você pode voltar a exigir confirmação em Configurações → msbos AI Chat → Confirmação.",
+        fontSize = 9,
+        color = mutedColor(),
+        maxLines = 6,
+      }),
+      ui.button({
+        text = "Permitir sempre",
+        variant = "secondary",
+        fontSize = 10,
+        onClick = function()
+          expandedPermissions[permission.id] = nil
+          showAlwaysPermission[permission.id] = nil
+          sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "always" }))
+        end,
+      }),
+    }))
+  end
+
   return ui.column({
     fill = "tertiary/0.10",
     border = "tertiary/0.40",
