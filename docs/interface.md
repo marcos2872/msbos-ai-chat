@@ -85,13 +85,15 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Elemento | Renderização |
 |---|---|
 | Usuário | Coluna com `fill = primary/0.12`, label “Você” e markdown. |
-| Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming e botão **copiar** (a resposta). |
+| Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming, horário relativo e botões **Regenerar** (na última resposta) e **copiar**. |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
 | Ferramenta | Cartão com glifo, nome, status, seta de expansão; entrada e saída truncadas. |
 | Permissão | Cartão `tertiary/0.10` (glifo `shield-lock` + ação + alvo em **bloco de código**, com “Ver o alvo completo”) e **Permitir uma vez** / **Permitir sempre** (`ghost`) / **Recusar**; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) caracteres; a entrada em 1200.
+
+O snapshot publica as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens; quando há mais, aparece “Mostrando as últimas N de M mensagens” com o botão **Carregar anteriores** (IPC `load_previous`, que amplia a janela).
 
 ### Compositor
 
@@ -131,7 +133,7 @@ Aberto pelo botão **Histórico** ou por `open_picker`.
 
 ### Sessões
 
-Cada linha tem título + tempo relativo e um botão de lixeira.
+Há um campo **Buscar sessão…** e as sessões são agrupadas por data (**Hoje**, **Ontem**, **Últimos 7 dias**, **Mais antigas**). Cada linha tem título + tempo relativo e um botão de lixeira.
 
 | Estado | Aparência |
 |---|---|

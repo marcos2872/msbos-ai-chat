@@ -293,6 +293,17 @@ function M.interrupt(pairing, directory, id, cb)
   end, { directory = directory })
 end
 
+-- Regenera a resposta da sessão (POST /generate, sem corpo).
+function M.generate(pairing, directory, id, cb)
+  M.request(pairing, "POST", sessionPath(id, "/generate"), nil, function(_, err)
+    if err then
+      cb(nil, err)
+      return
+    end
+    cb(true)
+  end, { directory = directory })
+end
+
 function M.setModel(pairing, directory, id, model, cb)
   M.request(pairing, "POST", sessionPath(id, "/model"), { model = model }, function(_, err)
     if err then

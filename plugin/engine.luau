@@ -25,6 +25,8 @@ local MAX_SNAPSHOT_TEXT = 8000
 local MAX_SNAPSHOT_REASONING = 3000
 local MAX_SNAPSHOT_TOOL_OUTPUT = 2000
 local PUBLISH_INTERVAL_MS = 250
+-- Quantas mensagens o snapshot publica; `load_previous` amplia sob demanda.
+local snapshotLimit = MAX_SNAPSHOT_MESSAGES
 
 local pairing = nil
 local models = {}
@@ -36,6 +38,16 @@ local messages = {}
 local pendingPermissions = {}
 local pendingForms = {}
 local toolNames = {}
+
+-- Instante (ms) de cada mensagem, por id. Sobrevive ao `refreshContext`, que
+-- recria as tabelas de mensagem.
+local messageTimes = {}
+local function messageTime(id)
+  if not messageTimes[id] then
+    messageTimes[id] = noctalia.nowMs()
+  end
+  return messageTimes[id]
+end
 
 local status = "unpaired"
 local statusMessage = ""
@@ -147,6 +159,7 @@ local function ensureAssistant(id)
     tools = {},
     streaming = true,
     error = "",
+    time = messageTime(id),
   }
   table.insert(messages, message)
   return message
@@ -200,6 +213,7 @@ local function mapContext(data)
         id = message.id,
         role = "user",
         text = tostring(message.text or ""),
+        time = messageTime(message.id),
       })
     elseif message.type == "assistant" then
       local text = {}
@@ -229,6 +243,7 @@ local function mapContext(data)
         streaming = false,
         error = format.errorText(message.error),
         model = message.model,
+        time = messageTime(message.id),
       })
     end
   end
@@ -340,7 +355,7 @@ end
 
 local function snapshotMessages()
   local total = #messages
-  local oldest = total - MAX_SNAPSHOT_MESSAGES + 1
+  local oldest = total - snapshotLimit + 1
   if oldest < 1 then
     oldest = 1
   end
@@ -381,6 +396,7 @@ local function snapshotMessages()
       streaming = message.streaming,
       error = message.error,
       model = message.model,
+      time = message.time or messageTimes[message.id],
     })
   end
 
@@ -592,6 +608,7 @@ selectSession = function(id)
   end
   activeSession = session
   messages = {}
+  snapshotLimit = MAX_SNAPSHOT_MESSAGES
   pendingPermissions = {}
   pendingForms = {}
   status = "idle"
@@ -718,10 +735,13 @@ sendPromptTo = function(sessionID, text)
   end
   local last = messages[#messages]
   if not (last and last.role == "user" and last.text == text) then
+    local id = "local-" .. tostring(noctalia.nowMs())
+    messageTimes[id] = noctalia.nowMs()
     table.insert(messages, {
-      id = "local-" .. tostring(noctalia.nowMs()),
+      id = id,
       role = "user",
       text = text,
+      time = messageTimes[id],
     })
   end
   local session = findSession(sessionID)
@@ -855,6 +875,7 @@ local function deleteSession(id)
     if activeSession and activeSession.id == id then
       activeSession = nil
       messages = {}
+      snapshotLimit = MAX_SNAPSHOT_MESSAGES
       pendingPermissions = {}
       pendingForms = {}
       status = "idle"
@@ -1445,6 +1466,7 @@ local function init()
   sessions = {}
   activeSession = nil
   messages = {}
+  snapshotLimit = MAX_SNAPSHOT_MESSAGES
   pendingPermissions = {}
   pendingForms = {}
   toolNames = {}
@@ -1481,6 +1503,26 @@ local function init()
       doPair("")
     end
   end
+end
+
+local function regenerate()
+  if not activeSession or not pairing or busy then
+    return
+  end
+  api.generate(pairing, directory, activeSession.id, function(ok, err)
+    if not ok then
+      setError(err)
+    end
+  end)
+end
+
+local function loadPrevious()
+  local total = #messages
+  if snapshotLimit >= total then
+    return
+  end
+  snapshotLimit = math.min(total, snapshotLimit + MAX_SNAPSHOT_MESSAGES)
+  publish(true)
 end
 
 function onIpc(event, payload)
@@ -1556,6 +1598,10 @@ function onIpc(event, payload)
     sendPrompt(payload)
   elseif event == "interrupt" then
     interrupt()
+  elseif event == "regenerate" then
+    regenerate()
+  elseif event == "load_previous" then
+    loadPrevious()
   elseif event == "reply_permission" then
     local data = decode(payload)
     if type(data) == "table" then

@@ -16,6 +16,7 @@ local expandedReasoning = {}
 local formDrafts = {}
 local view = "chat"
 local showPairAdvanced = false
+local sessionQuery = ""
 local models = noctalia.state.get("chat.models") or {}
 local sessions = noctalia.state.get("chat.sessions") or {}
 local selectedModelIndex = 0
@@ -558,8 +559,16 @@ local function renderPermission(permission)
   }, children)
 end
 
-local function renderMessage(message)
+local function renderMessage(message, isLast)
   if message.role == "user" then
+    local ago = format.timeAgo(message.time)
+    local header = {
+      ui.label({ text = "Você", fontSize = 9, fontWeight = "bold", color = "primary" }),
+    }
+    if ago ~= "" then
+      table.insert(header, ui.spacer({ flexGrow = 1 }))
+      table.insert(header, ui.label({ text = ago, fontSize = 9, color = mutedColor() }))
+    end
     return ui.column({
       fill = "primary/0.12",
       radius = 10,
@@ -567,20 +576,35 @@ local function renderMessage(message)
       gap = 2,
       align = "stretch",
     }, {
-      ui.label({ text = "Você", fontSize = 9, fontWeight = "bold", color = "primary" }),
+      ui.row({ gap = 6, align = "center" }, header),
       ui.markdown({ text = message.text or "" }),
     })
   end
 
   local children = {}
+  local ago = format.timeAgo(message.time)
   local headerChildren = {
     ui.glyph({ name = "sparkles", size = 13, color = "primary" }),
     ui.label({ text = "Assistente", fontSize = 9, fontWeight = "bold", color = mutedColor() }),
   }
   if message.streaming then
     table.insert(headerChildren, ui.label({ text = "…", color = "primary" }))
+  elseif ago ~= "" then
+    table.insert(headerChildren, ui.label({ text = ago, fontSize = 9, color = mutedColor() }))
   end
   table.insert(headerChildren, ui.spacer({ flexGrow = 1 }))
+  if isLast and not message.streaming and snapshot and snapshot.state ~= "busy" then
+    table.insert(headerChildren, ui.button({
+      text = "Regenerar",
+      glyph = "refresh",
+      variant = "ghost",
+      fontSize = 9,
+      tooltip = "Gerar outra resposta",
+      onClick = function()
+        sendCommand("regenerate")
+      end,
+    }))
+  end
   if message.text and message.text ~= "" then
     table.insert(headerChildren, ui.button({
       glyph = "copy",
@@ -665,11 +689,20 @@ local function composer()
 end
 
 local function historyNotice(shown, total)
-  return ui.label({
-    text = "Mostrando as últimas " .. tostring(shown) .. " de " .. tostring(total) .. " mensagens.",
-    fontSize = 9,
-    color = mutedColor(),
-    textAlign = "center",
+  return ui.row({ gap = 8, align = "center", justify = "center" }, {
+    ui.label({
+      text = "Mostrando as últimas " .. tostring(shown) .. " de " .. tostring(total) .. " mensagens.",
+      fontSize = 9,
+      color = mutedColor(),
+    }),
+    ui.button({
+      text = "Carregar anteriores",
+      variant = "ghost",
+      fontSize = 9,
+      onClick = function()
+        sendCommand("load_previous")
+      end,
+    }),
   })
 end
 
@@ -680,8 +713,8 @@ local function chatView()
   if total > #list then
     table.insert(children, historyNotice(#list, total))
   end
-  for _, message in ipairs(list) do
-    table.insert(children, renderMessage(message))
+  for index, message in ipairs(list) do
+    table.insert(children, renderMessage(message, index == #list))
   end
   if #children == 0 then
     table.insert(children, emptyState())
@@ -889,6 +922,26 @@ local function sessionText(session)
   return title
 end
 
+-- Agrupa a sessão por data a partir de `updatedAt` (segundos para formatTime).
+local function dateBucket(ms)
+  local value = tonumber(ms) or 0
+  if value <= 0 then
+    return "Mais antigas"
+  end
+  local now = noctalia.nowMs()
+  local day = noctalia.formatTime("%Y-%m-%d", math.floor(value / 1000))
+  if day == noctalia.formatTime("%Y-%m-%d", math.floor(now / 1000)) then
+    return "Hoje"
+  end
+  if day == noctalia.formatTime("%Y-%m-%d", math.floor((now - 86400000) / 1000)) then
+    return "Ontem"
+  end
+  if value >= now - 7 * 86400000 then
+    return "Últimos 7 dias"
+  end
+  return "Mais antigas"
+end
+
 local function pickerView()
   local children = {
     ui.row({
@@ -1009,9 +1062,23 @@ local function pickerView()
 
   table.insert(children, ui.separator({}))
 
-  local sessionRows = {}
+  local order = { "Hoje", "Ontem", "Últimos 7 dias", "Mais antigas" }
+  local buckets = {}
+  local query = string.lower(tostring(sessionQuery or ""))
+  local shown = 0
   for i, session in ipairs(sessions) do
-    local selected = i == selectedSessionIndex
+    local title = string.lower(tostring(session.title or "Nova conversa"))
+    if query == "" or title:find(query, 1, true) then
+      local bucket = dateBucket(session.updatedAt)
+      buckets[bucket] = buckets[bucket] or {}
+      table.insert(buckets[bucket], { index = i, session = session })
+      shown = shown + 1
+    end
+  end
+
+  local sessionRows = {}
+  local function addSessionRow(index, session)
+    local selected = index == selectedSessionIndex
     local itemProps = {
       gap = 0,
       align = "center",
@@ -1021,7 +1088,7 @@ local function pickerView()
       flexGrow = 1,
       fill = selected and "primary" or "surface_variant/0.35",
       onClick = function()
-        selectedSessionIndex = i
+        selectedSessionIndex = index
         deleteConfirm = nil
         sendCommand("select_session", session.id)
         view = "chat"
@@ -1047,19 +1114,41 @@ local function pickerView()
         variant = "ghost",
         tooltip = "Apagar esta sessão",
         onClick = function()
-          selectedSessionIndex = i
+          selectedSessionIndex = index
           deleteConfirm = session.id
           render()
         end,
       }),
     }))
   end
-  if #sessionRows == 0 then
-    table.insert(sessionRows, ui.label({ text = "Nenhuma sessão ainda.", fontSize = 10, color = mutedColor() }))
+
+  for _, bucket in ipairs(order) do
+    local items = buckets[bucket]
+    if items then
+      table.insert(sessionRows, ui.label({ text = bucket, fontSize = 9, fontWeight = "bold", color = mutedColor() }))
+      for _, item in ipairs(items) do
+        addSessionRow(item.index, item.session)
+      end
+    end
+  end
+  if shown == 0 then
+    table.insert(sessionRows, ui.label({
+      text = query ~= "" and "Nenhuma sessão encontrada." or "Nenhuma sessão ainda.",
+      fontSize = 10,
+      color = mutedColor(),
+    }))
   end
 
   table.insert(children, ui.column({ gap = 8, flexGrow = 1, paddingH = 12, align = "stretch" }, {
     ui.label({ text = "Sessões", fontSize = 10, color = mutedColor() }),
+    ui.input({
+      key = "session-search",
+      value = sessionQuery,
+      placeholder = "Buscar sessão…",
+      controlSize = "sm",
+      frameVisible = false,
+      onChange = "onSessionQueryChange",
+    }),
     ui.scroll({ flexGrow = 1, gap = 4 }, sessionRows),
   }))
 
@@ -1258,6 +1347,11 @@ function onOpenPicker()
   deleteConfirm = nil
   syncPickerSelection()
   sendCommand("sync")
+  render()
+end
+
+function onSessionQueryChange(text)
+  sessionQuery = text or ""
   render()
 end
 

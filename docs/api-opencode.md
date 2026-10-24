@@ -25,6 +25,7 @@ Referência das chamadas implementadas em `plugin/lib/api.luau` e consumidas por
 | `GET` | `/api/session/{id}/context` | Sim | — | `{ data: Session.Message[] }` | Carrega/reconcilia mensagens. |
 | `POST` | `/api/session/{id}/prompt` | Sim | `{ text }` | `{ data: Session.Inbox.User }` | Envia mensagem. |
 | `POST` | `/api/session/{id}/interrupt` | Sim | — | resposta qualquer | Interrompe a execução. |
+| `POST` | `/api/session/{id}/generate` | Sim | — | `SessionGenerateResponse` | Regenera a resposta da sessão (botão **Regenerar**). |
 | `POST` | `/api/session/{id}/model` | Sim | `{ model: Model.Ref }` | `204` | Troca modelo/variante da sessão. |
 | `POST` | `/api/session/{id}/agent` | Sim | `{ agent: string }` | `204` | Troca o agente da sessão via IPC (sem UI dedicada). |
 | `PATCH` | `/api/session/{id}` | Sim | `{ title }` | resposta qualquer | Renomeia a sessão com o primeiro prompt. |
