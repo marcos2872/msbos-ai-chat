@@ -187,10 +187,12 @@ local function busyIndicator()
   })
 end
 
+-- Exemplos em linguagem de quem não conhece niri/Noctalia: o agente traduz o
+-- pedido para a configuração certa.
 local EXAMPLES = {
-  "Ajuste o gap do niri para 8",
-  "Instale o htop",
-  "Troque o tema do Noctalia",
+  "Deixe as janelas mais afastadas",
+  "Instale um programa",
+  "Mude as cores do desktop",
 }
 
 -- Sem nenhum modelo, o OpenCode está instalado mas não tem conta de IA. A tela

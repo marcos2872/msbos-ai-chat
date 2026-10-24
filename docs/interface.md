@@ -110,7 +110,7 @@ O snapshot publica as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens; quando h�
 
 ### Estados vazios e avisos
 
-- Sem mensagens: cartão com “Pergunte sobre o seu sistema” e exemplos. Sem modelos (`chat.models` vazio), o cartão “Falta conectar uma conta de IA” substitui os exemplos.
+- Sem mensagens: cartão com “Pergunte sobre o seu sistema” e três exemplos em linguagem comum (“Deixe as janelas mais afastadas”, “Instale um programa”, “Mude as cores do desktop”), que enviam `prompt` ao clicar. Sem modelos (`chat.models` vazio), o cartão “Falta conectar uma conta de IA” substitui os exemplos.
 - `snapshot.notice`: aviso em `primary` (ex.: retry).
 - `snapshot.error`: erro em `error`.
 - `agentStatus == "missing"`: cartão vermelho “Assistente especialista indisponível” com **Verificar novamente** (IPC `refresh_agents`) e os detalhes técnicos sob demanda; o engine revalida sozinho com backoff. Não aparece durante `busy`; `unknown` (erro de rede) não mostra cartão.
