@@ -50,7 +50,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 
 ```text
 ┌──────────────────────────────────────────────┐
-│ [ícone] omyfedora IA        [+][histórico][−]│
+│ [ícone] msbos IA        [+][histórico][−]│
 │ título da sessão                             │
 ├──────────────────────────────────────────────┤
 │ Você                                         │
@@ -74,7 +74,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 
 ### Header
 
-- Glifo `message-chatbot` e título “omyfedora IA”.
+- Glifo `message-chatbot` e título “msbos IA”.
 - Subtítulo: “executando…”, título da sessão, “não pareado”, “iniciando…”, “offline” ou “pronto”.
 - **+** — nova conversa.
 - **Histórico** — abre o seletor.
@@ -106,7 +106,7 @@ O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radiu
 - Sem mensagens: cartão com “Pergunte sobre o seu sistema” e exemplos.
 - `snapshot.notice`: aviso em `primary` (ex.: retry).
 - `snapshot.error`: erro em `error`.
-- `agentStatus == "missing"`: cartão vermelho “Agente omyfedora-chat indisponível” com **Verificar novamente** (IPC `refresh_agents`); o engine revalida sozinho com backoff. Não aparece durante `busy`; `unknown` (erro de rede) não mostra cartão.
+- `agentStatus == "missing"`: cartão vermelho “Agente msbos-chat indisponível” com **Verificar novamente** (IPC `refresh_agents`); o engine revalida sozinho com backoff. Não aparece durante `busy`; `unknown` (erro de rede) não mostra cartão.
 - Toast de falha de IPC: label de erro por 5 s.
 
 ## Seletor de modelo e sessões

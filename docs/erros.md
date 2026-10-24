@@ -19,7 +19,7 @@
 | “OpenCode não está respondendo.” | Servidor parado, porta errada ou sonda `/api/agent` falhou. | O engine tenta `opencode service start`; confira a `baseUrl`, use **Iniciar OpenCode**/**Abrir terminal**. |
 | “Sessão do OpenCode expirada. Pareie novamente.” | Sonda devolveu `401` com `auto_pair` desligado. | Rodar `opencode pair` e colar o link, ou ligar `auto_pair`. |
 | “Não consegui iniciar o OpenCode. Abra o app ou rode `opencode serve`.” | `opencode service start` falhou. | Ver **Abrir terminal** para ler o erro do CLI; conferir `opencode_bin`. |
-| “Agente omyfedora-chat indisponível” | `/api/agent` não listou o agente (servidor recém-iniciado ou agente não instalado). | O engine revalida com backoff; usar **Verificar novamente**; se persistir, rodar `./install.sh`. |
+| “Agente msbos-chat indisponível” | `/api/agent` não listou o agente (servidor recém-iniciado ou agente não instalado). | O engine revalida com backoff; usar **Verificar novamente**; se persistir, rodar `./install.sh`. |
 | “Conecte o OpenCode primeiro.” | Ação de sessão/prompt sem pairing. | Parear. |
 | “OpenCode não está pareado.” | Requisição de dados sem token. | Parear. |
 | “Sem resposta do OpenCode.” | Falha de rede/host sem resposta HTTP. | Verificar servidor, firewall e túnel. |
@@ -49,48 +49,48 @@ noctalia msg status
 noctalia msg plugins list
 
 # lint do plugin instalado
-noctalia plugins lint ~/.local/share/noctalia/plugins/omyfedora-ai-chat
+noctalia plugins lint ~/.local/share/noctalia/plugins/msbos-ai-chat
 
 # estado do serviço do OpenCode (imprime a URL)
 opencode service status
 
 # sonda autenticada (troque pelo token de state/pairing.json)
-curl -s -o /dev/null -w '%{http_code}\n' -u "opencode:$(jq -r .token ~/.omyfedora-ai-chat/state/pairing.json)" \
+curl -s -o /dev/null -w '%{http_code}\n' -u "opencode:$(jq -r .token ~/.msbos-ai-chat/state/pairing.json)" \
   http://127.0.0.1:49374/api/agent
 
 # log do Noctalia
 tail -n 200 ~/.cache/noctalia/noctalia.log
 
 # erros do plugin
-grep -iE 'omyfedora-ai-chat|script-runtime.*error' ~/.cache/noctalia/noctalia.log | tail -n 80
+grep -iE 'msbos-ai-chat|script-runtime.*error' ~/.cache/noctalia/noctalia.log | tail -n 80
 ```
 
 ### Abrir o painel e o seletor
 
 ```bash
-noctalia msg panel-toggle omyfedora/ai-chat:panel
-noctalia msg plugin omyfedora/ai-chat:panel all open_picker
+noctalia msg panel-toggle msbos/ai-chat:panel
+noctalia msg plugin msbos/ai-chat:panel all open_picker
 ```
 
 ### Recarregar o plugin
 
 ```bash
-noctalia msg plugins disable omyfedora/ai-chat
-noctalia msg plugins enable omyfedora/ai-chat
+noctalia msg plugins disable msbos/ai-chat
+noctalia msg plugins enable msbos/ai-chat
 ```
 
 ## Problemas comuns
 
 ### Plugin não aparece em Settings → Plugins
 
-- Confirme que a pasta está em `~/.local/share/noctalia/plugins/omyfedora-ai-chat/`.
+- Confirme que a pasta está em `~/.local/share/noctalia/plugins/msbos-ai-chat/`.
 - Rode o lint; um manifesto inválido impede a descoberta.
 - Reinicie o Noctalia ou aguarde a descoberta; depois habilite.
 - Confira `noctalia msg plugins list`.
 
 ### Widget não aparece na barra
 
-O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → `omyfedora/ai-chat:bar`**. Não edite `settings.toml` à mão.
+O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → `msbos/ai-chat:bar`**. Não edite `settings.toml` à mão.
 
 ### Painel offline mesmo com o OpenCode aberto
 
@@ -139,7 +139,7 @@ O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → 
 O servidor do OpenCode Desktop roda com `NoNewPrivs=1`; o `pkexec` direto pelo shell do agente não consegue elevar. O agente deve abrir o helper dentro do Alacritty (TTY), pelo niri:
 
 ```bash
-niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subcomando> [argumentos...]
+niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv <subcomando> [argumentos...]
 ```
 
 - Confirme que `niri` está rodando, que o Alacritty existe e que há um agente polkit na sessão.

@@ -2,12 +2,12 @@
 
 ## Settings do plugin
 
-Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → omyfedora AI Chat**. As labels vêm de `plugin/translations/pt-BR.json` (fallback `en.json`).
+Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos AI Chat**. As labels vêm de `plugin/translations/pt-BR.json` (fallback `en.json`).
 
 | Chave | Tipo | Padrão | Efeito |
 |---|---|---|---|
-| `directory` | string | `~/.omyfedora-ai-chat` | Workspace do chat: escopo das sessões, `state/` e `sessions/`. |
-| `agent` | string | `omyfedora-chat` | Agente usado em **novas** sessões e na checagem `agentMissing`. |
+| `directory` | string | `~/.msbos-ai-chat` | Workspace do chat: escopo das sessões, `state/` e `sessions/`. |
+| `agent` | string | `msbos-chat` | Agente usado em **novas** sessões e na checagem `agentMissing`. |
 | `opencode_bin` | string | `opencode` | Binário executado para `opencode pair`. |
 | `auto_pair` | bool | `true` | Re-pareia automaticamente em `401` do SSE. |
 | `auto_export` | bool | `true` | Espelha cada conversa em JSON/Markdown. |
@@ -29,11 +29,11 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → omyfe
 ### Identidade
 
 ```toml
-id = "omyfedora/ai-chat"
-name = "omyfedora AI Chat"
-version = "0.1.0"
+id = "msbos/ai-chat"
+name = "msbos AI Chat"
+version = "0.2.0"
 plugin_api = 34
-author = "omyfedora"
+author = "msbos"
 license = "MIT"
 icon = "message-chatbot"
 dependencies = ["opencode", "niri", "noctalia"]
@@ -84,16 +84,16 @@ Quando o setting muda, `applyPanelSize()` executa, em background, `bash plugin/s
 2. localiza a primeira seção `[[panel]]` e compara com o preset;
 3. se mudou, grava `plugin.toml.bak-size`, reescreve `width`/`height` e sai com código `10`;
 4. o engine então executa em background:
-   `noctalia msg plugins disable omyfedora/ai-chat` → espera → `enable`.
+   `noctalia msg plugins disable msbos/ai-chat` → espera → `enable`.
 
 A leitura/escrita fica no script (e não no callback Luau) porque fazê-la em `onConfigChanged`/`update` estourava o orçamento de CPU do Noctalia. O `plugin.toml` do repositório permanece em 460 × 640; a preferência do usuário fica na cópia instalada.
 
 ## Workspace
 
-Padrão: `~/.omyfedora-ai-chat`.
+Padrão: `~/.msbos-ai-chat`.
 
 ```text
-~/.omyfedora-ai-chat/
+~/.msbos-ai-chat/
 ├── AGENTS.md
 ├── state/
 │   ├── pairing.json     # 0600
@@ -116,13 +116,13 @@ Padrão: `~/.omyfedora-ai-chat`.
 |---|---|
 | `XDG_DATA_HOME` | Base de `noctalia/plugins`; padrão `~/.local/share`. |
 | `XDG_CONFIG_HOME` | Base de `opencode/agents`; padrão `~/.config`. |
-| `OMYFEDORA_AI_CHAT_DIR` | Workspace criado pelo `install.sh`; padrão `~/.omyfedora-ai-chat`. |
+| `MSBOS_AI_CHAT_DIR` | Workspace criado pelo `install.sh`; padrão `~/.msbos-ai-chat`. |
 
-> O setting `directory` do plugin é independente de `OMYFEDORA_AI_CHAT_DIR`. Se usar um diretório customizado no instalador, ajuste também **Settings → Plugins → Diretório do chat** para o mesmo caminho.
+> O setting `directory` do plugin é independente de `MSBOS_AI_CHAT_DIR`. Se usar um diretório customizado no instalador, ajuste também **Settings → Plugins → Diretório do chat** para o mesmo caminho.
 
 ## Configuração do agente
 
-Arquivo instalado: `~/.config/opencode/agents/omyfedora-chat.md`.
+Arquivo instalado: `~/.config/opencode/agents/msbos-chat.md`.
 
 ```yaml
 permission:
@@ -136,19 +136,19 @@ permission:
 ```
 
 - O agente é `primary`.
-- A skill `omyfedora` deve existir em `~/.agents/skills/omyfedora/` (ou em um dos diretórios globais descobertos pelo OpenCode).
+- A skill `msbos` deve existir em `~/.agents/skills/msbos/` (ou em um dos diretórios globais descobertos pelo OpenCode).
 - A confirmação de mudanças é feita no texto; não há cartão de permissão para shell/edit no painel.
-- Para root, o agente usa `niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv ...` (TTY + polkit) porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
-- O instalador faz backup do agente anterior como `omyfedora-chat.md.bak-<timestamp>`.
+- Para root, o agente usa `niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv ...` (TTY + polkit) porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
+- O instalador faz backup do agente anterior como `msbos-chat.md.bak-<timestamp>`.
 
 ## Configuração do host (Noctalia)
 
 - O painel usa a transparência, o raio e a sombra definidos pelo tema/host. O plugin não força `shadow` nem desenha fundo próprio.
-- O widget precisa ser adicionado manualmente em **Settings → Bar → Widgets → `omyfedora/ai-chat:bar`**; o instalador não edita `settings.toml` (arquivo do host).
+- O widget precisa ser adicionado manualmente em **Settings → Bar → Widgets → `msbos/ai-chat:bar`**; o instalador não edita `settings.toml` (arquivo do host).
 - O plugin pode ser habilitado por **Settings → Plugins** ou:
 
 ```bash
-noctalia msg plugins enable omyfedora/ai-chat
+noctalia msg plugins enable msbos/ai-chat
 ```
 
 ## Reload e aplicação de mudanças
@@ -162,14 +162,14 @@ Depois de editar arquivos no repositório, instale a cópia nova:
 Para recarregar sem reinstalar:
 
 ```bash
-noctalia msg plugins disable omyfedora/ai-chat
-noctalia msg plugins enable omyfedora/ai-chat
+noctalia msg plugins disable msbos/ai-chat
+noctalia msg plugins enable msbos/ai-chat
 ```
 
 Para validar o manifesto:
 
 ```bash
-noctalia plugins lint ~/.local/share/noctalia/plugins/omyfedora-ai-chat
+noctalia plugins lint ~/.local/share/noctalia/plugins/msbos-ai-chat
 ```
 
 ## Arquivos de configuração relacionados
@@ -177,8 +177,8 @@ noctalia plugins lint ~/.local/share/noctalia/plugins/omyfedora-ai-chat
 | Caminho | Dono | Observação |
 |---|---|---|
 | `plugin/plugin.toml` | Projeto | Fonte do manifesto; não é o arquivo que recebe o preset de tamanho. |
-| `~/.local/share/noctalia/plugins/omyfedora-ai-chat/plugin.toml` | Plugin instalado | Recebe `width`/`height` do preset e backup `.bak-size`. |
-| `~/.config/opencode/agents/omyfedora-chat.md` | OpenCode | Agente instalado pelo script. |
-| `~/.agents/skills/omyfedora/SKILL.md` | Skill global | Não é instalada por este projeto. |
+| `~/.local/share/noctalia/plugins/msbos-ai-chat/plugin.toml` | Plugin instalado | Recebe `width`/`height` do preset e backup `.bak-size`. |
+| `~/.config/opencode/agents/msbos-chat.md` | OpenCode | Agente instalado pelo script. |
+| `~/.agents/skills/msbos/SKILL.md` | Skill global | Não é instalada por este projeto. |
 | `~/.config/noctalia/config.toml` | Noctalia | Tema/transparência do host; não é editado pelo plugin. |
 | `~/.local/state/noctalia/settings.toml` | Noctalia | Estado de plugins/widgets; não editar à mão. |

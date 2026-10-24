@@ -156,7 +156,7 @@ qualquer outra ação          -> reject
 
 ## Exemplos com `curl`
 
-Substitua `$BASE` e `$TOKEN` pelos valores de `~/.omyfedora-ai-chat/state/pairing.json`:
+Substitua `$BASE` e `$TOKEN` pelos valores de `~/.msbos-ai-chat/state/pairing.json`:
 
 ```bash
 BASE="http://127.0.0.1:49374"
@@ -165,15 +165,15 @@ TOKEN="<token>"
 curl -s -u "opencode:$TOKEN" -o /dev/null -w '%{http_code}\n' "$BASE/api/agent"
 
 curl -s -u "opencode:$TOKEN" \
-  "$BASE/api/session?limit=50&order=desc&directory=$HOME/.omyfedora-ai-chat"
+  "$BASE/api/session?limit=50&order=desc&directory=$HOME/.msbos-ai-chat"
 
 curl -s -u "opencode:$TOKEN" \
-  "$BASE/api/session/ses_xxx/context?directory=$HOME/.omyfedora-ai-chat"
+  "$BASE/api/session/ses_xxx/context?directory=$HOME/.msbos-ai-chat"
 
 curl -s -u "opencode:$TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"text":"Olá"}' \
-  "$BASE/api/session/ses_xxx/prompt?directory=$HOME/.omyfedora-ai-chat"
+  "$BASE/api/session/ses_xxx/prompt?directory=$HOME/.msbos-ai-chat"
 ```
 
 ## Códigos e erros

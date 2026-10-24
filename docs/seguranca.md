@@ -13,7 +13,7 @@ Não há sandbox próprio: o agente pode executar `shell` e editar arquivos com 
 ## Token de pareamento
 
 - O token é uma credencial de portadora usada como senha do Basic auth (`opencode:<token>`).
-- Fica em `~/.omyfedora-ai-chat/state/pairing.json`, gravado com modo `0600`.
+- Fica em `~/.msbos-ai-chat/state/pairing.json`, gravado com modo `0600`.
 - O código/link do `opencode pair` não é persistido.
 - O token não é incluído no snapshot, no status da barra nem nas mensagens de erro.
 - O link de pareamento é de uso único e expira em poucos minutos (referência: 5 min).
@@ -29,7 +29,7 @@ Se o token vazar:
 
 | Caminho | Proteção |
 |---|---|
-| `~/.omyfedora-ai-chat/` | O instalador cria com `700`. |
+| `~/.msbos-ai-chat/` | O instalador cria com `700`. |
 | `state/` e `sessions/` | O instalador cria com `700`. |
 | `pairing.json` | `0600`. |
 | `ui.json` | `0600`. |
@@ -63,9 +63,9 @@ Consequências:
 
 - `edit` e `shell` **não** geram cartão de permissão; o OpenCode executa direto.
 - `task` está bloqueado (o agente não delega).
-- A barreira para mudanças é o **ritual conversacional** da skill `omyfedora`: descrever, pedir confirmação, backup, aplicar, validar, diff e log.
-- O agente é instruído a nunca usar `sudo`; root somente via `pkexec /usr/local/libexec/omyfedora-priv`.
-- O agente não deve editar arquivos protegidos do omyfedora nem ler/guardar senhas.
+- A barreira para mudanças é o **ritual conversacional** da skill `msbos`: descrever, pedir confirmação, backup, aplicar, validar, diff e log.
+- O agente é instruído a nunca usar `sudo`; root somente via `pkexec /usr/local/libexec/msbos-priv`.
+- O agente não deve editar arquivos protegidos do msbos nem ler/guardar senhas.
 - Conteúdo externo (web, README, saída de ferramentas) é tratado como dado, não instrução.
 
 ### Sandbox do OpenCode Desktop e `pkexec`
@@ -75,7 +75,7 @@ O servidor iniciado pelo **OpenCode Desktop** roda com `NoNewPrivs=1` (herdado d
 Para o helper privilegiado funcionar, o agente é instruído a iniciar o `pkexec` dentro do **Alacritty** (TTY), pelo **niri**:
 
 ```bash
-niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subcomando> [argumentos...]
+niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv <subcomando> [argumentos...]
 ```
 
 - O Alacritty fornece um TTY e o polkit abre de forma confiável; o terminal pode fechar quando o helper terminar.
@@ -121,7 +121,7 @@ Sem esses passos, a confirmação é apenas textual.
 O painel envia comandos via:
 
 ```bash
-noctalia msg plugin omyfedora/ai-chat:engine all <evento> [payload]
+noctalia msg plugin msbos/ai-chat:engine all <evento> [payload]
 ```
 
 Qualquer processo do mesmo usuário que consiga executar `noctalia msg` pode, em tese, enviar prompts, trocar modelo ou responder formulários. O limite de confiança é o usuário local; não há autenticação adicional no IPC.
@@ -135,7 +135,7 @@ Qualquer processo do mesmo usuário que consiga executar `noctalia msg` pode, em
 
 ## Instalação e backups
 
-- `install.sh` faz backup do agente anterior em `~/.config/opencode/agents/omyfedora-chat.md.bak-<timestamp>`.
+- `install.sh` faz backup do agente anterior em `~/.config/opencode/agents/msbos-chat.md.bak-<timestamp>`.
 - O preset de tamanho cria `plugin.toml.bak-size` na cópia instalada.
 - `uninstall.sh` move o agente para backup e remove o plugin; o workspace só é apagado com `--purge`.
 - O plugin não instala dependências do sistema nem altera `sudoers`, PAM, SELinux, greetd, fstab ou kernel.

@@ -30,7 +30,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
     id = "ses_...",
     title = "Ajuste do gap do niri",
     model = { id = "...", providerID = "...", variant = "low" },
-    agent = "omyfedora-chat",
+    agent = "msbos-chat",
   },
   messages = { ... },          -- no máximo MAX_SNAPSHOT_MESSAGES (24)
   messagesTotal = 40,          -- tamanho real do histórico interno
@@ -164,7 +164,7 @@ O engine filtra modelos com `enabled == false` ou `status == "deprecated"`.
     title = "Ajuste do gap do niri",
     updatedAt = 1792625451332,
     model = { id = "...", providerID = "...", variant = "low" },
-    agent = "omyfedora-chat",
+    agent = "msbos-chat",
   },
   ...
 }
@@ -205,7 +205,7 @@ O engine observa essa chave para decidir notificações e unread.
   "activeSessionID": "ses_...",
   "model": { "id": "deepseek-v4.1-flash", "providerID": "opencode-go", "variant": "low" },
   "preferredModel": { "id": "deepseek-v4.1-flash", "providerID": "opencode-go", "variant": "low" },
-  "agent": "omyfedora-chat",
+  "agent": "msbos-chat",
   "lastOpenedAt": 1792625451332
 }
 ```
@@ -226,7 +226,7 @@ O engine observa essa chave para decidir notificações e unread.
       "title": "Ajuste do gap do niri",
       "updatedAt": 1792625451332,
       "model": { "id": "...", "providerID": "...", "variant": "low" },
-      "agent": "omyfedora-chat",
+      "agent": "msbos-chat",
       "messageCount": 12
     }
   ]
@@ -242,7 +242,7 @@ O engine observa essa chave para decidir notificações e unread.
 
 ### `AGENTS.md`
 
-Criado se não existir, com as regras do workspace: skill `omyfedora`, confirmação, `pkexec`, sem `sudo`, backup, validação, log e português.
+Criado se não existir, com as regras do workspace: skill `msbos`, confirmação, `pkexec`, sem `sudo`, backup, validação, log e português.
 
 ## Transições de estado
 

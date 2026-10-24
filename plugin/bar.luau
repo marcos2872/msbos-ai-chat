@@ -1,7 +1,7 @@
 --!nonstrict
 -- Widget da barra: ícone sempre visível, status e toggle do painel.
 
-local PANEL_ID = "omyfedora/ai-chat:panel"
+local PANEL_ID = "msbos/ai-chat:panel"
 local status = noctalia.state.get("chat.status") or {
   state = "unpaired",
   busy = false,

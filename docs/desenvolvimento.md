@@ -4,7 +4,7 @@
 
 - Fedora com niri e Noctalia 5.3+.
 - OpenCode 2.x com `opencode` no `PATH`.
-- Skill `omyfedora` em `~/.agents/skills/omyfedora/`.
+- Skill `msbos` em `~/.agents/skills/msbos/`.
 - `noctalia`, `bash` e utilitários básicos.
 
 O plugin é escrito em **Luau** (`--!nonstrict`), sem build step. A instalação copia os arquivos diretamente para o diretório de plugins do Noctalia.
@@ -20,31 +20,31 @@ uninstall.sh            # remoção
 docs/                   # esta documentação
 ```
 
-O runtime lê a cópia em `~/.local/share/noctalia/plugins/omyfedora-ai-chat/`, não o repositório. Depois de editar, reinstale.
+O runtime lê a cópia em `~/.local/share/noctalia/plugins/msbos-ai-chat/`, não o repositório. Depois de editar, reinstale.
 
 ## Ciclo de desenvolvimento
 
 ```bash
-cd /caminho/para/omyfedora-ai-chat
+cd /caminho/para/msbos-ai-chat
 
 # 1. instalar a cópia nova (faz backup do agente)
 ./install.sh
 
 # 2. lint do plugin instalado
-noctalia plugins lint ~/.local/share/noctalia/plugins/omyfedora-ai-chat
+noctalia plugins lint ~/.local/share/noctalia/plugins/msbos-ai-chat
 
 # 3. recarregar se o install não recarregou
-noctalia msg plugins disable omyfedora/ai-chat
-noctalia msg plugins enable omyfedora/ai-chat
+noctalia msg plugins disable msbos/ai-chat
+noctalia msg plugins enable msbos/ai-chat
 
 # 4. abrir o painel
-noctalia msg panel-toggle omyfedora/ai-chat:panel
+noctalia msg panel-toggle msbos/ai-chat:panel
 ```
 
 Resultado esperado do lint:
 
 ```text
-omyfedora/ai-chat
+msbos/ai-chat
   ok
 
 0 errors, 0 warnings
@@ -55,7 +55,7 @@ omyfedora/ai-chat
 ```bash
 tail -n 200 ~/.cache/noctalia/noctalia.log
 
-grep -iE 'omyfedora-ai-chat|script-runtime.*error' \
+grep -iE 'msbos-ai-chat|script-runtime.*error' \
   ~/.cache/noctalia/noctalia.log | tail -n 80
 ```
 
@@ -76,20 +76,20 @@ O painel e o engine podem ser comandados pela CLI:
 noctalia msg status
 
 # Sincronizar snapshot/modelos/sessões
-noctalia msg plugin omyfedora/ai-chat:engine all sync
+noctalia msg plugin msbos/ai-chat:engine all sync
 
 # Abrir o seletor
-noctalia msg plugin omyfedora/ai-chat:panel all open_picker
+noctalia msg plugin msbos/ai-chat:panel all open_picker
 
 # Enviar um prompt (payload é um argumento)
-noctalia msg plugin omyfedora/ai-chat:engine all prompt "mostre o status do niri"
+noctalia msg plugin msbos/ai-chat:engine all prompt "mostre o status do niri"
 
 # Criar nova sessão
-noctalia msg plugin omyfedora/ai-chat:engine all new_session "{}"
+noctalia msg plugin msbos/ai-chat:engine all new_session "{}"
 
 # Recarregar catálogo/sessões
-noctalia msg plugin omyfedora/ai-chat:engine all refresh_models
-noctalia msg plugin omyfedora/ai-chat:engine all refresh_sessions
+noctalia msg plugin msbos/ai-chat:engine all refresh_models
+noctalia msg plugin msbos/ai-chat:engine all refresh_sessions
 ```
 
 > O payload do IPC é um argumento de linha de comando. Evite prompts enormes ou com caracteres que o shell interprete; para volumes grandes, o caminho correto seria um arquivo de outbox (não implementado).
@@ -105,10 +105,10 @@ noctalia msg plugin omyfedora/ai-chat:engine all refresh_sessions
 ### Inspecionar arquivos
 
 ```bash
-ls -l ~/.omyfedora-ai-chat/state ~/.omyfedora-ai-chat/sessions
-stat -c '%a %n' ~/.omyfedora-ai-chat/state/pairing.json \
-  ~/.omyfedora-ai-chat/state/ui.json \
-  ~/.omyfedora-ai-chat/sessions/index.json
+ls -l ~/.msbos-ai-chat/state ~/.msbos-ai-chat/sessions
+stat -c '%a %n' ~/.msbos-ai-chat/state/pairing.json \
+  ~/.msbos-ai-chat/state/ui.json \
+  ~/.msbos-ai-chat/sessions/index.json
 ```
 
 Não cole o conteúdo de `pairing.json` em issues/logs.

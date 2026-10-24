@@ -1,8 +1,8 @@
-# Documentação — omyfedora AI Chat
+# Documentação — msbos AI Chat
 
 Documentação técnica do plugin de chat do Noctalia que usa o OpenCode local como motor.
 
-**Versão do plugin:** `0.1.0`
+**Versão do plugin:** `0.2.0`
 **Ambiente de referência:** Fedora 44, niri, Noctalia 5.3.0, plugin API 34, OpenCode 2.1.4
 **Atualizado em:** 2026-10-23
 
@@ -57,11 +57,11 @@ flowchart LR
 
     subgraph OpenCode["OpenCode local"]
         API["API v2<br/>HTTP + SSE"]
-        AGENT["agente omyfedora-chat<br/>+ skill omyfedora"]
+        AGENT["agente msbos-chat<br/>+ skill msbos"]
         API --- AGENT
     end
 
-    subgraph Disco["~/.omyfedora-ai-chat"]
+    subgraph Disco["~/.msbos-ai-chat"]
         PAIR["state/pairing.json"]
         UI["state/ui.json"]
         SESS["sessions/*.json<br/>sessions/*.md"]
@@ -76,7 +76,7 @@ flowchart LR
 ## O que esta documentação cobre
 
 - O plugin do Noctalia (barra, painel, serviço, manifesto e traduções).
-- O agente `omyfedora-chat` e sua relação com a skill `omyfedora`.
+- O agente `msbos-chat` e sua relação com a skill `msbos`.
 - Pareamento, autenticação, escopo por diretório, SSE e reconciliação.
 - Formato do estado compartilhado, arquivos persistidos e exports.
 - Segurança, limitações conhecidas e diagnóstico de falhas.

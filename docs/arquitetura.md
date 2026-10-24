@@ -22,10 +22,10 @@ flowchart LR
 
     subgraph OpenCode["OpenCode 2.x"]
         API["API v2<br/>HTTP + SSE"]
-        AGENT["agente omyfedora-chat"]
+        AGENT["agente msbos-chat"]
     end
 
-    subgraph Workspace["~/.omyfedora-ai-chat"]
+    subgraph Workspace["~/.msbos-ai-chat"]
         PAIR["state/pairing.json"]
         UI["state/ui.json"]
         SESS["sessions/index.json<br/>sessions/*.json<br/>sessions/*.md"]
@@ -55,7 +55,7 @@ flowchart LR
 | `plugin/lib/store.luau` | Workspace, `AGENTS.md`, `pairing.json`, `ui.json`, exports JSON/Markdown e índice. |
 | `plugin/lib/format.luau` | Formatação de modelos (incluindo variante), status de ferramentas, erros, truncamento e tempo relativo. |
 | `plugin/translations/*.json` | Labels e descrições dos settings em pt-BR e en. |
-| `opencode/agents/omyfedora-chat.md` | Agente primário que carrega a skill `omyfedora` e define permissões/limites. |
+| `opencode/agents/msbos-chat.md` | Agente primário que carrega a skill `msbos` e define permissões/limites. |
 | `install.sh` / `uninstall.sh` | Instalação/remoção local do plugin, agente e workspace. |
 
 > Evolução em relação ao `MAPEAMENTO.md`: não existe `picker.luau` nem `lib/sse.luau` no código atual. O seletor é uma view de `panel.luau` e o cliente SSE está em `lib/api.luau`.
@@ -118,7 +118,7 @@ sequenceDiagram
     E->>E: adiciona mensagem otimista
     E->>OC: POST /api/session/{id}/prompt
     E-->>P: snapshot busy
-    OC->>A: executa com skill omyfedora
+    OC->>A: executa com skill msbos
     A-->>OC: texto, raciocínio, ferramentas e formulários
     OC-->>E: SSE session.text.delta, tool.*, form.created...
     E-->>P: snapshot (throttle ~250 ms)
@@ -183,7 +183,7 @@ O agente atual tem `edit: allow`, `shell: allow`, `question: allow` e `task: den
 - `shell`, `edit`, `question` e `form` → `once`;
 - qualquer outra ação → `reject` (com notificação).
 
-Assim, **não há cartão técnico de permissão** para shell/edit nesta versão. A confirmação de mudanças é conversacional, feita pelo ritual da skill `omyfedora`. Veja [Segurança](seguranca.md).
+Assim, **não há cartão técnico de permissão** para shell/edit nesta versão. A confirmação de mudanças é conversacional, feita pelo ritual da skill `msbos`. Veja [Segurança](seguranca.md).
 
 Formulários da ferramenta `question` chegam por `form.created` com o `sessionID` dentro de `data.form`; o engine trata esse evento antes do filtro de sessão para não descartá-lo. O painel renderiza os campos e envia `reply_form`.
 

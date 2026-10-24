@@ -2,7 +2,7 @@
   "settings.directory.label": "Chat directory",
   "settings.directory.description": "Workspace where chat sessions are scoped and mirrored.",
   "settings.agent.label": "OpenCode agent",
-  "settings.agent.description": "Primary agent ID used by the chat (default: omyfedora-chat).",
+  "settings.agent.description": "Primary agent ID used by the chat (default: msbos-chat).",
   "settings.opencode_bin.label": "OpenCode binary",
   "settings.opencode_bin.description": "Command used to run `opencode pair`.",
   "settings.auto_pair.label": "Pair automatically",

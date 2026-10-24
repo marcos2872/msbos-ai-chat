@@ -6,25 +6,25 @@ local format = require("./format.luau")
 local M = {}
 
 local AGENTS_MD = [=[
-# omyfedora AI Chat — workspace
+# msbos AI Chat — workspace
 
-Este diretório é o workspace do chat de IA do omyfedora.
+Este diretório é o workspace do chat de IA do msbos.
 As sessões do chat são escopadas aqui.
 
 ## Regras
 
-- Antes de propor ou executar qualquer mudança no sistema, carregue a skill `omyfedora`.
-- Leia `~/.agents/skills/omyfedora/references/local.md` no início.
+- Antes de propor ou executar qualquer mudança no sistema, carregue a skill `msbos`.
+- Leia `~/.agents/skills/msbos/references/local.md` no início.
 - Descreva a mudança, peça confirmação explícita e espere o "sim".
-- Root somente via `pkexec /usr/local/libexec/omyfedora-priv <subcomando>`.
+- Root somente via `pkexec /usr/local/libexec/msbos-priv <subcomando>`.
 - Nunca use `sudo` — nem para consultar.
 - Faça backup, valide (`niri validate`, `rpm -q`) e mostre o diff.
-- Registre em `~/.local/state/omyfedora/agent-changes.log`.
+- Registre em `~/.local/state/msbos/agent-changes.log`.
 - Responda em português brasileiro.
 ]=]
 
 function M.ensure(directory)
-  local root = noctalia.expandPath(directory or "~/.omyfedora-ai-chat")
+  local root = noctalia.expandPath(directory or "~/.msbos-ai-chat")
   noctalia.mkdirAll(root)
   noctalia.mkdirAll(root .. "/state")
   noctalia.mkdirAll(root .. "/sessions")
@@ -36,7 +36,7 @@ function M.ensure(directory)
 end
 
 function M.paths(directory)
-  local root = noctalia.expandPath(directory or "~/.omyfedora-ai-chat")
+  local root = noctalia.expandPath(directory or "~/.msbos-ai-chat")
   return {
     root = root,
     state = root .. "/state",
