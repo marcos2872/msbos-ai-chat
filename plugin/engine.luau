@@ -1,13 +1,13 @@
 --!nonstrict
--- Serviço do omyfedora AI Chat.
+-- Serviço do msbos AI Chat.
 -- Dono do pareamento, da conexão SSE, do estado da conversa e da persistência.
 
 local api = require("./lib/api.luau")
 local store = require("./lib/store.luau")
 local format = require("./lib/format.luau")
 
-local directory = "~/.omyfedora-ai-chat"
-local agentId = "omyfedora-chat"
+local directory = "~/.msbos-ai-chat"
+local agentId = "msbos-chat"
 local autoPair = true
 local autoExport = true
 local notifyOnFinish = true
@@ -369,7 +369,7 @@ exportSession = function(id)
     end
     local ok, writeError = store.writeSession(directory, id, data, maxToolOutput)
     if not ok then
-      noctalia.log("omyfedora-ai-chat: falha ao exportar sessão: " .. tostring(writeError))
+      noctalia.log("msbos-ai-chat: falha ao exportar sessão: " .. tostring(writeError))
     end
   end)
 end
@@ -389,7 +389,7 @@ finishRun = function()
   unread = not panelOpen
   if notifyOnFinish and not panelOpen then
     local title = activeSession and activeSession.title or "Conversa"
-    noctalia.notify("omyfedora IA", "Resposta concluída: " .. title)
+    noctalia.notify("msbos IA", "Resposta concluída: " .. title)
   end
   publish(true)
 end
@@ -594,7 +594,7 @@ sendPromptTo = function(sessionID, text)
     publishSessions()
     api.renameSession(pairing, directory, sessionID, title, function(ok, err)
       if not ok then
-        noctalia.log("omyfedora-ai-chat: falha ao renomear sessão: " .. tostring(err))
+        noctalia.log("msbos-ai-chat: falha ao renomear sessão: " .. tostring(err))
       end
     end)
   end
@@ -808,7 +808,7 @@ handleEvent = function(event)
     if type(form) == "table" and activeSession and form.sessionID == activeSession.id then
       addPendingForm(form)
       if not panelOpen then
-        noctalia.notify("omyfedora IA", "O agente precisa de uma resposta.")
+        noctalia.notify("msbos IA", "O agente precisa de uma resposta.")
       end
       publish(true)
     end
@@ -949,12 +949,12 @@ handleEvent = function(event)
       local decision = allowed and "once" or "reject"
       api.replyPermission(pairing, directory, activeSession.id, data.id, decision, function(ok, err)
         if not ok then
-          noctalia.log("omyfedora-ai-chat: falha ao responder permissão automática: " .. tostring(err))
+          noctalia.log("msbos-ai-chat: falha ao responder permissão automática: " .. tostring(err))
         end
       end)
-      noctalia.log("omyfedora-ai-chat: permissão automática (" .. decision .. "): " .. action)
+      noctalia.log("msbos-ai-chat: permissão automática (" .. decision .. "): " .. action)
       if decision == "reject" then
-        noctalia.notify("omyfedora IA", "Ação sensível bloqueada automaticamente: " .. action)
+        noctalia.notify("msbos IA", "Ação sensível bloqueada automaticamente: " .. action)
       end
     end
     publish(true)
@@ -997,11 +997,11 @@ connectSse = function()
     local delay = math.min(30, 2 ^ reconnectAttempt)
     reconnectAttempt = reconnectAttempt + 1
     reconnectAt = noctalia.nowMs() + delay * 1000
-    noctalia.log("omyfedora-ai-chat: SSE caiu; reconectando em " .. tostring(delay) .. "s")
+    noctalia.log("msbos-ai-chat: SSE caiu; reconectando em " .. tostring(delay) .. "s")
   end)
   if stream then
     reconnectAttempt = 0
-    noctalia.log("omyfedora-ai-chat: SSE conectado")
+    noctalia.log("msbos-ai-chat: SSE conectado")
   else
     local delay = math.min(30, 2 ^ reconnectAttempt)
     reconnectAttempt = reconnectAttempt + 1
@@ -1173,35 +1173,35 @@ local function applyPanelSize()
   end
   local updated = rewritePanelSize(text, size.width, size.height)
   if not updated then
-    noctalia.log("omyfedora-ai-chat: width/height do painel não encontrados no plugin.toml")
+    noctalia.log("msbos-ai-chat: width/height do painel não encontrados no plugin.toml")
     return
   end
   local backedUp, backupErr = noctalia.writeFile(path .. ".bak-size", text)
   if not backedUp then
-    noctalia.log("omyfedora-ai-chat: falha ao criar backup do plugin.toml: " .. tostring(backupErr))
+    noctalia.log("msbos-ai-chat: falha ao criar backup do plugin.toml: " .. tostring(backupErr))
   end
   local ok, err = noctalia.writeFile(path, updated)
   if not ok then
-    noctalia.log("omyfedora-ai-chat: falha ao gravar o tamanho do painel: " .. tostring(err))
-    noctalia.notifyError("omyfedora IA", "Não consegui redimensionar o painel: " .. tostring(err))
+    noctalia.log("msbos-ai-chat: falha ao gravar o tamanho do painel: " .. tostring(err))
+    noctalia.notifyError("msbos IA", "Não consegui redimensionar o painel: " .. tostring(err))
     return
   end
   noctalia.log(
-    "omyfedora-ai-chat: painel " .. preset .. " (" .. tostring(size.width) .. "x" .. tostring(size.height) .. "); recarregando"
+    "msbos-ai-chat: painel " .. preset .. " (" .. tostring(size.width) .. "x" .. tostring(size.height) .. "); recarregando"
   )
   local started = noctalia.runAsync(
-    "nohup sh -c 'sleep 0.2; noctalia msg plugins disable omyfedora/ai-chat; sleep 0.5; noctalia msg plugins enable omyfedora/ai-chat' >/dev/null 2>&1 &"
+    "nohup sh -c 'sleep 0.2; noctalia msg plugins disable msbos/ai-chat; sleep 0.5; noctalia msg plugins enable msbos/ai-chat' >/dev/null 2>&1 &"
   )
   if not started then
-    noctalia.notifyError("omyfedora IA", "Não consegui recarregar o plugin para aplicar o novo tamanho.")
+    noctalia.notifyError("msbos IA", "Não consegui recarregar o plugin para aplicar o novo tamanho.")
   end
 end
 
 local function init()
   generation = generation + 1
   local gen = generation
-  directory = noctalia.expandPath(noctalia.getConfig("directory") or "~/.omyfedora-ai-chat")
-  agentId = noctalia.getConfig("agent") or "omyfedora-chat"
+  directory = noctalia.expandPath(noctalia.getConfig("directory") or "~/.msbos-ai-chat")
+  agentId = noctalia.getConfig("agent") or "msbos-chat"
   autoPair = noctalia.getConfig("auto_pair") ~= false
   autoExport = noctalia.getConfig("auto_export") ~= false
   notifyOnFinish = noctalia.getConfig("notify_on_finish") ~= false
@@ -1305,7 +1305,7 @@ function onIpc(event, payload)
       exportSession(payload ~= "" and payload or activeSession.id)
     end
   elseif event == "toggle_panel" then
-    noctalia.togglePanel("omyfedora/ai-chat:panel")
+    noctalia.togglePanel("msbos/ai-chat:panel")
   end
 end
 

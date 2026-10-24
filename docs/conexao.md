@@ -97,7 +97,7 @@ O banco do OpenCode é global, mas o plugin usa o parâmetro `directory` para es
 
 O cliente adiciona `directory` automaticamente às requisições que recebem `opts.directory` (todas as operações de sessão, permissão, formulário, modelo/agente da sessão e export). As listas de **modelos** e **agentes** são globais e não recebem esse parâmetro.
 
-O workspace é `~/.omyfedora-ai-chat` por padrão, configurável em **Settings → Plugins**. O banco autoritativo continua em `~/.local/share/opencode/opencode.db`; o plugin espelha as conversas em `sessions/`.
+O workspace é `~/.msbos-ai-chat` por padrão, configurável em **Settings → Plugins**. O banco autoritativo continua em `~/.local/share/opencode/opencode.db`; o plugin espelha as conversas em `sessions/`.
 
 ## SSE (eventos em tempo real)
 
@@ -138,7 +138,7 @@ stateDiagram-v2
 | Passo | Chamada | Uso |
 |---|---|---|
 | 1 | `GET /api/model` | Lista global; o engine mantém apenas `enabled != false` e `status != "deprecated"`, e publica `variants[].id`. |
-| 2 | `GET /api/agent` | Lista global; ignora subagentes/ocultos e detecta se `omyfedora-chat` existe (`agentMissing`). |
+| 2 | `GET /api/agent` | Lista global; ignora subagentes/ocultos e detecta se `msbos-chat` existe (`agentMissing`). |
 | 3 | `GET /api/session?limit=50&order=desc&directory=...` | Lista as sessões do workspace. |
 | 4 | `GET /api/session/{id}/context` | Mensagens da sessão ativa. |
 | 5 | `GET /api/session/{id}/permission` e `/form` | Itens pendentes ao selecionar a sessão. |

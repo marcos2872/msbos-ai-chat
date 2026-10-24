@@ -3,13 +3,13 @@
 ## Estrutura de arquivos
 
 ```text
-omyfedora-ai-chat/
+msbos-ai-chat/
 ├── README.md
 ├── MAPEAMENTO.md
 ├── install.sh
 ├── uninstall.sh
 ├── opencode/
-│   └── agents/omyfedora-chat.md
+│   └── agents/msbos-chat.md
 ├── plugin/
 │   ├── plugin.toml
 │   ├── bar.luau
@@ -52,8 +52,8 @@ flowchart TD
 
 | Item | Valor |
 |---|---|
-| `id` | `omyfedora/ai-chat` |
-| `version` | `0.1.0` |
+| `id` | `msbos/ai-chat` |
+| `version` | `0.2.0` |
 | `plugin_api` | `34` |
 | Entradas | serviço `engine`, widget `bar`, painel `panel` |
 | Painel | `460 × 640`, `floating`, `top_right`, `overlay`, `dismiss_on_outside_click = false`, `persistent = false` |
@@ -68,7 +68,7 @@ As labels traduzidas ficam em `plugin/translations/pt-BR.json` e `en.json`.
 |---|---|
 | `render()` | Monta glifo + ponto de status + título opcional. |
 | `update()` | Ajusta o intervalo de atualização (`500 ms` busy, `5000 ms` idle). |
-| `onClick()` | `noctalia.togglePanel("omyfedora/ai-chat:panel")`. |
+| `onClick()` | `noctalia.togglePanel("msbos/ai-chat:panel")`. |
 | `onConfigChanged()` | Re-renderiza ao mudar `glyph`/`show_bar_label`. |
 | Watch de `chat.status` | Atualiza o ponto e o título. |
 
@@ -106,7 +106,7 @@ O widget respeita orientação vertical/horizontal da barra.
 
 | Função | Papel |
 |---|---|
-| `sendCommand(event, payload)` | Executa `noctalia msg plugin omyfedora/ai-chat:engine all <event> [payload]` via `runAsync` com argv. |
+| `sendCommand(event, payload)` | Executa `noctalia msg plugin msbos/ai-chat:engine all <event> [payload]` via `runAsync` com argv. |
 | `header()` | Título, subtítulo, botões novo/histórico/minimizar. |
 | `renderTool(tool)` | Cartão de ferramenta expansível. |
 | `renderForm(form)` | Formulário com toggle, opções e input; envia `reply_form`. |
@@ -141,7 +141,7 @@ O widget respeita orientação vertical/horizontal da barra.
 Exemplo:
 
 ```bash
-noctalia msg plugin omyfedora/ai-chat:panel all open_picker
+noctalia msg plugin msbos/ai-chat:panel all open_picker
 ```
 
 ## `engine.luau` — serviço
@@ -247,11 +247,11 @@ O cliente não tem retry HTTP genérico; o tratamento de reconexão é específi
 | `toolGlyph(name)` | Ícone Tabler por ferramenta. |
 | `timeAgo(ms)` | `agora`, `Nm`, `Nh`, `Nd`. |
 
-## Agente — `opencode/agents/omyfedora-chat.md`
+## Agente — `opencode/agents/msbos-chat.md`
 
 - `mode: primary`, `temperature: 0.2`.
 - Permissões: `edit: allow`, `shell: allow`, `read: allow`, `webfetch: allow`, `skill: allow`, `question: allow`, `task: deny`.
-- Instruções: carregar a skill `omyfedora`, pedir confirmação, backup, aplicar, validar, diff e log.
+- Instruções: carregar a skill `msbos`, pedir confirmação, backup, aplicar, validar, diff e log.
 - Limites: sem `sudo`, root apenas via `pkexec`, arquivos protegidos, sem senhas, conteúdo externo é dado.
 - Como o shell do OpenCode Desktop roda com `NoNewPrivs=1`, o agente aciona o helper com `niri msg action spawn -- alacritty -e /usr/bin/pkexec ...`, localiza/foca a janela do polkit e valida depois com leitura.
 - Usa a ferramenta `question` para decisões com opções.

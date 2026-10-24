@@ -45,7 +45,7 @@ noctalia msg status
 noctalia msg plugins list
 
 # lint do plugin instalado
-noctalia plugins lint ~/.local/share/noctalia/plugins/omyfedora-ai-chat
+noctalia plugins lint ~/.local/share/noctalia/plugins/msbos-ai-chat
 
 # saúde do OpenCode (sem auth)
 curl -s http://127.0.0.1:49374/global/health
@@ -54,35 +54,35 @@ curl -s http://127.0.0.1:49374/global/health
 tail -n 200 ~/.cache/noctalia/noctalia.log
 
 # erros do plugin
-grep -iE 'omyfedora-ai-chat|script-runtime.*error' ~/.cache/noctalia/noctalia.log | tail -n 80
+grep -iE 'msbos-ai-chat|script-runtime.*error' ~/.cache/noctalia/noctalia.log | tail -n 80
 ```
 
 ### Abrir o painel e o seletor
 
 ```bash
-noctalia msg panel-toggle omyfedora/ai-chat:panel
-noctalia msg plugin omyfedora/ai-chat:panel all open_picker
+noctalia msg panel-toggle msbos/ai-chat:panel
+noctalia msg plugin msbos/ai-chat:panel all open_picker
 ```
 
 ### Recarregar o plugin
 
 ```bash
-noctalia msg plugins disable omyfedora/ai-chat
-noctalia msg plugins enable omyfedora/ai-chat
+noctalia msg plugins disable msbos/ai-chat
+noctalia msg plugins enable msbos/ai-chat
 ```
 
 ## Problemas comuns
 
 ### Plugin não aparece em Settings → Plugins
 
-- Confirme que a pasta está em `~/.local/share/noctalia/plugins/omyfedora-ai-chat/`.
+- Confirme que a pasta está em `~/.local/share/noctalia/plugins/msbos-ai-chat/`.
 - Rode o lint; um manifesto inválido impede a descoberta.
 - Reinicie o Noctalia ou aguarde a descoberta; depois habilite.
 - Confira `noctalia msg plugins list`.
 
 ### Widget não aparece na barra
 
-O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → `omyfedora/ai-chat:bar`**. Não edite `settings.toml` à mão.
+O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → `msbos/ai-chat:bar`**. Não edite `settings.toml` à mão.
 
 ### Painel offline mesmo com o OpenCode aberto
 
@@ -131,7 +131,7 @@ O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → 
 O servidor do OpenCode Desktop roda com `NoNewPrivs=1`; o `pkexec` direto pelo shell do agente não consegue elevar. O agente deve abrir o helper dentro do Alacritty (TTY), pelo niri:
 
 ```bash
-niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv <subcomando> [argumentos...]
+niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv <subcomando> [argumentos...]
 ```
 
 - Confirme que `niri` está rodando, que o Alacritty existe e que há um agente polkit na sessão.

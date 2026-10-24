@@ -9,7 +9,7 @@ O engine assina `GET /api/event` e aplica os eventos ao estado da conversa. Este
   "id": "evt_...",
   "created": 1792625451332,
   "type": "session.text.delta",
-  "location": { "directory": "/home/usuario/.omyfedora-ai-chat" },
+  "location": { "directory": "/home/usuario/.msbos-ai-chat" },
   "data": {
     "sessionID": "ses_...",
     "assistantMessageID": "msg_...",

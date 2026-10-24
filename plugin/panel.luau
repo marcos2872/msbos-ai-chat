@@ -26,7 +26,7 @@ local spinnerAccum = 0
 local render
 
 local function sendCommand(event, payload)
-  local argv = { "noctalia", "msg", "plugin", "omyfedora/ai-chat:engine", "all", event }
+  local argv = { "noctalia", "msg", "plugin", "msbos/ai-chat:engine", "all", event }
   if type(payload) == "string" and payload ~= "" then
     table.insert(argv, payload)
   end
@@ -76,7 +76,7 @@ local function header()
   }, {
     ui.glyph({ name = "message-chatbot", size = 18, color = "primary" }),
     ui.column({ gap = 0, flexGrow = 1 }, {
-      ui.label({ text = "omyfedora IA", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
+      ui.label({ text = "msbos IA", fontSize = 15, fontWeight = "bold", color = "on_surface" }),
       ui.label({ text = subtitle(), fontSize = 10, color = "on_surface_variant", maxLines = 1 }),
     }),
     ui.button({ glyph = "plus", variant = "ghost", tooltip = "Nova conversa", onClick = "onNewSession" }),
@@ -130,10 +130,10 @@ local function agentMissingCard()
   }, {
     ui.row({ gap = 6, align = "center" }, {
       ui.glyph({ name = "alert-triangle", size = 15, color = "error" }),
-      ui.label({ text = "Agente omyfedora-chat não encontrado", fontWeight = "bold", color = "error", fontSize = 11 }),
+      ui.label({ text = "Agente msbos-chat não encontrado", fontWeight = "bold", color = "error", fontSize = 11 }),
     }),
     ui.label({
-      text = "Rode ./install.sh no projeto para instalar o agente. O chat usa o agente para seguir a skill omyfedora.",
+      text = "Rode ./install.sh no projeto para instalar o agente. O chat usa o agente para seguir a skill msbos.",
       fontSize = 10,
       color = "on_surface_variant",
       maxLines = 4,

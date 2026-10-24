@@ -15,7 +15,7 @@ O assistente precisa executar comandos e editar arquivos para aplicar mudanças 
   - `shell`, `edit`, `question`, `form` → `once`;
   - outras ações → `reject`.
 - Renderizar formulários de `question` como cartões no painel e responder via `reply_form`.
-- Manter a confirmação de mudanças no texto, seguindo o ritual da skill `omyfedora`.
+- Manter a confirmação de mudanças no texto, seguindo o ritual da skill `msbos`.
 
 ## Consequências
 

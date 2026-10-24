@@ -1,12 +1,12 @@
-id = "omyfedora/ai-chat"
-name = "omyfedora AI Chat"
-version = "0.1.0"
+id = "msbos/ai-chat"
+name = "msbos AI Chat"
+version = "0.2.0"
 plugin_api = 34
-author = "omyfedora"
+author = "msbos"
 license = "MIT"
 icon = "message-chatbot"
-description = "Chat de IA especialista em mudanças no desktop omyfedora (niri + Noctalia), com o OpenCode como motor."
-tags = ["bar", "panel", "service", "ai", "opencode", "omyfedora"]
+description = "Chat de IA especialista em mudanças no desktop msbos (niri + Noctalia), com o OpenCode como motor."
+tags = ["bar", "panel", "service", "ai", "opencode", "msbos"]
 dependencies = ["opencode", "niri", "noctalia"]
 
 # ── Settings do plugin (compartilhados por todas as entradas) ───────────────
@@ -15,14 +15,14 @@ key = "directory"
 type = "string"
 label_key = "settings.directory.label"
 description_key = "settings.directory.description"
-default = "~/.omyfedora-ai-chat"
+default = "~/.msbos-ai-chat"
 
 [[setting]]
 key = "agent"
 type = "string"
 label_key = "settings.agent.label"
 description_key = "settings.agent.description"
-default = "omyfedora-chat"
+default = "msbos-chat"
 
 [[setting]]
 key = "opencode_bin"

@@ -1,4 +1,4 @@
-# AGENTS.md — omyfedora AI Chat
+# AGENTS.md — msbos AI Chat
 
 Instruções para agentes que trabalham neste repositório. A documentação funcional atual está em [`docs/index.md`](docs/index.md); o `MAPEAMENTO.md` é histórico.
 
@@ -11,14 +11,14 @@ Não há `package.json`, `Makefile`, workflow de CI, build step nem suíte autom
 | Objetivo | Comando | Fonte |
 |---|---|---|
 | Instalar/atualizar plugin, agente e workspace | `./install.sh` | `install.sh` |
-| Instalar com outro workspace | `OMYFEDORA_AI_CHAT_DIR=/caminho ./install.sh` | `install.sh` |
+| Instalar com outro workspace | `MSBOS_AI_CHAT_DIR=/caminho ./install.sh` | `install.sh` |
 | Desinstalar preservando o workspace | `./uninstall.sh` | `uninstall.sh` |
 | Desinstalar e apagar workspace/sessões | `./uninstall.sh --purge` | `uninstall.sh` |
-| Lint do plugin instalado | `noctalia plugins lint "${XDG_DATA_HOME:-$HOME/.local/share}/noctalia/plugins/omyfedora-ai-chat"` | `install.sh` |
-| Habilitar o plugin | `noctalia msg plugins enable omyfedora/ai-chat` | `install.sh` |
-| Desabilitar o plugin | `noctalia msg plugins disable omyfedora/ai-chat` | `uninstall.sh`, `engine.luau` |
+| Lint do plugin instalado | `noctalia plugins lint "${XDG_DATA_HOME:-$HOME/.local/share}/noctalia/plugins/msbos-ai-chat"` | `install.sh` |
+| Habilitar o plugin | `noctalia msg plugins enable msbos/ai-chat` | `install.sh` |
+| Desabilitar o plugin | `noctalia msg plugins disable msbos/ai-chat` | `uninstall.sh`, `engine.luau` |
 | Recarregar após editar | desabilitar + habilitar (comandos acima) | `engine.luau`, `uninstall.sh` |
-| Abrir/fechar o painel | `noctalia msg panel-toggle omyfedora/ai-chat:panel` | `install.sh` |
+| Abrir/fechar o painel | `noctalia msg panel-toggle msbos/ai-chat:panel` | `install.sh` |
 | Parear manualmente | `opencode pair` | `install.sh`, `engine.luau` |
 | Iniciar um servidor OpenCode local | `opencode serve` | `panel.luau` (estado offline) |
 | Listar plugins descobertos | `noctalia msg plugins list` | `install.sh` |
@@ -47,7 +47,7 @@ O projeto é um plugin do **Noctalia 5.3** (`plugin_api = 34`) com três entrada
 | `plugin/lib/store.luau` | Workspace, `pairing.json`, `ui.json` e exports JSON/Markdown. |
 | `plugin/lib/format.luau` | Formatação de modelos, ferramentas, erros e tempo. |
 | `plugin/translations/` | Labels dos settings em pt-BR/en. |
-| `opencode/agents/omyfedora-chat.md` | Agente primário e regras de segurança/root. |
+| `opencode/agents/msbos-chat.md` | Agente primário e regras de segurança/root. |
 | `install.sh` / `uninstall.sh` | Instalação e remoção local. |
 
 Fluxo resumido:
@@ -55,7 +55,7 @@ Fluxo resumido:
 ```text
 panel.luau --IPC--> engine.luau --HTTP/SSE--> OpenCode local
    ^                    |
-   |                    +--> ~/.omyfedora-ai-chat/{state,sessions}
+   |                    +--> ~/.msbos-ai-chat/{state,sessions}
    +---- noctalia.state (chat.snapshot/status/models/sessions)
 ```
 
@@ -68,8 +68,8 @@ panel.luau --IPC--> engine.luau --HTTP/SSE--> OpenCode local
 - Novas conversas herdam o modelo/variante atuais; a precedência é `opts.model` → `preferredModel` em `ui.json` → modelo da sessão ativa. `variant = "default"` é omitido.
 - Ao apagar a sessão ativa, o engine limpa a sessão ativa e o painel permanece no seletor; não abre a primeira sessão. Clicar em uma linha do seletor abre a sessão.
 - `shell`/`edit` são automáticos (sem cartão de permissão). Formulários da ferramenta `question` são renderizados e respondidos pelo painel.
-- No ambiente atual, o servidor do OpenCode Desktop roda com `NoNewPrivs=1`. Root é acionado pelo helper via `niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/omyfedora-priv …`, nunca por `sudo`; o terminal fornece TTY, e o agente localiza/foca a janela do polkit e valida o resultado com leitura.
-- Estado e exports ficam em `~/.omyfedora-ai-chat`; `pairing.json`/`ui.json` e sessões são gravados com `0600`.
+- No ambiente atual, o servidor do OpenCode Desktop roda com `NoNewPrivs=1`. Root é acionado pelo helper via `niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv …`, nunca por `sudo`; o terminal fornece TTY, e o agente localiza/foca a janela do polkit e valida o resultado com leitura.
+- Estado e exports ficam em `~/.msbos-ai-chat`; `pairing.json`/`ui.json` e sessões são gravados com `0600`.
 
 ## Convenções
 
@@ -81,7 +81,7 @@ panel.luau --IPC--> engine.luau --HTTP/SSE--> OpenCode local
 - Não adicione `fill`/`border`/`shadow` ao frame do painel; o tema do host já desenha o fundo.
 - Use roles do tema (`primary`, `on_primary`, `surface_variant`, `outline`, `error` etc.). Seleção: `primary` no item ativo e `surface_variant/0.35` nos demais.
 - Modelo/raciocínio usam os IDs crus (`default`, `low`, `high`, `max`); não traduza variantes. Novas conversas devem preservar modelo e variante.
-- Não presuma cartão de permissão para shell/edit; o fluxo atual é automático. Só os subcomandos da skill `omyfedora` podem ser acionados como root.
+- Não presuma cartão de permissão para shell/edit; o fluxo atual é automático. Só os subcomandos da skill `msbos` podem ser acionados como root.
 - Root: nunca `sudo`; use `pkexec` pelo `niri` devido ao `NoNewPrivs`, valide depois com `rpm -q`, `systemctl status` ou `dnf history list`, e não afirme sucesso sem evidência.
 - Segurança: não logue token/link de pareamento; mantenha `pairing.json`, `ui.json` e exports com `0600`; não apague o workspace sem `--purge` explícito.
 - **A documentação evolui com o código.** Mudou IPC, evento, setting, estado, fluxo de UI, conexão, segurança ou instalação? Atualize o arquivo correspondente em `docs/` e o `README.md` no mesmo trabalho. O `MAPEAMENTO.md` é histórico; não o use como fonte do estado atual.

@@ -46,7 +46,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 
 ```text
 ┌──────────────────────────────────────────────┐
-│ [ícone] omyfedora IA        [+][histórico][−]│
+│ [ícone] msbos IA        [+][histórico][−]│
 │ título da sessão                             │
 ├──────────────────────────────────────────────┤
 │ Você                                         │
@@ -70,7 +70,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 
 ### Header
 
-- Glifo `message-chatbot` e título “omyfedora IA”.
+- Glifo `message-chatbot` e título “msbos IA”.
 - Subtítulo: “executando…”, título da sessão, “não pareado”, “offline” ou “pronto”.
 - **+** — nova conversa.
 - **Histórico** — abre o seletor.
