@@ -131,6 +131,13 @@ function M.toolLabel(name)
   return map[key] or ("Ferramenta: " .. key)
 end
 
+-- Título do cartão de formulário. O host manda "Questions" (inglês) por padrão.
+function M.formTitle(title)
+  local text = tostring(title or "")
+  local map = { Questions = "Pergunta", Question = "Pergunta", Form = "Formulário" }
+  return map[text] or (text ~= "" and text or "Pergunta")
+end
+
 -- Título em linguagem comum para uma linha do agent-changes.log. O texto
 -- original continua disponível em "Ver detalhes"; aqui só traduzimos o tipo.
 function M.changeTitle(what)

@@ -391,10 +391,10 @@ local function renderForm(form)
   local children = {
     ui.row({ gap = 6, align = "center" }, {
       ui.glyph({ name = "forms", size = 15, color = "primary" }),
-      ui.label({ text = tostring(form.title or "Formulário"), fontSize = 11, fontWeight = "bold", color = textColor() }),
+      ui.label({ text = format.formTitle(form.title), fontSize = 11, fontWeight = "bold", color = textColor() }),
     }),
     ui.label({
-      text = "Confira o pedido antes de responder; o texto vem do modelo, não do painel.",
+      text = "Escolha uma opção e confirme.",
       fontSize = 10,
       color = mutedColor(),
     }),

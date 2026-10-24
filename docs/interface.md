@@ -169,7 +169,9 @@ View `changes` (IPC `open_changes`, também pelo rodapé do seletor), alimentada
 
 ## Formulários e `question`
 
-Formulários pendentes aparecem no fim da conversa, dentro de um cartão `primary/0.06` com borda `primary/0.35`.
+Formulários pendentes aparecem no fim da conversa, dentro de um cartão `primary/0.06` com borda `primary/0.35`. O título vem de `format.formTitle` (o host manda “Questions” em inglês; o painel mostra “Pergunta”) e o subtítulo é “Escolha uma opção e confirme.”.
+
+O agente usa esse cartão para a **aprovação** de uma mudança: pergunta curta e opções “Sim, aplicar” / “Não, cancelar” (instrução no `msbos-chat.md` e na skill).
 
 | Tipo de campo | UI |
 |---|---|

@@ -60,6 +60,18 @@ destaque, os botões e o terminal. Dá para voltar ao verde depois.
 Posso aplicar? (vai pedir a sua senha)
 ```
 
+## Como pedir aprovação
+
+Quando a proposta estiver pronta e você precisar do "sim", use a ferramenta
+`question` (cartão com opções clicáveis) em vez de pedir para digitar:
+
+- pergunta curta: "Posso aplicar a mudança?"
+- opções: **"Sim, aplicar"** (recomendada) e **"Não, cancelar"**
+- não repita caminho, comando nem hexadecimal nas opções
+
+Se a ferramenta `question` não estiver disponível, pergunte em texto e espere o
+"sim" explícito.
+
 ## Limites
 
 - Nunca use `sudo` — nem para consultar (`sudo dnf history`, `sudo systemctl status`) nem para sondar (`sudo -n true`).
