@@ -1481,6 +1481,9 @@ local function applyPanelSize()
       noctalia.log(
         "msbos-ai-chat: painel " .. preset .. " (" .. tostring(size.width) .. "x" .. tostring(size.height) .. "); recarregando"
       )
+      -- O host não redimensiona em runtime: o plugin recarrega e o painel
+      -- pisca. Avisa antes para não parecer que fechou sozinho.
+      noctalia.notify("msbos IA", "Aplicando o novo tamanho do painel — ele reabre em instantes.")
       local reloadScript = dir .. "/scripts/reload.sh"
       local reloaded = false
       if noctalia.fileExists(reloadScript) then

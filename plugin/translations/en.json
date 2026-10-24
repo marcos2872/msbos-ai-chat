@@ -31,5 +31,7 @@
   "settings.permission_mode.ask": "Ask (recommended)",
   "settings.permission_mode.always": "Always allow (no asking — risk)",
   "settings.glyph.label": "Bar icon",
-  "settings.glyph.description": "Tabler glyph used by the bar widget."
+  "settings.glyph.description": "Tabler glyph used by the bar widget.",
+  "settings.composer_multiline.label": "Multi-line message box",
+  "settings.composer_multiline.description": "Off: one 32 px line (Enter sends). On: 64 px box; Enter sends and Shift+Enter adds a line break."
 }

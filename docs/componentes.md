@@ -113,7 +113,7 @@ O widget respeita orientação vertical/horizontal da barra.
 | `renderTool(tool)` | Cartão de ferramenta expansível. |
 | `renderForm(form)` | Formulário com toggle, opções e input; envia `reply_form`. |
 | `renderMessage(message)` | Bolha do usuário, mensagem do assistente, raciocínio, tools e erro. |
-| `composer()` | Input de 1 linha (`controlSize = "sm"`) e botão enviar/parar. |
+| `composer()` | Input de 1 linha (`controlSize = "sm"`) ou multilinha de 64 px com `composer_multiline`, e botão enviar/parar. |
 | `chatView()` | Lista de mensagens, formulários, aviso/erro, agente ausente e compositor. |
 | `onboardingView()` | Conexão automática, link, colar, copiar comando, abrir terminal. |
 | `offlineView()` | Tentar novamente e abrir terminal. |

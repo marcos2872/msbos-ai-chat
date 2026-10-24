@@ -10,6 +10,7 @@ local draft = ""
 local pairLinkDraft = ""
 local toast = ""
 local toastAt = 0
+local toastError = false
 local expandedTools = {}
 local expandedPermissions = {}
 local showAlwaysPermission = {}
@@ -48,6 +49,15 @@ end
 
 refreshBackground()
 
+-- Caixa de mensagem multilinha (ajuste do plugin). Desligada por padrão.
+local composerMultiline = false
+
+local function refreshComposer()
+  composerMultiline = noctalia.getConfig("composer_multiline") == true
+end
+
+refreshComposer()
+
 local function frameFill()
   return string.format("#000000%02x", math.floor(backgroundOpacity * 255 / 100 + 0.5))
 end
@@ -60,7 +70,7 @@ local function textColor()
 end
 
 local function mutedColor()
-  return backgroundModeValue == "theme" and "on_surface_variant" or "#C7CCD9"
+  return backgroundModeValue == "theme" and "on_surface_variant" or "#D2D7E1"
 end
 
 local function sendCommand(event, payload)
@@ -72,12 +82,14 @@ local function sendCommand(event, payload)
     if result.exitCode ~= 0 then
       toast = result.stderr ~= "" and result.stderr or "Falha ao falar com o serviço do chat."
       toastAt = noctalia.nowMs()
+      toastError = true
       render()
     end
   end)
   if not started then
     toast = "Não foi possível falar com o serviço do chat."
     toastAt = noctalia.nowMs()
+    toastError = true
     render()
   end
 end
@@ -117,7 +129,7 @@ local function metaLabel()
   end
   return ui.label({
     text = "agente: " .. agent .. "   modelo: " .. model,
-    fontSize = 9,
+    fontSize = 10,
     color = mutedColor(),
     maxLines = 1,
     flexGrow = 1,
@@ -216,7 +228,7 @@ local function noModelsCard()
     ui.button({
       text = showTechnical and "Ocultar detalhes técnicos" or "Detalhes técnicos",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       onClick = "onToggleTechnical",
     }),
   }
@@ -280,14 +292,14 @@ local function agentMissingCard()
     ui.button({
       text = showTechnical and "Ocultar detalhes técnicos" or "Detalhes técnicos",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       onClick = "onToggleTechnical",
     }),
   }
   if showTechnical then
     table.insert(children, ui.label({
       text = "Agente msbos-chat ausente em ~/.config/opencode/agents/msbos-chat.md.",
-      fontSize = 9,
+      fontSize = 10,
       color = mutedColor(),
       maxLines = 2,
     }))
@@ -321,7 +333,7 @@ local function renderTool(tool)
       color = textColor(),
       tooltip = tostring(tool.name or "tool"),
     }),
-    ui.label({ text = format.toolStatusLabel(tool.status), fontSize = 9, color = color }),
+    ui.label({ text = format.toolStatusLabel(tool.status), fontSize = 10, color = color }),
     ui.spacer({ flexGrow = 1 }),
     ui.button({
       glyph = expanded and "chevron-up" or "chevron-down",
@@ -337,7 +349,7 @@ local function renderTool(tool)
   if expanded then
     local input = format.toolInput(tool.input)
     if input ~= "" then
-      table.insert(children, ui.label({ text = input, fontSize = 9, color = mutedColor(), maxLines = 12 }))
+      table.insert(children, ui.label({ text = input, fontSize = 10, color = mutedColor(), maxLines = 12 }))
     end
     if tool.output and tool.output ~= "" then
       table.insert(children, ui.markdown({ text = format.truncate(tool.output, 4000) }))
@@ -374,7 +386,7 @@ local function renderForm(form)
     }),
     ui.label({
       text = "Confira o pedido antes de responder; o texto vem do modelo, não do painel.",
-      fontSize = 9,
+      fontSize = 10,
       color = mutedColor(),
     }),
   }
@@ -433,7 +445,7 @@ local function renderForm(form)
     local optionChildren = {
       ui.label({
         text = tostring(option.label or option.value),
-        fontSize = 9,
+        fontSize = 10,
         fontWeight = "bold",
         color = selected and "on_primary" or textColor(),
         maxLines = 2,
@@ -443,7 +455,7 @@ local function renderForm(form)
     if description ~= "" then
       table.insert(optionChildren, ui.label({
         text = description,
-        fontSize = 9,
+        fontSize = 10,
         color = selected and "on_primary/0.85" or mutedColor(),
         maxLines = 3,
       }))
@@ -635,7 +647,7 @@ local function renderPermission(permission)
     }),
     ui.label({
       text = "Nada é aplicado sem a sua confirmação.",
-      fontSize = 9,
+      fontSize = 10,
       color = mutedColor(),
       maxLines = 2,
     }),
@@ -647,7 +659,7 @@ local function renderPermission(permission)
     table.insert(children, ui.button({
       text = expanded and "Ocultar o comando" or "Ver o comando",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       glyph = expanded and "chevron-up" or "chevron-down",
       onClick = function()
         expandedPermissions[permission.id] = not expanded
@@ -658,7 +670,7 @@ local function renderPermission(permission)
       table.insert(children, ui.markdown({ text = "```text\n" .. detail .. "\n```" }))
       local message = tostring(permission.message or "")
       if message ~= "" then
-        table.insert(children, ui.label({ text = message, fontSize = 9, color = mutedColor(), maxLines = 4 }))
+        table.insert(children, ui.label({ text = message, fontSize = 10, color = mutedColor(), maxLines = 4 }))
       end
     end
   end
@@ -688,7 +700,7 @@ local function renderPermission(permission)
     ui.button({
       text = alwaysOpen and "Menos opções" or "Mais opções",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       onClick = function()
         showAlwaysPermission[permission.id] = not alwaysOpen
         render()
@@ -710,7 +722,7 @@ local function renderPermission(permission)
     }, {
       ui.label({
         text = "Permitir sempre deixa o assistente repetir esta ação sem perguntar (o alcance é definido por ele). Você pode voltar a exigir confirmação em Configurações → msbos AI Chat → Confirmação.",
-        fontSize = 9,
+        fontSize = 10,
         color = mutedColor(),
         maxLines = 6,
       }),
@@ -742,11 +754,11 @@ local function renderMessage(message, isLast)
   if message.role == "user" then
     local ago = format.timeAgo(message.time)
     local header = {
-      ui.label({ text = "Você", fontSize = 9, fontWeight = "bold", color = "primary" }),
+      ui.label({ text = "Você", fontSize = 10, fontWeight = "bold", color = "primary" }),
     }
     if ago ~= "" then
       table.insert(header, ui.spacer({ flexGrow = 1 }))
-      table.insert(header, ui.label({ text = ago, fontSize = 9, color = mutedColor() }))
+      table.insert(header, ui.label({ text = ago, fontSize = 10, color = mutedColor() }))
     end
     return ui.column({
       fill = "primary/0.12",
@@ -764,12 +776,12 @@ local function renderMessage(message, isLast)
   local ago = format.timeAgo(message.time)
   local headerChildren = {
     ui.glyph({ name = "sparkles", size = 13, color = "primary" }),
-    ui.label({ text = "Assistente", fontSize = 9, fontWeight = "bold", color = mutedColor() }),
+    ui.label({ text = "Assistente", fontSize = 10, fontWeight = "bold", color = mutedColor() }),
   }
   if message.streaming then
     table.insert(headerChildren, ui.label({ text = "…", color = "primary" }))
   elseif ago ~= "" then
-    table.insert(headerChildren, ui.label({ text = ago, fontSize = 9, color = mutedColor() }))
+    table.insert(headerChildren, ui.label({ text = ago, fontSize = 10, color = mutedColor() }))
   end
   table.insert(headerChildren, ui.spacer({ flexGrow = 1 }))
   if isLast and not message.streaming and snapshot and snapshot.state ~= "busy" then
@@ -777,7 +789,7 @@ local function renderMessage(message, isLast)
       text = "Regenerar",
       glyph = "refresh",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       tooltip = "Reenvia o último pedido para gerar outra resposta",
       onClick = function()
         sendCommand("regenerate")
@@ -788,11 +800,12 @@ local function renderMessage(message, isLast)
     table.insert(headerChildren, ui.button({
       glyph = "copy",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       tooltip = "Copiar resposta",
       onClick = function()
         noctalia.copyToClipboard(message.text, "text/plain")
         toast = "Resposta copiada."
+    toastError = false
         toastAt = noctalia.nowMs()
         render()
       end,
@@ -806,7 +819,7 @@ local function renderMessage(message, isLast)
       text = expanded and "Ocultar raciocínio" or "Raciocínio",
       glyph = expanded and "chevron-up" or "chevron-down",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       onClick = function()
         expandedReasoning[message.id] = not expanded
         render()
@@ -856,7 +869,9 @@ local function composer()
       value = draft,
       placeholder = "Pergunte sobre o sistema…",
       submitOnEnter = true,
-      controlSize = "sm",
+      multiline = composerMultiline,
+      controlSize = (not composerMultiline) and "sm" or nil,
+      height = composerMultiline and 64 or nil,
       frameVisible = false,
       focus = true,
       flexGrow = 1,
@@ -871,13 +886,13 @@ local function historyNotice(shown, total)
   return ui.row({ gap = 8, align = "center", justify = "center" }, {
     ui.label({
       text = "Mostrando as últimas " .. tostring(shown) .. " de " .. tostring(total) .. " mensagens.",
-      fontSize = 9,
+      fontSize = 10,
       color = mutedColor(),
     }),
     ui.button({
       text = "Carregar anteriores",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       onClick = function()
         sendCommand("load_previous")
       end,
@@ -926,7 +941,7 @@ local function chatView()
     composer(),
   }
   if toast ~= "" and noctalia.nowMs() - toastAt < 5000 then
-    table.insert(rootChildren, ui.label({ text = toast, color = "error", fontSize = 9, paddingH = 12 }))
+    table.insert(rootChildren, ui.label({ text = toast, color = toastError and "error" or "primary", fontSize = 10, paddingH = 12 }))
   end
   return ui.column({ flexGrow = 1, gap = 6, align = "stretch" }, rootChildren)
 end
@@ -953,7 +968,7 @@ local function onboardingView()
   if showPairAdvanced then
     table.insert(children, ui.label({
       text = "Detalhes técnicos: o link aparece ao rodar `opencode pair` no terminal.",
-      fontSize = 9,
+      fontSize = 10,
       color = mutedColor(),
       textAlign = "center",
       maxLines = 2,
@@ -1004,7 +1019,7 @@ local function offlineView()
     ui.button({
       text = showTechnical and "Ocultar detalhes técnicos" or "Detalhes técnicos",
       variant = "ghost",
-      fontSize = 9,
+      fontSize = 10,
       onClick = "onToggleTechnical",
     }),
   }
@@ -1251,7 +1266,7 @@ local function pickerView()
     }))
     table.insert(modelChildren, ui.label({
       text = "Valores menores respondem mais rápido; maiores, com mais detalhe.",
-      fontSize = 9,
+      fontSize = 10,
       color = mutedColor(),
       maxLines = 2,
     }))
@@ -1332,7 +1347,7 @@ local function pickerView()
   for _, bucket in ipairs(order) do
     local items = buckets[bucket]
     if items then
-      table.insert(sessionRows, ui.label({ text = bucket, fontSize = 9, fontWeight = "bold", color = mutedColor() }))
+      table.insert(sessionRows, ui.label({ text = bucket, fontSize = 10, fontWeight = "bold", color = mutedColor() }))
       for _, item in ipairs(items) do
         addSessionRow(item.index, item.session)
       end
@@ -1364,15 +1379,22 @@ local function pickerView()
       text = "Alterações no sistema",
       variant = "ghost",
       glyph = "history-toggle",
-      fontSize = 9,
+      fontSize = 10,
       onClick = "onOpenChanges",
     }),
     ui.button({
       text = "Posição e tamanho do painel",
       variant = "ghost",
       glyph = "settings",
-      fontSize = 9,
+      fontSize = 10,
       onClick = "onOpenSettings",
+    }),
+    ui.label({
+      text = "As conversas ficam salvas em ~/.msbos-ai-chat; só o seu usuário lê.",
+      fontSize = 10,
+      color = mutedColor(),
+      maxLines = 2,
+      paddingH = 2,
     }),
   }
 
@@ -1397,7 +1419,7 @@ local function pickerView()
         }),
         ui.label({
           text = "A conversa será removida do assistente. A cópia local não é apagada.",
-          fontSize = 9,
+          fontSize = 10,
           color = mutedColor(),
           maxLines = 3,
         }),
@@ -1463,7 +1485,7 @@ local function changesView()
         gap = 6,
         align = "stretch",
       }, {
-        ui.label({ text = tostring(change.when or ""), fontSize = 9, color = mutedColor() }),
+        ui.label({ text = tostring(change.when or ""), fontSize = 10, color = mutedColor() }),
         ui.label({ text = tostring(change.what or ""), fontSize = 10, color = textColor(), maxLines = 5 }),
         (function()
           local actions = {
@@ -1481,7 +1503,7 @@ local function changesView()
             table.insert(actions, ui.button({
               text = "Copiar comando",
               variant = "ghost",
-              fontSize = 9,
+              fontSize = 10,
               glyph = "copy",
               tooltip = undo,
               onClick = function()
@@ -1498,7 +1520,7 @@ local function changesView()
 
   table.insert(children, ui.label({
     text = "Registro: ~/.local/state/msbos/agent-changes.log",
-    fontSize = 9,
+    fontSize = 10,
     color = mutedColor(),
     paddingH = 12,
   }))
@@ -1588,6 +1610,7 @@ end
 
 function onConfigChanged()
   refreshBackground()
+  refreshComposer()
   render()
 end
 
@@ -1701,6 +1724,7 @@ function onCopyUndo(index)
   end
   noctalia.copyToClipboard(undo, "text/plain")
   toast = "Comando de desfazer copiado."
+    toastError = false
   toastAt = noctalia.nowMs()
   render()
 end
@@ -1760,6 +1784,7 @@ function onPairLinkButton()
   if noctalia.string.trim(pairLinkDraft) == "" then
     toast = "Cole o link de `opencode pair` primeiro."
     toastAt = noctalia.nowMs()
+    toastError = true
     render()
     return
   end
@@ -1771,6 +1796,7 @@ function onPastePairLink()
   if not text or noctalia.string.trim(text) == "" then
     toast = "A área de transferência está vazia."
     toastAt = noctalia.nowMs()
+    toastError = true
     render()
     return
   end
@@ -1780,6 +1806,7 @@ end
 function onCopyPairCommand()
   noctalia.copyToClipboard("opencode pair", "text/plain")
   toast = "Comando copiado. Rode no terminal e cole o link aqui."
+    toastError = false
   toastAt = noctalia.nowMs()
   render()
 end
@@ -1806,6 +1833,7 @@ end
 function onRetryModels()
   sendCommand("sync")
   toast = "Verificando os modelos de novo…"
+    toastError = false
   toastAt = noctalia.nowMs()
   render()
 end
@@ -1827,6 +1855,7 @@ function onSubmit(text)
   if snapshot and snapshot.state == "busy" then
     toast = "Aguarde a resposta terminar (ou pare) antes de enviar outra mensagem."
     toastAt = noctalia.nowMs()
+    toastError = true
     render()
     return
   end

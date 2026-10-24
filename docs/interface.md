@@ -101,7 +101,7 @@ O snapshot publica as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens; quando h�
 
 ### Compositor
 
-- `ui.input` de 1 linha, `submitOnEnter = true`, `controlSize = "sm"` (32 px, mesma altura do botão), `frameVisible = false`, foco ao abrir. **Enter** envia.
+- `ui.input` de 1 linha por padrão, `submitOnEnter = true`, `controlSize = "sm"` (32 px, mesma altura do botão), `frameVisible = false`, foco ao abrir. **Enter** envia. Com `composer_multiline = true`, vira `multiline` de 64 px: **Enter** envia e **Shift+Enter** quebra a linha.
 - O rascunho fica em `draft`; a `key` do input muda após envio para limpar o campo.
 - **Enter** envia; o botão de enviar também.
 - Durante `busy`, o botão vira **Parar** (`player-stop`, `destructive`).
@@ -237,5 +237,5 @@ Se o host não aplicar o novo tamanho, confira o `plugin.toml` instalado e recar
 
 - `keyboard_focus = "on_demand"`: o painel não rouba o foco ao abrir.
 - O compositor usa `focus = true` e `submitOnEnter`.
-- **Enter** envia; o input é de 1 linha.
+- **Enter** envia; o input é de 1 linha (ou 64 px com `composer_multiline`).
 - Não há captura global de teclas nem atalho próprio; o widget da barra é o ponto de abertura.

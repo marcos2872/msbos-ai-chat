@@ -111,6 +111,15 @@ options = [
   { value = "always", label_key = "settings.permission_mode.always" },
 ]
 
+# Caixa de mensagem com várias linhas (Shift+Enter quebra linha). Fica desligada
+# por padrão: 1 linha (32 px) mantém o compositor na mesma altura do botão.
+[[setting]]
+key = "composer_multiline"
+type = "bool"
+label_key = "settings.composer_multiline.label"
+description_key = "settings.composer_multiline.description"
+default = false
+
 # ── Serviço ─────────────────────────────────────────────────────────────────
 [[service]]
 id = "engine"

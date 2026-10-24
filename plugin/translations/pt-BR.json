@@ -31,5 +31,7 @@
   "settings.permission_mode.ask": "Perguntar (recomendado)",
   "settings.permission_mode.always": "Permitir sempre (sem perguntar — risco)",
   "settings.glyph.label": "Ícone da barra",
-  "settings.glyph.description": "Glifo Tabler usado no widget da barra."
+  "settings.glyph.description": "Glifo Tabler usado no widget da barra.",
+  "settings.composer_multiline.label": "Caixa de mensagem com várias linhas",
+  "settings.composer_multiline.description": "Desligado: uma linha de 32 px (Enter envia). Ligado: caixa alta de 64 px; Enter envia e Shift+Enter quebra a linha."
 }

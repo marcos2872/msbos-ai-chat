@@ -68,10 +68,12 @@ noctalia msg panel-toggle msbos/ai-chat:panel
 
 - Clique no ícone da barra para abrir ou fechar o painel.
 - **+** cria uma nova conversa herdando o modelo e a variante atuais.
-- **Histórico** abre o seletor de modelo, raciocínio e sessões.
+- **Modelos e sessões** (ícone de relógio) abre o seletor de modelo, raciocínio e sessões, com busca e agrupamento por data.
+- **Alterações no sistema** (no rodapé do seletor) lista o que o assistente mudou, com **Pedir para desfazer** e o comando de reversão registrado.
 - **−** minimiza/fecha o painel; o serviço continua rodando e a resposta não é perdida.
 - Pedidos de mudança no sistema seguem o ritual da skill `msbos`: descrição, confirmação, backup, aplicação, validação e diff.
 - O painel não envia anexos de arquivo/imagem nesta versão.
+- As conversas ficam em `~/.msbos-ai-chat` (workspace com permissão `0700`); o painel avisa isso no rodapé do seletor.
 
 > **Importante:** `shell` e `edit` param no **cartão de permissão** do painel (Permitir uma vez / Permitir sempre / Recusar). O ajuste `permission_mode` alterna entre **Perguntar** (padrão) e **Permitir sempre** (autoaprova). `webfetch` é negado no agente. Veja [Segurança](docs/seguranca.md).
 
