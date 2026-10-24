@@ -21,7 +21,7 @@ O `service start` é disparado pelo processo do Noctalia, então o servidor herd
 
 ### Automático
 
-1. Sem `state/pairing.json` e com `auto_pair = true`, o engine pareia sozinho no `init()` e repete a cada **15 s** enquanto o estado for `unpaired`. O botão **Conectar automaticamente** (IPC `pair` sem payload) faz o mesmo na hora.
+1. Sem `state/pairing.json` e com `auto_pair = true`, o engine pareia sozinho no `init()` e repete a cada **15 s** enquanto o estado for `unpaired`. O botão **Conectar agora** (IPC `pair` sem payload) faz o mesmo na hora.
 2. O engine garante o servidor: `opencode service status`; se necessário, `opencode service start` (timeout de **20 s**). A URL devolvida é adotada como `baseUrl`.
 3. O engine executa `opencode pair` com timeout de **20 s**.
 4. O stdout é lido com a expressão `https?://.../auth/connect/<código>`.
@@ -38,7 +38,7 @@ sequenceDiagram
     participant CLI as CLI opencode
     participant OC as OpenCode
 
-    U->>P: Conectar automaticamente
+    U->>P: Conectar agora
     P->>E: IPC pair
     E->>CLI: opencode service status
     CLI-->>E: URL do servidor (ou vazio)
@@ -167,7 +167,7 @@ A listagem de agentes é revalidada: 3 tentativas a cada 2 s em caso de erro de 
 | `4xx`/`5xx` | Objeto `{ status, message }`; a mensagem tenta `message`, `error`, `error.message` ou `_tag`. |
 | `401` na sonda ou no SSE | Re-pareia ou volta para `unpaired`. |
 | `opencode` ausente | “Binário não encontrado: …”; ajuste `opencode_bin` ou o `PATH`. |
-| `opencode service start` falha | estado `offline` com o `stderr` do CLI; o painel oferece **Iniciar OpenCode** e **Abrir terminal**. |
+| `opencode service start` falha | estado `offline` com o `stderr` do CLI; o painel oferece **Iniciar assistente** e **Abrir terminal**. |
 | `opencode pair` falha | Mostra `stderr` ou “`opencode pair` falhou.” |
 | Link inválido | “Link inválido. Cole o link completo exibido por `opencode pair`.” |
 

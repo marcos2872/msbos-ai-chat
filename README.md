@@ -61,7 +61,7 @@ Depois da instalação:
 noctalia msg panel-toggle msbos/ai-chat:panel
 ```
 
-3. No painel, clique em **Conectar automaticamente** ou cole o link exibido por `opencode pair`.
+3. No painel, clique em **Conectar agora**. Se não conectar, abra **Avançado** e cole o link exibido por `opencode pair`.
 4. Em **Settings → Plugins → msbos AI Chat**, ajuste o tamanho da janela, o diretório, o agente e as demais opções.
 
 ## Uso rápido

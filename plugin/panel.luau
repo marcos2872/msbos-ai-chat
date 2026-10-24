@@ -91,13 +91,13 @@ local function subtitle()
     return snapshot.session.title
   end
   if snapshot.state == "unpaired" then
-    return "não pareado"
+    return "não conectado"
   end
   if snapshot.state == "starting" then
     return "iniciando…"
   end
   if snapshot.state == "offline" then
-    return "offline"
+    return "sem conexão"
   end
   return "pronto"
 end
@@ -177,7 +177,7 @@ local function busyIndicator()
       color = "primary",
     }),
     ui.label({
-      text = activity and ("Executando: " .. activity .. "…") or "Pensando…",
+      text = activity and ("Executando: " .. format.toolLabel(activity) .. "…") or "Pensando…",
       fontSize = 10,
       color = mutedColor(),
       maxLines = 1,
@@ -261,6 +261,33 @@ local function emptyState()
 end
 
 local function agentMissingCard()
+  local children = {
+    ui.row({ gap = 6, align = "center" }, {
+      ui.glyph({ name = "alert-triangle", size = 15, color = "error" }),
+      ui.label({ text = "Assistente especialista indisponível", fontWeight = "bold", color = "error", fontSize = 11 }),
+    }),
+    ui.label({
+      text = "O chat tenta de novo sozinho em alguns segundos. Se continuar, rode o instalador novamente.",
+      fontSize = 10,
+      color = mutedColor(),
+      maxLines = 4,
+    }),
+    ui.button({ text = "Verificar novamente", variant = "secondary", fontSize = 10, onClick = "onRetryAgent" }),
+    ui.button({
+      text = showTechnical and "Ocultar detalhes técnicos" or "Detalhes técnicos",
+      variant = "ghost",
+      fontSize = 9,
+      onClick = "onToggleTechnical",
+    }),
+  }
+  if showTechnical then
+    table.insert(children, ui.label({
+      text = "Agente msbos-chat ausente em ~/.config/opencode/agents/msbos-chat.md.",
+      fontSize = 9,
+      color = mutedColor(),
+      maxLines = 2,
+    }))
+  end
   return ui.column({
     fill = "error/0.08",
     border = "error/0.45",
@@ -269,19 +296,7 @@ local function agentMissingCard()
     padding = 10,
     gap = 6,
     align = "stretch",
-  }, {
-    ui.row({ gap = 6, align = "center" }, {
-      ui.glyph({ name = "alert-triangle", size = 15, color = "error" }),
-      ui.label({ text = "Agente msbos-chat indisponível", fontWeight = "bold", color = "error", fontSize = 11 }),
-    }),
-    ui.label({
-      text = "O OpenCode ainda não listou o agente. O chat tenta de novo automaticamente; se persistir, rode ./install.sh e verifique ~/.config/opencode/agents/msbos-chat.md.",
-      fontSize = 10,
-      color = mutedColor(),
-      maxLines = 4,
-    }),
-    ui.button({ text = "Verificar novamente", variant = "secondary", fontSize = 10, onClick = "onRetryAgent" }),
-  })
+  }, children)
 end
 
 local function renderTool(tool)
@@ -295,7 +310,13 @@ local function renderTool(tool)
 
   local headerChildren = {
     ui.glyph({ name = format.toolGlyph(tool.name), size = 13, color = color }),
-    ui.label({ text = tostring(tool.name or "tool"), fontSize = 10, fontWeight = "bold", color = textColor() }),
+    ui.label({
+      text = format.toolLabel(tool.name),
+      fontSize = 10,
+      fontWeight = "bold",
+      color = textColor(),
+      tooltip = tostring(tool.name or "tool"),
+    }),
     ui.label({ text = format.toolStatusLabel(tool.status), fontSize = 9, color = color }),
     ui.spacer({ flexGrow = 1 }),
     ui.button({
@@ -800,15 +821,15 @@ end
 local function onboardingView()
   local children = {
     ui.glyph({ name = "message-chatbot", size = 44, color = "primary" }),
-    ui.label({ text = "Conecte o OpenCode", fontSize = 18, fontWeight = "bold", color = textColor() }),
+    ui.label({ text = "Conecte o assistente", fontSize = 18, fontWeight = "bold", color = textColor() }),
     ui.label({
-      text = "O chat conecta sozinho ao OpenCode local. Se precisar, rode `opencode pair` e cole o link em Avançado.",
+      text = "O chat conecta sozinho ao assistente do seu computador. Clique no botão abaixo — se não funcionar, abra Avançado para colar o link de conexão.",
       fontSize = 12,
       color = mutedColor(),
       textAlign = "center",
       maxLines = 4,
     }),
-    ui.button({ text = "Conectar automaticamente", variant = "primary", glyph = "plug", onClick = "onPairAuto" }),
+    ui.button({ text = "Conectar agora", variant = "primary", glyph = "plug", onClick = "onPairAuto" }),
     ui.button({
       text = showPairAdvanced and "Ocultar avançado" or "Avançado",
       variant = "ghost",
@@ -817,6 +838,13 @@ local function onboardingView()
     }),
   }
   if showPairAdvanced then
+    table.insert(children, ui.label({
+      text = "Detalhes técnicos: o link aparece ao rodar `opencode pair` no terminal.",
+      fontSize = 9,
+      color = mutedColor(),
+      textAlign = "center",
+      maxLines = 2,
+    }))
     table.insert(children, ui.input({
       key = "pair-link",
       placeholder = "Cole o link http://127.0.0.1:.../auth/connect/...",
@@ -850,18 +878,29 @@ end
 local function offlineView()
   local children = {
     ui.glyph({ name = "cloud-off", size = 38, color = mutedColor() }),
-    ui.label({ text = "OpenCode offline", fontSize = 16, fontWeight = "bold", color = textColor() }),
+    ui.label({ text = "Assistente sem resposta", fontSize = 16, fontWeight = "bold", color = textColor() }),
     ui.label({
-      text = "O chat inicia o servidor local automaticamente. Se não conectar, abra o app OpenCode ou rode `opencode serve`.",
+      text = "O chat vai tentar iniciar o assistente de novo. Isso costuma resolver em alguns segundos.",
       fontSize = 12,
       color = mutedColor(),
       textAlign = "center",
       maxLines = 4,
     }),
-    ui.button({ text = "Iniciar OpenCode", variant = "primary", glyph = "player-play", onClick = "onStartService" }),
+    ui.button({ text = "Iniciar assistente", variant = "primary", glyph = "player-play", onClick = "onStartService" }),
     ui.button({ text = "Tentar novamente", variant = "secondary", glyph = "refresh", onClick = "onRetry" }),
-    ui.button({ text = "Abrir terminal", variant = "ghost", glyph = "terminal-2", onClick = "onOpenTerminal" }),
+    ui.button({
+      text = showTechnical and "Ocultar detalhes técnicos" or "Detalhes técnicos",
+      variant = "ghost",
+      fontSize = 9,
+      onClick = "onToggleTechnical",
+    }),
   }
+  if showTechnical then
+    table.insert(children, ui.markdown({
+      text = "```text\nopencode service status\nopencode serve\n```",
+    }))
+    table.insert(children, ui.button({ text = "Abrir terminal", variant = "ghost", glyph = "terminal-2", onClick = "onOpenTerminal" }))
+  end
   if snapshot and snapshot.error and snapshot.error ~= "" then
     table.insert(children, ui.label({ text = snapshot.error, color = "error", fontSize = 10, maxLines = 3 }))
   end
@@ -871,7 +910,7 @@ end
 local function startingView()
   return ui.column({ flexGrow = 1, gap = 12, padding = 20, align = "center", justify = "center" }, {
     ui.glyph({ name = "loader-2", size = 36, color = "primary" }),
-    ui.label({ text = "Iniciando o OpenCode…", fontSize = 15, fontWeight = "bold", color = textColor() }),
+    ui.label({ text = "Iniciando o assistente…", fontSize = 15, fontWeight = "bold", color = textColor() }),
     ui.label({
       text = "Isso leva alguns segundos na primeira vez.",
       fontSize = 10,
@@ -884,7 +923,7 @@ end
 local function pairingView()
   return ui.column({ flexGrow = 1, gap = 12, padding = 20, align = "center", justify = "center" }, {
     ui.glyph({ name = "loader-2", size = 36, color = "primary" }),
-    ui.label({ text = "Pareando com o OpenCode…", color = mutedColor() }),
+    ui.label({ text = "Conectando ao assistente…", color = mutedColor() }),
     ui.label({ text = "Isso deve levar só um instante.", fontSize = 10, color = mutedColor() }),
   })
 end
@@ -1097,6 +1136,12 @@ local function pickerView()
         render()
       end,
     }))
+    table.insert(modelChildren, ui.label({
+      text = "Valores menores respondem mais rápido; maiores, com mais detalhe.",
+      fontSize = 9,
+      color = mutedColor(),
+      maxLines = 2,
+    }))
   end
 
   table.insert(children, ui.column({
@@ -1231,7 +1276,7 @@ local function pickerView()
           maxLines = 2,
         }),
         ui.label({
-          text = "A conversa será removida do OpenCode. O espelho local em sessions/ não é apagado.",
+          text = "A conversa será removida do assistente. A cópia local não é apagada.",
           fontSize = 9,
           color = mutedColor(),
           maxLines = 3,

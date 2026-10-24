@@ -76,7 +76,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 
 - Glifo `message-chatbot` e título “msbos IA”.
 - Clicar na linha do título abre o seletor (modelos/sessões). Nela, `agente: <id>   modelo: <provider/id · variante>` (`snapshot.session` via `format.modelLabel`); mostra “modelo padrão” quando não há modelo. Trunca com `maxLines = 1`.
-- Subtítulo: “executando…”, título da sessão, “não pareado”, “iniciando…”, “offline” ou “pronto”.
+- Subtítulo: “executando…”, título da sessão, “não conectado”, “iniciando…”, “sem conexão” ou “pronto”.
 - **+** — nova conversa.
 - **Histórico** — abre o seletor.
 - **−** — minimiza/fecha o painel.
@@ -179,7 +179,7 @@ Limitações atuais:
 ### Onboarding (`unpaired`)
 
 - Texto explicando o OpenCode local.
-- **Conectar automaticamente**.
+- **Conectar agora**.
 - Input para colar o link `http://.../auth/connect/...` (largura 380, altura 38).
 - **Usar link colado** e **Colar da área de transferência**.
 - **Copiar comando** (`opencode pair`) e **Tentar novamente**.
@@ -192,8 +192,8 @@ Limitações atuais:
 
 ### Offline (`offline`)
 
-- “OpenCode offline”; o engine tenta iniciar o servidor sozinho com backoff de 5 s a 60 s.
-- **Iniciar OpenCode** (IPC `start`, força `service status/start` + sonda).
+- “Assistente sem resposta”; o engine tenta iniciar o servidor sozinho com backoff de 5 s a 60 s.
+- **Iniciar assistente** (IPC `start`, força `service status/start` + sonda).
 - **Tentar novamente** (IPC `sync`, que chama `ensureService` quando offline).
 - **Abrir terminal**, que roda `opencode serve` em primeiro plano (o terminal permanece aberto para diagnóstico).
 - Erro atual, se houver.

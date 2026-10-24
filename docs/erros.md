@@ -4,10 +4,10 @@
 
 | Estado | Significado | O que fazer |
 |---|---|---|
-| `unpaired` | Sem token válido. | O engine pareia sozinho se `auto_pair`; ou use **Conectar automaticamente** / link de `opencode pair`. |
+| `unpaired` | Sem token válido. | O engine pareia sozinho se `auto_pair`; ou use **Conectar agora** / link de `opencode pair`. |
 | `pairing` | Pareamento em andamento. | Aguardar; se demorar, verificar `opencode pair`/logs. |
 | `starting` | Engine executando `opencode service status/start`. | Aguardar alguns segundos; se falhar, o painel vai para `offline`. |
-| `offline` | Token existe, mas a sonda/serviço falhou. | O engine tenta iniciar o servidor (backoff 5–60 s); use **Iniciar OpenCode** ou **Abrir terminal** (`opencode serve`). |
+| `offline` | Token existe, mas a sonda/serviço falhou. | O engine tenta iniciar o servidor (backoff 5–60 s); use **Iniciar assistente** ou **Abrir terminal** (`opencode serve`). |
 | `idle` | Pronto. | Usar o chat. |
 | `busy` | Execução em andamento. | Aguardar ou **Parar**. |
 | `error` | Última operação falhou. | Ler a mensagem no painel e o log. |
@@ -16,7 +16,7 @@
 
 | Mensagem | Causa provável | Resolução |
 |---|---|---|
-| “OpenCode não está respondendo.” | Servidor parado, porta errada ou sonda `/api/agent` falhou. | O engine tenta `opencode service start`; confira a `baseUrl`, use **Iniciar OpenCode**/**Abrir terminal**. |
+| “OpenCode não está respondendo.” | Servidor parado, porta errada ou sonda `/api/agent` falhou. | O engine tenta `opencode service start`; confira a `baseUrl`, use **Iniciar assistente**/**Abrir terminal**. |
 | “Sessão do OpenCode expirada. Pareie novamente.” | Sonda devolveu `401` com `auto_pair` desligado. | Rodar `opencode pair` e colar o link, ou ligar `auto_pair`. |
 | “Não consegui iniciar o OpenCode. Abra o app ou rode `opencode serve`.” | `opencode service start` falhou. | Ver **Abrir terminal** para ler o erro do CLI; conferir `opencode_bin`. |
 | “Agente msbos-chat indisponível” | `/api/agent` não listou o agente (servidor recém-iniciado ou agente não instalado). | O engine revalida com backoff; usar **Verificar novamente**; se persistir, rodar `./install.sh`. |
@@ -95,7 +95,7 @@ O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → 
 ### Painel offline mesmo com o OpenCode aberto
 
 - Confira a porta em `state/pairing.json` e rode `opencode service status`.
-- Se o servidor mudou de porta, **Iniciar OpenCode** ou um `sync` faz o engine adotar a URL atual.
+- Se o servidor mudou de porta, **Iniciar assistente** ou um `sync` faz o engine adotar a URL atual.
 - Se o token expirou, a sonda `/api/agent` volta `401`; com `auto_pair` o engine re-pareia.
 - `ensureService` roda com backoff de 5 s a 60 s; **Tentar novamente** força `sync`.
 

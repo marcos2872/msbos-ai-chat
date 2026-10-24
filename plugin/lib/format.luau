@@ -102,8 +102,28 @@ function M.toolStatusLabel(status)
   return tostring(status or "")
 end
 
-function M.toolGlyph(name)
+-- Nome da ferramenta em linguagem comum (o nome técnico fica no tooltip).
+function M.toolLabel(name)
   local map = {
+    read = "Ler arquivo",
+    edit = "Editar arquivo",
+    write = "Editar arquivo",
+    shell = "Executar comando",
+    bash = "Executar comando",
+    grep = "Procurar no texto",
+    rg = "Procurar no texto",
+    glob = "Procurar arquivo",
+    find = "Procurar arquivo",
+    list = "Listar arquivos",
+    webfetch = "Acessar site",
+    task = "Consultar outro assistente",
+    skill = "Consultar instruções",
+  }
+  local key = tostring(name or "")
+  return map[key] or ("Ferramenta: " .. key)
+end
+
+function M.toolGlyph(name)  local map = {
     read = "file-text",
     edit = "pencil",
     write = "pencil",
