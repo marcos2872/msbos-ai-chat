@@ -455,6 +455,14 @@ local function renderPermission(permission)
       end,
     }),
     ui.button({
+      text = "Permitir sempre",
+      variant = "secondary",
+      fontSize = 10,
+      onClick = function()
+        sendCommand("reply_permission", noctalia.json.encode({ requestID = permission.id, decision = "always" }))
+      end,
+    }),
+    ui.button({
       text = "Recusar",
       variant = "destructive",
       fontSize = 10,

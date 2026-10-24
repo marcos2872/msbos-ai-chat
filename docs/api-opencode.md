@@ -143,12 +143,9 @@ A ferramenta `question` cria um campo `q0`, `q1`, … por pergunta, com `type = 
 
 Respostas válidas: `once`, `always`, `reject`.
 
-No comportamento atual, o engine responde automaticamente:
-
-```text
-shell, edit, question, form -> once
-qualquer outra ação          -> reject
-```
+O engine só autoaprova `question`/`form`. `shell`, `edit` e ações desconhecidas
+ficam **pendentes** e viram um cartão no painel, respondido com `once`
+(Permitir uma vez), `always` (Permitir sempre) ou `reject` (Recusar).
 
 ## Export
 
