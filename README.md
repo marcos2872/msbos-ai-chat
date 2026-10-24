@@ -67,7 +67,7 @@ noctalia msg panel-toggle msbos/ai-chat:panel
 - Pedidos de mudança no sistema seguem o ritual da skill `msbos`: descrição, confirmação, backup, aplicação, validação e diff.
 - O painel não envia anexos de arquivo/imagem nesta versão.
 
-> **Importante:** nesta versão, `shell` e `edit` estão como `allow` no agente e não há cartão técnico de permissão; a confirmação é conversacional. Veja [Segurança](docs/seguranca.md).
+> **Importante:** `shell` e `edit` param no **cartão de permissão** do painel (Permitir uma vez / Permitir sempre / Recusar). O ajuste `permission_mode` alterna entre **Perguntar** (padrão) e **Permitir sempre** (autoaprova). `webfetch` é negado no agente. Veja [Segurança](docs/seguranca.md).
 
 ## Estrutura do projeto
 
