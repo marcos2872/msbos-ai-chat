@@ -1501,6 +1501,19 @@ local function changesView()
           color = mutedColor(),
           maxLines = 6,
         }))
+        -- Ação técnica só aparece com os detalhes abertos.
+        if undo ~= "" then
+          table.insert(itemChildren, ui.button({
+            text = "Copiar comando de desfazer",
+            variant = "ghost",
+            fontSize = 10,
+            glyph = "copy",
+            tooltip = undo,
+            onClick = function()
+              onCopyUndo(index)
+            end,
+          }))
+        end
       end
 
       local actions = {
@@ -1525,18 +1538,6 @@ local function changesView()
           end,
         }),
       }
-      if undo ~= "" then
-        table.insert(actions, ui.button({
-          text = "Copiar comando",
-          variant = "ghost",
-          fontSize = 10,
-          glyph = "copy",
-          tooltip = undo,
-          onClick = function()
-            onCopyUndo(index)
-          end,
-        }))
-      end
       table.insert(itemChildren, ui.row({ gap = 8, align = "center" }, actions))
 
       table.insert(rows, ui.column({
