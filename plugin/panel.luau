@@ -15,6 +15,7 @@ local expandedPermissions = {}
 local expandedReasoning = {}
 local formDrafts = {}
 local view = "chat"
+local showPairAdvanced = false
 local models = noctalia.state.get("chat.models") or {}
 local sessions = noctalia.state.get("chat.sessions") or {}
 local selectedModelIndex = 0
@@ -132,7 +133,12 @@ local function header()
   }, {
     ui.glyph({ name = "message-chatbot", size = 18, color = "primary" }),
     ui.column({ gap = 3, flexGrow = 1 }, {
-      ui.row({ gap = 10, align = "center" }, {
+      ui.row({
+        gap = 10,
+        align = "center",
+        tooltip = "Abrir modelos e sessões",
+        onClick = "onOpenPicker",
+      }, {
         ui.label({ text = "msbos IA", fontSize = 15, fontWeight = "bold", color = textColor() }),
         metaLabel(),
       }),
@@ -574,6 +580,21 @@ local function renderMessage(message)
   if message.streaming then
     table.insert(headerChildren, ui.label({ text = "…", color = "primary" }))
   end
+  table.insert(headerChildren, ui.spacer({ flexGrow = 1 }))
+  if message.text and message.text ~= "" then
+    table.insert(headerChildren, ui.button({
+      glyph = "copy",
+      variant = "ghost",
+      fontSize = 9,
+      tooltip = "Copiar resposta",
+      onClick = function()
+        noctalia.copyToClipboard(message.text, "text/plain")
+        toast = "Resposta copiada."
+        toastAt = noctalia.nowMs()
+        render()
+      end,
+    }))
+  end
   table.insert(children, ui.row({ gap = 6, align = "center" }, headerChildren))
 
   if message.reasoning and message.reasoning ~= "" then
@@ -703,14 +724,22 @@ local function onboardingView()
     ui.glyph({ name = "message-chatbot", size = 44, color = "primary" }),
     ui.label({ text = "Conecte o OpenCode", fontSize = 18, fontWeight = "bold", color = textColor() }),
     ui.label({
-      text = "O chat conecta sozinho ao OpenCode local. Se precisar, rode `opencode pair` e cole o link abaixo.",
+      text = "O chat conecta sozinho ao OpenCode local. Se precisar, rode `opencode pair` e cole o link em Avançado.",
       fontSize = 12,
       color = mutedColor(),
       textAlign = "center",
       maxLines = 4,
     }),
     ui.button({ text = "Conectar automaticamente", variant = "primary", glyph = "plug", onClick = "onPairAuto" }),
-    ui.input({
+    ui.button({
+      text = showPairAdvanced and "Ocultar avançado" or "Avançado",
+      variant = "ghost",
+      glyph = showPairAdvanced and "chevron-up" or "chevron-down",
+      onClick = "onToggleAdvancedPairing",
+    }),
+  }
+  if showPairAdvanced then
+    table.insert(children, ui.input({
       key = "pair-link",
       placeholder = "Cole o link http://127.0.0.1:.../auth/connect/...",
       width = 380,
@@ -718,16 +747,16 @@ local function onboardingView()
       onSubmit = "onPairLinkSubmit",
       onChange = "onPairLinkChange",
       submitOnEnter = true,
-    }),
-    ui.row({ gap = 8, align = "center" }, {
+    }))
+    table.insert(children, ui.row({ gap = 8, align = "center" }, {
       ui.button({ text = "Usar link colado", variant = "secondary", glyph = "link", onClick = "onPairLinkButton" }),
       ui.button({ text = "Colar da área de transferência", variant = "secondary", glyph = "clipboard", onClick = "onPastePairLink" }),
-    }),
-    ui.row({ gap = 8, align = "center" }, {
+    }))
+    table.insert(children, ui.row({ gap = 8, align = "center" }, {
       ui.button({ text = "Copiar comando", variant = "ghost", glyph = "copy", onClick = "onCopyPairCommand" }),
       ui.button({ text = "Tentar novamente", variant = "ghost", glyph = "refresh", onClick = "onRetry" }),
-    }),
-  }
+    }))
+  end
   if snapshot and snapshot.error and snapshot.error ~= "" then
     table.insert(children, ui.label({
       text = snapshot.error,
@@ -1268,6 +1297,11 @@ end
 
 function onPairAuto()
   sendCommand("pair")
+end
+
+function onToggleAdvancedPairing()
+  showPairAdvanced = not showPairAdvanced
+  render()
 end
 
 function onPairLinkChange(text)

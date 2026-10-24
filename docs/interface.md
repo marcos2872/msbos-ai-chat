@@ -74,7 +74,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 ### Header
 
 - Glifo `message-chatbot` e título “msbos IA”.
-- Na mesma linha do título, `agente: <id>   modelo: <provider/id · variante>` (`snapshot.session` via `format.modelLabel`); mostra “modelo padrão” quando não há modelo. Trunca com `maxLines = 1`.
+- Clicar na linha do título abre o seletor (modelos/sessões). Nela, `agente: <id>   modelo: <provider/id · variante>` (`snapshot.session` via `format.modelLabel`); mostra “modelo padrão” quando não há modelo. Trunca com `maxLines = 1`.
 - Subtítulo: “executando…”, título da sessão, “não pareado”, “iniciando…”, “offline” ou “pronto”.
 - **+** — nova conversa.
 - **Histórico** — abre o seletor.
@@ -85,10 +85,10 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Elemento | Renderização |
 |---|---|
 | Usuário | Coluna com `fill = primary/0.12`, label “Você” e markdown. |
-| Assistente | Glifo `sparkles`, texto em markdown e “…” enquanto streaming. |
+| Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming e botão **copiar** (a resposta). |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
 | Ferramenta | Cartão com glifo, nome, status, seta de expansão; entrada e saída truncadas. |
-| Permissão | Cartão `tertiary/0.10` (glifo `shield-lock` + ação + recurso) com **Permitir uma vez** / **Permitir sempre** / **Recusar**; resposta por IPC `reply_permission` (`once`/`always`/`reject`). |
+| Permissão | Cartão `tertiary/0.10` (glifo `shield-lock` + ação + alvo em **bloco de código**, com “Ver o alvo completo”) e **Permitir uma vez** / **Permitir sempre** (`ghost`) / **Recusar**; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) caracteres; a entrada em 1200.
