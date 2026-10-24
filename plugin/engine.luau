@@ -1153,6 +1153,12 @@ local function applyServiceUrl(url)
   if not url or not pairing or pairing.baseUrl == url then
     return
   end
+  -- `opencode service status/start` é sempre local: só aceita loopback, para
+  -- que um stdout adulterado não reaponte o token para outro host.
+  if not api.isLoopback(url) then
+    noctalia.log("msbos-ai-chat: ignorando URL de serviço não-loopback: " .. tostring(url))
+    return
+  end
   pairing.baseUrl = url
   store.writePairing(directory, pairing)
 end
@@ -1256,6 +1262,9 @@ onPaired = function(result, err)
     errorMessage = api.errorMessage(err or "Falha ao parear.")
     publish(true)
     return
+  end
+  if not api.isLoopback(result.baseUrl) then
+    noctalia.notify("msbos IA", "Pareado com servidor remoto: " .. tostring(result.baseUrl))
   end
   pairing = {
     baseUrl = result.baseUrl,

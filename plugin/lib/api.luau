@@ -8,11 +8,37 @@ local function trim(value)
   return noctalia.string.trim(value or "")
 end
 
+-- Host de um baseUrl, sem a porta (aceita IPv6 entre colchetes).
+local function hostOf(baseUrl)
+  local host = tostring(baseUrl or ""):match("^https?://([^/]+)")
+  if not host then
+    return nil
+  end
+  host = host:gsub(":%d+$", "")
+  return host
+end
+
+-- Só loopback é considerado "local confiável".
+function M.isLoopback(baseUrl)
+  local host = hostOf(baseUrl)
+  if not host then
+    return false
+  end
+  return host == "127.0.0.1" or host == "localhost" or host == "[::1]" or host == "::1"
+end
+
 function M.parsePairLink(link)
   local value = trim(link)
-  local baseUrl, code = value:match("^(https?://[^/%s]+)/auth/connect/([%w_%-]+)")
+  -- Sem userinfo na autoridade: `http://127.0.0.1:1@evil.com` não pode passar
+  -- por "começa com 127.0.0.1" e resolver para outro host.
+  local baseUrl, code = value:match("^(https?://[^/@%s]+)/auth/connect/([%w_%-]+)")
   if not baseUrl or not code then
     return nil, "Link inválido. Cole o link completo exibido por `opencode pair`."
+  end
+  -- Fora de loopback, só HTTPS: HTTP claro a um host remoto vazaria o token e
+  -- toda a conversa.
+  if not M.isLoopback(baseUrl) and baseUrl:match("^http://") then
+    return nil, "Link remoto só é aceito por HTTPS (http:// é apenas para 127.0.0.1)."
   end
   return baseUrl, code
 end

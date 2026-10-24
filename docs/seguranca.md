@@ -104,7 +104,8 @@ uma vez** / **Recusar**. A resposta volta por IPC (`reply_permission`).
 
 - O servidor deve escutar em `127.0.0.1`, não em `0.0.0.0`.
 - Não use `--remote`/exposição pública sem uma camada de autenticação e TLS.
-- O plugin aceita link remoto colado; isso envia o token ao host remoto e faz o tráfego sair da máquina. Use apenas em túnel confiável.
+- O plugin aceita link remoto colado, mas **fora de loopback só aceita HTTPS** e **rejeita userinfo** na URL (`http://127.0.0.1@evil.com` não passa). Um link remoto envia o token e a conversa ao host remoto — use só em túnel confiável, e o painel notifica ao parear com host remoto.
+- A URL aplicada a partir de `opencode service status/start` só é aceita se for loopback.
 - A sonda usa `GET /api/agent` com Basic auth; ela valida servidor e token. `/global/health` não é usado (sem auth e, no v2, pode devolver o HTML da SPA).
 - O SSE usa Basic auth e não inclui `directory`; o filtro por sessão é feito no cliente.
 
