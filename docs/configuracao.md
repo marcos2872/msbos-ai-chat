@@ -8,6 +8,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos
 |---|---|---|---|
 | `directory` | string | `~/.msbos-ai-chat` | Workspace do chat: escopo das sessões, `state/` e `sessions/`. |
 | `agent` | string | `msbos-chat` | Agente usado em **novas** sessões e na checagem `agentMissing`. |
+| `only_own_sessions` | bool | `true` | Mostra no seletor só sessões com o agente configurado (criadas pelo painel) e ignora sessões de outros clientes/workspaces do OpenCode. |
 | `opencode_bin` | string | `opencode` | Binário executado para `opencode pair`. |
 | `auto_pair` | bool | `true` | Re-pareia automaticamente em `401` do SSE. |
 | `auto_export` | bool | `true` | Espelha cada conversa em JSON/Markdown. |
@@ -23,6 +24,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos
 ### Observações de comportamento
 
 - `agent` vale para novas sessões; uma sessão existente mantém o agente que já tem. O IPC `set_agent` troca o agente da sessão ativa.
+- `only_own_sessions` (padrão ligado) filtra `chat.sessions` pelo `agent` configurado, então só aparecem as conversas criadas pelo painel; sessões abertas na TUI/desktop do OpenCode ficam fora. O filtro também descarta eventos `session.created` de outros `location.directory`. Desligue para ver todas as sessões do workspace. A mudança exige recarregar o plugin.
 - `max_tool_output` é usado por `store.sessionMarkdown` no export. No chat, o snapshot já entrega o `output` truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) e a entrada limitada a 1200 por `format.toolInput`; o painel trunca de novo em 4000, mas o valor exibido já vem limitado a 2000.
 - `panel_size` não altera o tamanho em runtime: o Noctalia não expõe API de resize. O engine edita a cópia instalada do `plugin.toml`.
 - `background_opacity` é o alfa do fundo preto fixo do painel: `0` = totalmente transparente, `100` = totalmente preto. O frame usa padding negativo (`Style::panelPadding` = 14 px) para o preto cobrir o painel inteiro, então a borda e o raio do tema ficam atrás do fundo. Com o padrão `45`, o preto fica como um vidro escuro, deixando a transparência e o blur do sistema passarem. Em papel de parede claro, aumente para `60`–`75` para manter o contraste do texto.

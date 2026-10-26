@@ -171,7 +171,7 @@ O engine filtra modelos com `enabled == false` ou `status == "deprecated"`.
 }
 ```
 
-Lista limitada a 50, ordenada por atualização decrescente.
+Lista limitada a 50, ordenada por atualização decrescente. Com `only_own_sessions` ligado (padrão), contém apenas sessões cujo `agent` é o configurado no plugin — ou seja, as criadas pelo painel.
 
 ## `chat.changes`
 

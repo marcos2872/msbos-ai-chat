@@ -3,6 +3,8 @@
   "settings.directory.description": "Workspace where chat sessions are scoped and mirrored.",
   "settings.agent.label": "OpenCode agent",
   "settings.agent.description": "Primary agent ID used by the chat (default: msbos-chat).",
+  "settings.only_own_sessions.label": "Show only chat sessions",
+  "settings.only_own_sessions.description": "Lists only sessions created by the panel (configured agent) and hides sessions opened in other OpenCode clients.",
   "settings.opencode_bin.label": "OpenCode binary",
   "settings.opencode_bin.description": "Command used to run `opencode pair`.",
   "settings.auto_pair.label": "Pair automatically",

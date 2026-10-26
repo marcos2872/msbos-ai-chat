@@ -8,6 +8,8 @@ local format = require("./lib/format.luau")
 
 local directory = "~/.msbos-ai-chat"
 local agentId = "msbos-chat"
+-- Mostra no seletor só as sessões criadas pelo painel (agente configurado).
+local onlyOwnSessions = true
 local autoPair = true
 local autoExport = true
 local notifyOnFinish = true
@@ -381,16 +383,68 @@ local function refreshChanges()
   noctalia.state.set("chat.changes", list)
 end
 
+-- O `agent` da sessão pode vir como string ou objeto; normaliza para o ID.
+local function sessionAgentId(session)
+  local agent = session and session.agent
+  if type(agent) == "table" then
+    agent = agent.id or agent.name
+  end
+  if type(agent) == "string" and agent ~= "" then
+    return agent
+  end
+  return nil
+end
+
+-- Sessão criada pelo painel: usa o agente configurado no plugin.
+local function isOwnSession(session)
+  if not onlyOwnSessions then
+    return true
+  end
+  return sessionAgentId(session) == agentId
+end
+
+local function normalizeDir(path)
+  if type(path) ~= "string" or path == "" then
+    return nil
+  end
+  return (path:gsub("/+$", ""))
+end
+
+-- O SSE é global: sessões de outros workspaces não pertencem a esta lista.
+local function isOwnDirectory(location)
+  local path = type(location) == "table" and (location.directory or location.dir) or nil
+  local normalized = normalizeDir(path)
+  if not normalized then
+    return true
+  end
+  return normalized == normalizeDir(directory)
+end
+
+local function filterOwnSessions(list)
+  if not onlyOwnSessions then
+    return list
+  end
+  local filtered = {}
+  for _, session in ipairs(list) do
+    if isOwnSession(session) then
+      table.insert(filtered, session)
+    end
+  end
+  return filtered
+end
+
 local function publishSessions()
   local list = {}
   for _, session in ipairs(sessions) do
-    table.insert(list, {
-      id = session.id,
-      title = session.title or "Nova conversa",
-      updatedAt = session.time and session.time.updated or 0,
-      model = session.model,
-      agent = session.agent,
-    })
+    if isOwnSession(session) then
+      table.insert(list, {
+        id = session.id,
+        title = session.title or "Nova conversa",
+        updatedAt = session.time and session.time.updated or 0,
+        model = session.model,
+        agent = session.agent,
+      })
+    end
   end
   noctalia.state.set("chat.sessions", list)
 end
@@ -718,7 +772,7 @@ loadSessions = function(gen)
       setError(err)
       return
     end
-    sessions = data or {}
+    sessions = filterOwnSessions(data or {})
     publishSessions()
     local ui = store.readUi(directory)
     local target = ui.activeSessionID
@@ -771,6 +825,9 @@ createSession = function(opts, onCreated)
       setError(err or "Falha ao criar sessão.")
       return
     end
+    -- A resposta pode omitir o agente; sem ele a sessão recém-criada sumiria
+    -- do filtro `only_own_sessions`.
+    session.agent = session.agent or body.agent
     table.insert(sessions, 1, session)
     publishSessions()
     selectSession(session.id)
@@ -982,16 +1039,23 @@ handleEvent = function(event)
   end
 
   if eventType == "session.created" and sessionID then
+    local info = type(data.info) == "table" and data.info or data
+    if not isOwnDirectory(info.location or data.location or event.location) then
+      return
+    end
     if not findSession(sessionID) then
-      table.insert(sessions, 1, {
+      local created = {
         id = sessionID,
-        title = data.title or "Nova conversa",
+        title = data.title or info.title or "Nova conversa",
         time = { updated = noctalia.nowMs() },
-        model = data.model,
-        agent = data.agent,
-      })
-      publishSessions()
-      publish(true)
+        model = data.model or info.model,
+        agent = data.agent or info.agent,
+      }
+      if isOwnSession(created) then
+        table.insert(sessions, 1, created)
+        publishSessions()
+        publish(true)
+      end
     end
     return
   end
@@ -1504,6 +1568,7 @@ local function init()
   generation = generation + 1
   directory = noctalia.expandPath(noctalia.getConfig("directory") or "~/.msbos-ai-chat")
   agentId = noctalia.getConfig("agent") or "msbos-chat"
+  onlyOwnSessions = noctalia.getConfig("only_own_sessions") ~= false
   autoPair = noctalia.getConfig("auto_pair") ~= false
   autoExport = noctalia.getConfig("auto_export") ~= false
   notifyOnFinish = noctalia.getConfig("notify_on_finish") ~= false

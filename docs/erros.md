@@ -109,6 +109,7 @@ O instalador **não** adiciona o widget. Use **Settings → Bar → Widgets → 
 ### Sessão não aparece na lista
 
 - A lista é escopada por `directory` e limitada a 50, ordem decrescente.
+- Com `only_own_sessions` ligado (padrão), só aparecem sessões com o `agent` configurado no plugin (as criadas pelo painel). Sessões da TUI/desktop do OpenCode ficam ocultas; desligue o ajuste para listar todas.
 - Confirme que a sessão foi criada no workspace configurado.
 - Use **refresh_sessions** via IPC ou reabra o seletor.
 

@@ -33,7 +33,7 @@ O parser:
 | Evento | Campos usados | Efeito |
 |---|---|---|
 | `server.connected` | — | `status = "idle"` e publica. |
-| `session.created` | `sessionID`, `title`, `model`, `agent` | Adiciona a sessão se ainda não existir. |
+| `session.created` | `sessionID`, `title`, `model`, `agent`, `location` | Adiciona a sessão se for do mesmo `location.directory` e, com `only_own_sessions`, do agente configurado. |
 | `session.renamed` | `sessionID`, `title` | Atualiza título na lista e na sessão ativa. |
 | `session.updated` | `sessionID`, `info.title`, `info.model`, `info.agent` | Atualiza metadados da sessão. |
 | `form.created` | `data.form` (ou `data`) | Adiciona formulário pendente se for da sessão ativa; notifica se o painel estiver fechado. |

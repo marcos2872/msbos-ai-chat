@@ -68,7 +68,7 @@ noctalia msg panel-toggle msbos/ai-chat:panel
 
 - Clique no ícone da barra para abrir ou fechar o painel.
 - **+** cria uma nova conversa herdando o modelo e a variante atuais.
-- **Modelos e sessões** (ícone de relógio) abre o seletor de modelo, raciocínio e sessões, com busca e agrupamento por data.
+- **Modelos e sessões** (ícone de relógio) abre o seletor de modelo, raciocínio e sessões, com busca e agrupamento por data. Por padrão lista só as conversas criadas pelo painel; sessões de outros clientes do OpenCode ficam ocultas (`only_own_sessions`).
 - **Alterações no sistema** (no rodapé do seletor) lista o que o assistente mudou, com **Pedir para desfazer** e o comando de reversão registrado.
 - **−** minimiza/fecha o painel; o serviço continua rodando e a resposta não é perdida.
 - Pedidos de mudança no sistema seguem o ritual da skill `msbos`: descrição, confirmação, backup, aplicação, validação e diff.

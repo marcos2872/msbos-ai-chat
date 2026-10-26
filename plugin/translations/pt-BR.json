@@ -3,6 +3,8 @@
   "settings.directory.description": "Workspace onde as sessões do chat são escopadas e espelhadas.",
   "settings.agent.label": "Agente do OpenCode",
   "settings.agent.description": "ID do agente primário usado pelo chat (padrão: msbos-chat).",
+  "settings.only_own_sessions.label": "Mostrar só sessões do chat",
+  "settings.only_own_sessions.description": "Lista apenas as sessões criadas pelo painel (agente configurado) e esconde sessões abertas em outros clientes do OpenCode.",
   "settings.opencode_bin.label": "Binário do OpenCode",
   "settings.opencode_bin.description": "Comando usado para executar `opencode pair`.",
   "settings.auto_pair.label": "Parear automaticamente",

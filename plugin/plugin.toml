@@ -25,6 +25,13 @@ description_key = "settings.agent.description"
 default = "msbos-chat"
 
 [[setting]]
+key = "only_own_sessions"
+type = "bool"
+label_key = "settings.only_own_sessions.label"
+description_key = "settings.only_own_sessions.description"
+default = true
+
+[[setting]]
 key = "opencode_bin"
 type = "string"
 label_key = "settings.opencode_bin.label"
