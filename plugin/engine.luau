@@ -237,6 +237,50 @@ local function toolOutput(state)
   return table.concat(chunks, "\n")
 end
 
+-- Normaliza o uso de tokens/custo de uma mensagem do OpenCode: aceita
+-- `tokens`/`cost` no próprio objeto ou aninhados em `usage`, e achata o cache.
+local function usageFromMessage(message)
+  if type(message) ~= "table" then
+    return nil
+  end
+  local nested = type(message.usage) == "table" and message.usage or nil
+  local tokens = nil
+  if type(message.tokens) == "table" then
+    tokens = message.tokens
+  elseif nested and type(nested.tokens) == "table" then
+    tokens = nested.tokens
+  else
+    tokens = nested
+  end
+  if type(tokens) ~= "table" then
+    tokens = {}
+  end
+
+  local usage = {}
+  for _, key in ipairs({ "input", "output", "total", "reasoning" }) do
+    if type(tokens[key]) == "number" then
+      usage[key] = tokens[key]
+    end
+  end
+  local cache = type(tokens.cache) == "table" and tokens.cache or nil
+  if cache then
+    if type(cache.read) == "number" then
+      usage.cacheRead = cache.read
+    end
+    if type(cache.write) == "number" then
+      usage.cacheWrite = cache.write
+    end
+  end
+  local cost = message.cost or (nested and nested.cost)
+  if type(cost) == "number" then
+    usage.cost = cost
+  end
+  if next(usage) == nil then
+    return nil
+  end
+  return usage
+end
+
 local function mapContext(data)
   local out = {}
   for _, message in ipairs(data or {}) do
@@ -281,6 +325,7 @@ local function mapContext(data)
         streaming = false,
         error = format.errorText(message.error),
         model = message.model,
+        usage = usageFromMessage(message),
         time = messageTime(message.id),
       })
     end
@@ -366,6 +411,7 @@ local function publishModels()
       providerID = model.providerID,
       name = model.name or model.id,
       variants = model.variants,
+      limit = model.limit,
     })
   end
   noctalia.state.set("chat.models", list)
@@ -551,6 +597,57 @@ local function snapshotMessages()
   return out, total
 end
 
+-- Uso da sessão: tokens da última requisição (contexto) e custo acumulado.
+local function sessionUsage()
+  local used, cost = nil, nil
+  for _, message in ipairs(messages) do
+    if message.role == "assistant" and type(message.usage) == "table" then
+      local input = tonumber(message.usage.input)
+      if input then
+        used = input + (tonumber(message.usage.cacheRead) or 0)
+      elseif tonumber(message.usage.total) then
+        used = tonumber(message.usage.total)
+      end
+      local messageCost = tonumber(message.usage.cost)
+      if messageCost then
+        cost = (cost or 0) + messageCost
+      end
+    end
+  end
+
+  -- O custo da sessão (quando o servidor informa) é autoritativo; o somatório
+  -- das mensagens cobre o intervalo entre refreshes.
+  local sessionCost = activeSession and tonumber(activeSession.cost) or nil
+  if sessionCost ~= nil then
+    cost = sessionCost
+  end
+
+  local limit = nil
+  local model = activeSession and activeSession.model or nil
+  if type(model) == "table" then
+    for _, item in ipairs(models) do
+      if item.id == model.id and item.providerID == model.providerID then
+        if type(item.limit) == "table" and type(item.limit.context) == "number" then
+          limit = item.limit.context
+        end
+        break
+      end
+    end
+  end
+
+  local percent = nil
+  if used and limit and limit > 0 then
+    percent = math.min(100, math.floor(used / limit * 100 + 0.5))
+  end
+
+  return {
+    contextUsed = used,
+    contextLimit = limit,
+    percent = percent,
+    cost = cost,
+  }
+end
+
 publish = function(_force)
   revision = revision + 1
   local publishedMessages, messagesTotal = snapshotMessages()
@@ -576,6 +673,7 @@ publish = function(_force)
     },
     lastEventAt = noctalia.nowMs(),
     runStartedAt = runStartedAt,
+    usage = sessionUsage(),
     limits = {
       toolOutput = maxToolOutput,
     },
@@ -748,6 +846,7 @@ loadCatalog = function(gen)
             providerID = model.providerID,
             name = model.name or id,
             variants = variants,
+            limit = type(model.limit) == "table" and model.limit or nil,
           })
         end
       end
@@ -1137,6 +1236,9 @@ handleEvent = function(event)
       end
       if info.agent then
         session.agent = info.agent
+      end
+      if type(info.cost) == "number" then
+        session.cost = info.cost
       end
       if activeSession and activeSession.id == sessionID then
         activeSession.title = session.title

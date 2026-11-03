@@ -62,6 +62,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `runStartedAt` | number/nil | Início do run atual; `nil` quando o estado não é `busy`. Alimenta o cronômetro do painel. |
 | `limits.toolOutput` | number | Valor efetivo de `max_tool_output` (500–20000) usado no corte da saída das ferramentas; o painel usa o mesmo teto ao exibir. |
 | `ui` | table | `reasoningOpen`, `toolsOpen`, `toolsErrorsOnly` — espelho das preferências salvas em `ui.json`. |
+| `usage` | table | `contextUsed` (input + cache.read da última mensagem com uso), `contextLimit` (do `limit.context` do modelo, quando existe), `percent` e `cost` (custo da sessão ou soma das mensagens). Campos ausentes quando o servidor não informa uso. |
 
 ### Limites de publicação
 
@@ -81,6 +82,7 @@ O histórico completo permanece em `messages` dentro do engine. A exportação e
   streaming = false,           -- assistente
   error = "",                  -- assistente
   model = { ... },             -- assistente (vindo do contexto)
+  usage = { ... },             -- assistente; tokens/custo normalizados do /context
 }
 ```
 

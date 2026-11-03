@@ -223,29 +223,17 @@ local function header()
   })
 end
 
--- Nome da ferramenta em execução na última mensagem (para o indicador de busy).
-local function currentActivity()
-  local list = snapshot and snapshot.messages or {}
-  for i = #list, 1, -1 do
-    local tools = list[i].tools or {}
-    for j = #tools, 1, -1 do
-      if tools[j].status == "running" then
-        return tostring(tools[j].name or "ferramenta")
-      end
-    end
-  end
-  return nil
-end
-
 local function busyIndicator()
-  local activity = currentActivity()
-  -- A ferramenta `question` espera o usuário: dizer isso é mais claro do que
-  -- "Executando: Pergunta ao usuário".
-  local text = "Pensando…"
-  if activity == "question" then
+  local activity = format.activityLabel(snapshot)
+  local text
+  if activity == "aguardando sua resposta" then
     text = "Aguardando a sua resposta…"
-  elseif activity then
-    text = "Executando: " .. format.toolLabel(activity) .. "…"
+  elseif activity == "pensando" then
+    text = "Pensando…"
+  elseif activity == "trabalhando" then
+    text = "Trabalhando…"
+  else
+    text = "Trabalhando: " .. activity .. "…"
   end
   if busySince ~= nil then
     local elapsed = format.duration(noctalia.nowMs() - busySince)
@@ -1168,6 +1156,35 @@ local function renderMessage(message, isLast, ctx)
   return ui.column({ gap = 6, align = "stretch" }, children)
 end
 
+-- Rodapé discreto com consumo: tokens da última requisição e custo da sessão.
+local function usageLabel()
+  local usage = snapshot and snapshot.usage
+  if type(usage) ~= "table" then
+    return nil, nil
+  end
+  local parts = {}
+  local used = tonumber(usage.contextUsed)
+  if used then
+    local text = "Contexto " .. format.tokens(used)
+    local percent = tonumber(usage.percent)
+    if percent then
+      text = text .. " (" .. tostring(percent) .. "%)"
+    end
+    table.insert(parts, text)
+  end
+  local cost = tonumber(usage.cost)
+  if cost then
+    local label = format.cost(cost)
+    if label ~= "" then
+      table.insert(parts, "Sessão " .. label)
+    end
+  end
+  if #parts == 0 then
+    return nil, nil
+  end
+  return table.concat(parts, " · "), tonumber(usage.percent)
+end
+
 local function composer()
   local action
   if snapshot and snapshot.state == "busy" then
@@ -1176,8 +1193,31 @@ local function composer()
     action = ui.button({ glyph = "send", variant = "primary", controlSize = "sm", tooltip = "Enviar (Enter)", onClick = "onSend" })
   end
 
+  local usage, percent = usageLabel()
+  local children = {}
+  if usage ~= nil then
+    table.insert(children, ui.label({
+      text = usage,
+      fontSize = 10,
+      color = mutedColor(),
+      paddingH = 12,
+      maxLines = 1,
+    }))
+    if percent ~= nil then
+      table.insert(children, ui.progress({
+        progress = math.min(1, math.max(0, percent / 100)),
+        fill = "primary/0.65",
+        track = "surface_variant/0.35",
+        height = 3,
+        radius = 2,
+        width = 24,
+        flexGrow = 1,
+      }))
+    end
+  end
+
   -- Input e botão lado a lado na mesma linha.
-  return ui.row({
+  table.insert(children, ui.row({
     gap = 6,
     align = "center",
     paddingH = 12,
@@ -1202,7 +1242,9 @@ local function composer()
       onSubmit = "onSubmit",
     }),
     action,
-  })
+  }))
+
+  return ui.column({ gap = 2, align = "stretch" }, children)
 end
 
 local function historyNotice(shown, total)

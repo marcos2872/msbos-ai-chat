@@ -21,7 +21,7 @@ O `frame()` do `panel.luau` pinta o painel inteiro com um fundo **preto fixo tra
 
 - **Abrir:** `onOpen` define `chat.panel_open = true`, liga `panel.setWantsSecondTicks(true)` e `panel.setNeedsFrameTick(true)`, pede `sync` e renderiza.
 - **Fechar/minimizar:** `onClose` define `chat.panel_open = false` e desliga os ticks. O serviço continua rodando.
-- **Spinner:** `onFrameTick` avança `◐ ◓ ◑ ◒` a cada ~400 ms quando o estado é `busy` e a view é o chat; o texto mostra “Executando: <ferramenta>…” (ou “Aguardando a sua resposta…” para `question`) seguido do tempo decorrido, a partir de `runStartedAt`.
+- **Spinner:** `onFrameTick` avança `◐ ◓ ◑ ◒` a cada ~400 ms quando o estado é `busy` e a view é o chat; o texto vem de `format.activityLabel(snapshot)` — “Trabalhando: lendo arquivos…”, “Pensando…”, “Aguardando a sua resposta…” — seguido do tempo decorrido, a partir de `runStartedAt`.
 - **Atualização:** o painel observa `chat.snapshot`, `chat.models` e `chat.sessions`; `update()` limpa toasts após 5 s.
 - **Sem conta de IA:** quando `chat.models` está vazio, o estado vazio e o seletor mostram o cartão **“Falta conectar uma conta de IA”** (com **Conectar conta**, que abre `opencode auth login` num terminal, e **Já conectei**, que pede `refresh_models`) em vez de um select desabilitado.
 
@@ -102,6 +102,7 @@ primeira linha do erro, quando houver).
 | Execução | Linha-resumo (`surface_variant/0.10`) com glifo, `N ferramentas`, contagem de erros em `error`, **duração total** (`format.runDuration`), “ver” e chevron. Mostra a primeira linha do erro quando alguma ferramenta falhou. Clique abre a view **Ferramentas desta execução**. |
 | Permissão | Cartão `tertiary/0.10` em duas camadas: primeiro o resumo em linguagem comum (“O assistente quer: Instalar o programa htop”, derivado de `action`/`resources`), com **Permitir uma vez** / **Recusar** e **Ver o comando** (bloco de código, colapsado). **Permitir sempre** fica atrás de **Mais opções**, com aviso de risco e de como voltar a exigir confirmação; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
+| Consumo | Rodapé do compositor: `Contexto 12.345 (6%) · Sessão US$ 0,0231` (tokens de `usage.contextUsed`, custo de `usage.cost`) e uma barra `ui.progress` de 3 px quando o modelo informa `limit.context`. Sem dados, a linha não aparece. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `max_tool_output` (padrão 4000, faixa 500–20000, publicado em `snapshot.limits.toolOutput`); a entrada em 1200.
 

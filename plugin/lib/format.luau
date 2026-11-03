@@ -315,6 +315,100 @@ function M.runDuration(tools)
   return M.duration(math.max(0, last - first))
 end
 
+-- Número com separador de milhar (pt-BR).
+function M.tokens(value)
+  local n = math.floor(tonumber(value) or 0)
+  local text = tostring(n)
+  local out = text:reverse():gsub("(%d%d%d)", "%1."):reverse()
+  if out:sub(1, 1) == "." then
+    out = out:sub(2)
+  end
+  return out
+end
+
+-- Custo em dólar com 4 casas (a cobrança do OpenCode é em USD).
+function M.cost(value)
+  local n = tonumber(value)
+  if n == nil then
+    return ""
+  end
+  local text = ("US$ %.4f"):format(n):gsub("%.", ",")
+  return text
+end
+
+-- Frase de ação (gerúndio) para o indicador de trabalho.
+local TOOL_ACTIVITY = {
+  read = "lendo arquivos",
+  edit = "editando arquivos",
+  write = "editando arquivos",
+  patch = "editando arquivos",
+  multiedit = "editando arquivos",
+  shell = "executando comando",
+  bash = "executando comando",
+  grep = "procurando no texto",
+  rg = "procurando no texto",
+  glob = "procurando arquivos",
+  find = "procurando arquivos",
+  list = "procurando arquivos",
+  webfetch = "acessando um site",
+  fetch = "acessando um site",
+  websearch = "pesquisando na web",
+  skill = "consultando instruções",
+  task = "chamando outro assistente",
+  question = "aguardando sua resposta",
+  plan = "planejando",
+  todowrite = "organizando as tarefas",
+  todoread = "organizando as tarefas",
+}
+
+function M.toolActivity(name)
+  return TOOL_ACTIVITY[tostring(name or "")] or "trabalhando"
+end
+
+-- O que o assistente está fazendo agora: ferramenta em execução, escrita da
+-- resposta, última ferramenta do run ou "trabalhando".
+function M.activityLabel(snapshot)
+  local list = type(snapshot) == "table" and snapshot.messages or {}
+  if type(list) ~= "table" then
+    return "trabalhando"
+  end
+
+  local start = 1
+  for index = #list, 1, -1 do
+    if list[index].role == "user" then
+      start = index + 1
+      break
+    end
+  end
+
+  local tools = {}
+  for index = start, #list do
+    for _, tool in ipairs(list[index].tools or {}) do
+      table.insert(tools, tool)
+    end
+  end
+
+  for index = #tools, 1, -1 do
+    if tools[index].status == "running" then
+      return M.toolActivity(tools[index].name)
+    end
+  end
+
+  local last = list[#list]
+  if last and last.role == "assistant" and last.streaming then
+    if type(last.text) == "string" and last.text:match("%S") then
+      return "escrevendo a resposta"
+    end
+    return "pensando"
+  end
+
+  local lastTool = tools[#tools]
+  if lastTool then
+    return M.toolActivity(lastTool.name)
+  end
+  return "trabalhando"
+end
+
 -- Título do cartão de formulário. O host manda "Questions" (inglês) por padrão.
 function M.formTitle(title)
   local text = tostring(title or "")
