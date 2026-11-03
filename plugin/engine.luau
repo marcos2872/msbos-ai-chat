@@ -473,13 +473,15 @@ local function snapshotMessages()
     for _, tool in ipairs(message.tools or {}) do
       local input = format.toolInput(tool.input)
       local output = format.truncate(tool.output, MAX_SNAPSHOT_TOOL_OUTPUT)
-      used = used + #input + #output
+      local summary = format.toolSummary(tool)
+      used = used + #input + #output + #summary
       table.insert(tools, {
         id = tool.id,
         name = tool.name,
         status = tool.status,
         input = input,
         output = output,
+        summary = summary,
       })
     end
 

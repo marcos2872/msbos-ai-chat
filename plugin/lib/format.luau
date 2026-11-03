@@ -131,6 +131,121 @@ function M.toolLabel(name)
   return map[key] or ("Ferramenta: " .. key)
 end
 
+-- Primeira linha não vazia de um texto (para mostrar o erro com o card fechado).
+function M.firstLine(text, max)
+  local value = tostring(text or "")
+  max = tonumber(max) or 160
+  for line in value:gmatch("[^\n]+") do
+    if line:match("%S") then
+      line = (line:gsub("^%s+", ""):gsub("%s+$", ""))
+      if #line > max then
+        return line:sub(1, max) .. "…"
+      end
+      return line
+    end
+  end
+  return ""
+end
+
+-- Resumo curto do que a ferramenta fez, sem expandir o card. Lê o input cru
+-- (tabela) e cobre os nomes de campo usados pelo OpenCode; campos ausentes ou
+-- de formato inesperado apenas encurtam o resumo.
+function M.toolSummary(tool)
+  if type(tool) ~= "table" then
+    return ""
+  end
+  local name = tostring(tool.name or "")
+  local input = tool.input
+  if type(input) ~= "table" then
+    return ""
+  end
+
+  local function field(...)
+    for _, key in ipairs({ ... }) do
+      local value = input[key]
+      if type(value) == "string" and value ~= "" then
+        return value
+      end
+      if type(value) == "number" then
+        return tostring(value)
+      end
+    end
+    return nil
+  end
+
+  local function limit(text)
+    text = tostring(text or ""):gsub("%s+", " ")
+    if #text > 80 then
+      return text:sub(1, 80) .. "…"
+    end
+    return text
+  end
+
+  -- Caminho curto: mantém o arquivo e o diretório imediato.
+  local function shortPath(path)
+    if type(path) ~= "string" or path == "" then
+      return nil
+    end
+    local parts = {}
+    for part in path:gmatch("[^/]+") do
+      table.insert(parts, part)
+    end
+    if #parts == 0 then
+      return nil
+    end
+    if #parts == 1 then
+      return parts[1]
+    end
+    return parts[#parts - 1] .. "/" .. parts[#parts]
+  end
+
+  if name == "shell" or name == "bash" then
+    return limit(field("command", "cmd") or "")
+  end
+  if name == "read" or name == "edit" or name == "write" or name == "patch" or name == "multiedit" then
+    return limit(shortPath(field("filePath", "file_path", "path", "file")) or "")
+  end
+  if name == "grep" or name == "rg" then
+    local pattern = field("pattern", "query")
+    return pattern and limit('"' .. pattern .. '"') or ""
+  end
+  if name == "glob" or name == "find" or name == "list" then
+    return limit(field("pattern", "path", "scope") or "")
+  end
+  if name == "webfetch" or name == "fetch" then
+    local url = field("url", "uri")
+    if not url then
+      return ""
+    end
+    local host = url:match("^%a[%w+.-]*://([^/]+)") or url
+    return limit(host)
+  end
+  if name == "websearch" then
+    local query = field("query", "q")
+    return query and limit('"' .. query .. '"') or ""
+  end
+  if name == "todowrite" or name == "todoread" then
+    if type(input.todos) == "table" then
+      return tostring(#input.todos) .. (#input.todos == 1 and " item" or " itens")
+    end
+    return ""
+  end
+  if name == "task" then
+    local agent = field("subagent_type", "agent", "description")
+    return agent and limit(agent) or ""
+  end
+  if name == "skill" then
+    local skill = field("name", "skill", "id")
+    return skill and limit("Skill: " .. skill) or ""
+  end
+  if name == "question" then
+    return ""
+  end
+
+  local fallback = field("path", "command", "url", "query", "pattern", "description")
+  return fallback and limit(fallback) or ""
+end
+
 -- Título do cartão de formulário. O host manda "Questions" (inglês) por padrão.
 function M.formTitle(title)
   local text = tostring(title or "")

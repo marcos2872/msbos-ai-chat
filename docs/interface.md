@@ -91,7 +91,7 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Usuário | Coluna com `fill = primary/0.12`, label “Você” e markdown. |
 | Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming, horário relativo e botões **Regenerar** (na última resposta; reenvia o último pedido) e **copiar**. |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
-| Ferramenta | Cartão com glifo, **nome comum** (`format.toolLabel`: “Executar comando”, “Pergunta ao usuário”), status, seta de expansão; entrada e saída truncadas. O nome técnico fica no tooltip. |
+| Ferramenta | Cartão com glifo, **nome comum** (`format.toolLabel`: “Executar comando”, “Pergunta ao usuário”), **resumo do input** (`tool.summary`, ex.: `src/chat.luau`, `dnf install htop`), status, seta de expansão; entrada e saída truncadas. Falha mostra a primeira linha do erro mesmo com o cartão fechado. O nome técnico fica no tooltip. |
 | Permissão | Cartão `tertiary/0.10` em duas camadas: primeiro o resumo em linguagem comum (“O assistente quer: Instalar o programa htop”, derivado de `action`/`resources`), com **Permitir uma vez** / **Recusar** e **Ver o comando** (bloco de código, colapsado). **Permitir sempre** fica atrás de **Mais opções**, com aviso de risco e de como voltar a exigir confirmação; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 

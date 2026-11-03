@@ -343,18 +343,39 @@ local function renderTool(tool)
       tooltip = tostring(tool.name or "tool"),
     }),
     ui.label({ text = format.toolStatusLabel(tool.status), fontSize = 10, color = color }),
-    ui.spacer({ flexGrow = 1 }),
-    ui.button({
-      glyph = expanded and "chevron-up" or "chevron-down",
-      variant = "ghost",
-      onClick = function()
-        expandedTools[tool.id] = not expanded
-        render()
-      end,
-    }),
   }
+  if tool.summary and tool.summary ~= "" then
+    table.insert(headerChildren, ui.label({
+      text = tool.summary,
+      fontSize = 10,
+      color = mutedColor(),
+      maxLines = 1,
+      flexGrow = 1,
+    }))
+  end
+  table.insert(headerChildren, ui.spacer({ flexGrow = 1 }))
+  table.insert(headerChildren, ui.button({
+    glyph = expanded and "chevron-up" or "chevron-down",
+    variant = "ghost",
+    onClick = function()
+      expandedTools[tool.id] = not expanded
+      render()
+    end,
+  }))
 
   local children = { ui.row({ gap = 6, align = "center" }, headerChildren) }
+  -- Falha identificável sem expandir: a primeira linha do erro fica visível.
+  if tool.status == "error" and not expanded then
+    local line = format.firstLine(tool.output, 160)
+    if line ~= "" then
+      table.insert(children, ui.label({
+        text = line,
+        fontSize = 10,
+        color = "error",
+        maxLines = 2,
+      }))
+    end
+  end
   if expanded then
     local input = format.toolInput(tool.input)
     if input ~= "" then

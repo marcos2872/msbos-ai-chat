@@ -89,8 +89,13 @@ O histórico completo permanece em `messages` dentro do engine. A exportação e
   status = "running" | "streaming" | "ok" | "completed" | "error",
   input = { ... } | "...",     -- no snapshot vai já formatado/truncado (1200)
   output = "...",              -- truncado em MAX_SNAPSHOT_TOOL_OUTPUT (2000)
+  summary = "...",             -- resumo curto do input (format.toolSummary, até 80)
 }
 ```
+
+`summary` é calculado no engine (`format.toolSummary`) a partir do input cru e vai
+pronto no snapshot — o painel não decodifica JSON. Exemplos: `src/chat.luau`,
+`dnf install htop`, `"TODO"`, `github.com`.
 
 O snapshot não copia `metadata` da ferramenta; ele existe só no histórico interno do engine.
 

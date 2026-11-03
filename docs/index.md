@@ -4,7 +4,7 @@ Documentação técnica do plugin de chat do Noctalia que usa o OpenCode local c
 
 **Versão do plugin:** `0.2.0`
 **Ambiente de referência:** Fedora 44, niri, Noctalia 5.3.0, plugin API 34, OpenCode 2.1.4
-**Atualizado em:** 2026-10-23
+**Atualizado em:** 2026-11-03
 
 > Esta documentação descreve o **código atual** em `plugin/` e `opencode/`.
 > O [`MAPEAMENTO.md`](../MAPEAMENTO.md) registra o levantamento e as decisões iniciais; algumas partes dele foram superadas pela implementação (por exemplo, o seletor está dentro de `panel.luau` e o cliente SSE está em `lib/api.luau`).
@@ -31,6 +31,15 @@ Documentação técnica do plugin de chat do Noctalia que usa o OpenCode local c
 | [Estado e persistência](estado.md) | `chat.*`, `pairing.json`, `ui.json`, exports e formatos. |
 | [Segurança](seguranca.md) | Token, permissões do agente, confirmação e riscos atuais. |
 | [Erros e diagnóstico](erros.md) | Estados, mensagens, causas e comandos de diagnóstico. |
+
+## Melhorias planejadas
+
+| Documento | Conteúdo |
+|---|---|
+| [Plano](melhorias/plano.md) | Comparação com a referência, princípios, backlog, lotes e definição de pronto. |
+| [Fase 1 — Exibição](melhorias/fase-1-exibicao.md) | `tool_display`, agrupamento por execução, view de ferramentas, modo limpo (`M-01`…`M-09`). |
+| [Fase 2 — Execução](melhorias/fase-2-run.md) | Atividade, custo/contexto, cronômetro, atalhos, sessões (`M-10`…`M-19`). |
+| [Fase 3 — Polimento](melhorias/fase-3-polimento.md) | Diff de edição, skill/subagente, banner, som, anexos (`M-20`…`M-25`). |
 
 ## Decisões arquiteturais (ADRs)
 
