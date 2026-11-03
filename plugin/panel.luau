@@ -45,6 +45,8 @@ local UI_PREF_EVENTS = {
 local showPairAdvanced = false
 local showTechnical = false
 local sessionQuery = ""
+local searchOpen = false
+local searchQuery = ""
 local models = noctalia.state.get("chat.models") or {}
 local sessions = noctalia.state.get("chat.sessions") or {}
 local agents = noctalia.state.get("chat.agents") or {}
@@ -232,6 +234,7 @@ local function header()
       }),
       ui.label({ text = subtitle(), fontSize = 10, color = mutedColor(), maxLines = 1 }),
     }),
+    ui.button({ glyph = "search", variant = "ghost", tooltip = "Buscar na conversa (Ctrl+F)", onClick = "onToggleSearch" }),
     ui.button({ glyph = "plus", variant = "ghost", tooltip = "Nova conversa", onClick = "onNewSession" }),
     ui.button({ glyph = "history", variant = "ghost", tooltip = "Modelos e sessões", onClick = "onOpenPicker" }),
     ui.button({ glyph = "minus", variant = "ghost", tooltip = "Minimizar", onClick = "onMinimize" }),
@@ -1031,6 +1034,26 @@ local function renderPermission(permission)
   }, children)
 end
 
+-- Busca por substring no texto, raciocínio, erro e conteúdo das ferramentas.
+local function messageMatches(message, query)
+  local needle = string.lower(tostring(query or ""))
+  if needle == "" then
+    return true
+  end
+  local function hit(value)
+    return type(value) == "string" and string.lower(value):find(needle, 1, true) ~= nil
+  end
+  if hit(message.text) or hit(message.reasoning) or hit(message.error) then
+    return true
+  end
+  for _, tool in ipairs(message.tools or {}) do
+    if hit(tool.name) or hit(tool.summary) or hit(tool.input) or hit(tool.output) then
+      return true
+    end
+  end
+  return false
+end
+
 local function renderMessage(message, isLast, ctx)
   if message.role == "user" then
     local ago = format.timeAgo(message.time)
@@ -1069,7 +1092,11 @@ local function renderMessage(message, isLast, ctx)
   end
 
   local list = (snapshot and snapshot.messages) or {}
-  local hidden = toolDisplay == "hidden"
+  local mode = toolDisplay
+  if ctx ~= nil and ctx.inlineAll then
+    mode = "rows"
+  end
+  local hidden = mode == "hidden"
   local runEnd = ctx == nil or ctx.isRunEnd ~= false
 
   -- No modo limpo, só a última mensagem do run desenha algo: o texto de todas
@@ -1112,7 +1139,7 @@ local function renderMessage(message, isLast, ctx)
     for _, tool in ipairs(message.tools or {}) do
       -- Agrupado: só a ferramenta em execução e a pergunta ficam inline.
       local show = true
-      if toolDisplay == "grouped" then
+      if mode == "grouped" then
         show = tool.name == "question" or tool.status == "running"
       end
       if show then
@@ -1127,7 +1154,7 @@ local function renderMessage(message, isLast, ctx)
   end
 
   local runLine = nil
-  if ctx and ctx.isRunEnd and ctx.entry and (hidden or toolDisplay == "grouped") then
+  if ctx and ctx.isRunEnd and ctx.entry and (hidden or mode == "grouped") then
     runLine = renderToolRun(ctx.entry)
     if runLine ~= nil then
       hasContent = true
@@ -1207,7 +1234,7 @@ local function renderMessage(message, isLast, ctx)
   end
 
   for _, tool in ipairs(inlineTools) do
-    table.insert(children, renderTool(tool, toolDisplay == "full"))
+    table.insert(children, renderTool(tool, mode == "full"))
   end
 
   for _, error in ipairs(errors) do
@@ -1337,18 +1364,36 @@ local function chatView()
   if total > #list then
     table.insert(children, historyNotice(#list, total))
   end
+  local searching = searchQuery ~= ""
+  if searching then
+    local matches = 0
+    for _, message in ipairs(list) do
+      if messageMatches(message, searchQuery) then
+        matches = matches + 1
+      end
+    end
+    table.insert(children, ui.label({
+      text = tostring(matches) .. " de " .. tostring(#list) .. " mensagens com “" .. searchQuery .. "”",
+      fontSize = 10,
+      color = mutedColor(),
+    }))
+  end
+
   local runs = collectRunTools(list)
   for index, message in ipairs(list) do
-    local start = runStartIndex(list, index)
-    local isRunEnd = index == #list or list[index + 1].role == "user"
-    local node = renderMessage(message, index == #list, {
-      start = start,
-      index = index,
-      isRunEnd = isRunEnd,
-      entry = runs[start],
-    })
-    if node ~= nil then
-      table.insert(children, node)
+    if not searching or messageMatches(message, searchQuery) then
+      local start = runStartIndex(list, index)
+      local isRunEnd = index == #list or list[index + 1].role == "user"
+      local node = renderMessage(message, index == #list, {
+        start = start,
+        index = index,
+        isRunEnd = searching and true or isRunEnd,
+        entry = searching and nil or runs[start],
+        inlineAll = searching,
+      })
+      if node ~= nil then
+        table.insert(children, node)
+      end
     end
   end
   if #children == 0 then
@@ -1412,6 +1457,31 @@ local function chatView()
     ui.scroll({ flexGrow = 1, stickToBottom = true, gap = 10, padding = 12 }, children),
     composer(),
   }
+  if searchOpen then
+    table.insert(rootChildren, 2, ui.row({
+      gap = 6,
+      align = "center",
+      paddingH = 12,
+      paddingV = 4,
+    }, {
+      ui.input({
+        key = "search-input",
+        value = searchQuery,
+        placeholder = "Buscar na conversa…",
+        controlSize = "sm",
+        submitOnEnter = true,
+        frameVisible = true,
+        flexGrow = 1,
+        onChange = "onSearchChange",
+      }),
+      ui.button({
+        glyph = "x",
+        variant = "ghost",
+        tooltip = "Fechar busca",
+        onClick = "onCloseSearch",
+      }),
+    }))
+  end
   if toast ~= "" and noctalia.nowMs() - toastAt < 5000 then
     table.insert(rootChildren, ui.label({ text = toast, color = toastError and "error" or "primary", fontSize = 10, paddingH = 12 }))
   end
@@ -2475,6 +2545,25 @@ function onOpenSettings()
   noctalia.openSettings()
 end
 
+function onToggleSearch()
+  searchOpen = not searchOpen
+  if not searchOpen then
+    searchQuery = ""
+  end
+  render()
+end
+
+function onSearchChange(text)
+  searchQuery = text or ""
+  render()
+end
+
+function onCloseSearch()
+  searchOpen = false
+  searchQuery = ""
+  render()
+end
+
 function onDraftChange(text)
   setDraft(text)
 end
@@ -2527,6 +2616,9 @@ function onKey(chord, pressed)
     onOpenPicker()
   elseif chord == "ctrl+shift+c" then
     onCopyLast()
+  elseif chord == "ctrl+f" then
+    searchOpen = true
+    render()
   end
 end
 

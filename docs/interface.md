@@ -119,6 +119,10 @@ O setting `tool_display` decide o que aparece no chat (`onConfigChanged` relê s
 
 Regra invariável: `question`, cartão de permissão e erro nunca são escondidos em nenhum modo.
 
+### Busca na conversa
+
+Botão de lupa no header ou **Ctrl+F** abre um `ui.input` abaixo do header. A busca é por substring (case-insensitive) em `text`, `reasoning`, `error`, e em `name`/`summary`/`input`/`output` das ferramentas. Enquanto há texto, a lista mostra só as mensagens com ocorrência e o cabeçalho do resultado (`3 de 24 mensagens com “teste”`); as ferramentas aparecem como linhas (`rows`) em vez de agrupadas. Fechar (**X**) limpa o filtro e volta à conversa completa.
+
 ### Aviso de pendência em outra conversa
 
 Quando uma sessão que não está aberta fica esperando permissão ou formulário, o topo do chat mostra um aviso `tertiary/0.10` com `N pedidos em outras conversas` e o botão **Abrir**, que troca de sessão (`select_session`) e exibe o cartão. Nenhuma pendência é respondida automaticamente por esse caminho.
@@ -278,4 +282,4 @@ Se o host não aplicar o novo tamanho, confira o `plugin.toml` instalado e recar
 - `keyboard_focus = "on_demand"`: o painel não rouba o foco ao abrir.
 - O compositor usa `focus = true` e `submitOnEnter`.
 - **Enter** envia; o input é de 1 linha (ou 64 px com `composer_multiline`).
-- `capture_keys = ["ctrl+n", "ctrl+k", "ctrl+shift+c"]` no `[[panel]]`; `onKey(chord, pressed)` trata: **Ctrl+N** nova conversa, **Ctrl+K** modelos/sessões, **Ctrl+Shift+C** copiar a última resposta. Escape sempre fecha. Input focado tem prioridade para texto.
+- `capture_keys = ["ctrl+n", "ctrl+k", "ctrl+f", "ctrl+shift+c"]` no `[[panel]]`; `onKey(chord, pressed)` trata: **Ctrl+N** nova conversa, **Ctrl+K** modelos/sessões, **Ctrl+F** buscar na conversa, **Ctrl+Shift+C** copiar a última resposta. Escape sempre fecha. Input focado tem prioridade para texto.

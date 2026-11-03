@@ -174,4 +174,4 @@ keyboard_focus = "on_demand"
 persistent = false
 layer = "overlay"
 # Ctrl+N nova conversa · Ctrl+K modelos/sessões · Ctrl+Shift+C copiar resposta.
-capture_keys = ["ctrl+n", "ctrl+k", "ctrl+shift+c"]
+capture_keys = ["ctrl+n", "ctrl+k", "ctrl+f", "ctrl+shift+c"]

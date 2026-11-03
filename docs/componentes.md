@@ -99,6 +99,7 @@ O widget respeita orientação vertical/horizontal da barra.
 | `formDrafts` | Respostas em edição por `form.id`. |
 | `view` | `"chat"`, `"picker"`, `"changes"` ou `"tools"`. |
 | `toolDisplay` | Modo de exibição (`grouped`/`rows`/`full`/`hidden`), relido em `onConfigChanged`. |
+| `searchOpen` / `searchQuery` | Busca na conversa (Ctrl+F). |
 | `toolsViewRun` / `toolsViewErrorsOnly` | Execução aberta na view de ferramentas e filtro “somente erros”. |
 | `models` / `sessions` | Cópias de `chat.models`/`chat.sessions`. |
 | `selectedModelIndex` / `selectedSessionIndex` | Seleção local (1-based). |
@@ -133,7 +134,8 @@ O widget respeita orientação vertical/horizontal da barra.
 | `onConfirmDelete()` | Envia `delete_session` e permanece no seletor. |
 | `onBackToChat()` | Volta ao chat e limpa a seleção da view de ferramentas. |
 | `onSend` / `onSubmit` | Envia `prompt` e limpa o rascunho da sessão. |
-| `onKey(chord, pressed)` | Atalhos capturados: `ctrl+n`, `ctrl+k`, `ctrl+shift+c`. |
+| `onKey(chord, pressed)` | Atalhos capturados: `ctrl+n`, `ctrl+k`, `ctrl+f`, `ctrl+shift+c`. |
+| `onToggleSearch` / `onSearchChange` / `onCloseSearch` | Busca por substring na conversa. |
 | `onCopyLast()` | Copia a última resposta do assistente. |
 | `onStop()` | Envia `interrupt`. |
 | `onPairAuto` / `onPairLinkSubmit` / `onPastePairLink` | Pareamento. |
