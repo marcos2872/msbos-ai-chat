@@ -64,7 +64,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `failure` | table/nil | `{ kind, detail }` com `kind` em `unauthorized`, `timeout`, `server_error`, `stream_closed` ou `server_down`; alimenta o banner do painel. `nil` quando não há falha. |
 | `pending.other` | table | `count` e `sessions` (`id`, `title`, `count`) das pendências em conversas **não** abertas. Só o resumo; o detalhe é carregado ao abrir a sessão. |
 | `ui` | table | `reasoningOpen`, `toolsOpen`, `toolsErrorsOnly` — espelho das preferências salvas em `ui.json`. |
-| `usage` | table | `contextUsed` (input + cache.read da última mensagem com uso), `contextLimit` (do `limit.context` do modelo, quando existe), `percent` e `cost` (custo da sessão ou soma das mensagens). Campos ausentes quando o servidor não informa uso. |
+| `usage` | table | `contextUsed` (input + cache.read da última mensagem com uso), `contextLimit` (do `limit.context` do modelo, quando existe), `percent` e `cost` (custo da sessão ou soma das mensagens; `0` = modelo gratuito) e `percent`. Campos ausentes quando o servidor não informa uso. |
 
 ### Limites de publicação
 

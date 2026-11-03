@@ -104,7 +104,7 @@ primeira linha do erro, quando houver).
 | Erro | Label em `error`. |
 | Anexos | Chips com `paperclip` e `Arquivo: nome` / `Imagem: nome` abaixo do texto (na bolha do usuário e na resposta); o conteúdo binário não é publicado. |
 | Falha de conexão | Banner `error/0.08` no topo do chat com título por causa, detalhe e ação: **Reconectar** (401), **Tentar novamente** (timeout/erro/stream) ou **Iniciar o assistente** (servidor fora). |
-| Consumo | Rodapé do compositor: `Contexto 12.345 (6%) · Sessão US$ 0,0231` (tokens de `usage.contextUsed`, custo de `usage.cost`) e uma barra `ui.progress` de 3 px quando o modelo informa `limit.context`. Sem dados, a linha não aparece. |
+| Consumo | Rodapé do compositor: `Contexto 12.345 (6%) · Sessão US$ 0,0231` (tokens de `usage.contextUsed`, custo de `usage.cost`) e uma barra `ui.progress` de 3 px quando o modelo informa `limit.context`. Custo `0` aparece como **Sessão grátis** (modelo sem cobrança); custo ausente não aparece. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `max_tool_output` (padrão 4000, faixa 500–20000, publicado em `snapshot.limits.toolOutput`); a entrada em 1200.
 

@@ -1317,11 +1317,17 @@ local function usageLabel()
     end
     table.insert(parts, text)
   end
+  -- Custo zero significa modelo gratuito (o servidor informou 0); ausente
+  -- significa que o servidor não informou custo.
   local cost = tonumber(usage.cost)
-  if cost ~= nil and cost > 0 then
-    local label = format.cost(cost)
-    if label ~= "" then
-      table.insert(parts, "Sessão " .. label)
+  if cost ~= nil then
+    if cost == 0 then
+      table.insert(parts, "Sessão grátis")
+    else
+      local label = format.cost(cost)
+      if label ~= "" then
+        table.insert(parts, "Sessão " .. label)
+      end
     end
   end
   if #parts == 0 then
