@@ -725,9 +725,58 @@ local function snapshotMessages()
   return out, total
 end
 
+-- Preço do modelo por 1M de tokens. O catálogo traz uma lista de faixas
+-- (`cost = { { input, output, cache = { read, write } } }`); usa a primeira.
+local function modelPrice(model)
+  if type(model) ~= "table" then
+    return nil
+  end
+  for _, item in ipairs(models) do
+    if item.id == model.id and item.providerID == model.providerID then
+      local tiers = item.cost
+      if type(tiers) ~= "table" or type(tiers[1]) ~= "table" then
+        return nil
+      end
+      local tier = tiers[1]
+      local cache = type(tier.cache) == "table" and tier.cache or {}
+      local price = {
+        input = tonumber(tier.input) or 0,
+        output = tonumber(tier.output) or 0,
+        cacheRead = tonumber(cache.read) or 0,
+        cacheWrite = tonumber(cache.write) or 0,
+      }
+      price.free = price.input == 0 and price.output == 0 and price.cacheRead == 0 and price.cacheWrite == 0
+      return price
+    end
+  end
+  return nil
+end
+
+-- Estimativa de custo a partir dos tokens e do preço do modelo (por 1M de
+-- tokens). O servidor desta instalação informa `cost = 0` em todas as
+-- mensagens, então a estimativa cobre esse caso.
+local function estimateCost(usage, model)
+  local price = modelPrice(model)
+  if price == nil then
+    return nil, false
+  end
+  if price.free then
+    return 0, false
+  end
+  local input = tonumber(usage and usage.input) or 0
+  local output = tonumber(usage and usage.output) or 0
+  local cacheRead = tonumber(usage and usage.cacheRead) or 0
+  local cacheWrite = tonumber(usage and usage.cacheWrite) or 0
+  local total = (input * price.input + output * price.output
+    + cacheRead * price.cacheRead + cacheWrite * price.cacheWrite) / 1000000
+  return total, true
+end
+
 -- Uso da sessão: tokens da última requisição (contexto) e custo acumulado.
 local function sessionUsage()
   local used, cost = nil, nil
+  local estimate, estimated = nil, false
+  local freeModel = false
   for _, message in ipairs(messages) do
     if message.role == "assistant" and type(message.usage) == "table" then
       local input = tonumber(message.usage.input)
@@ -737,8 +786,19 @@ local function sessionUsage()
         used = tonumber(message.usage.total)
       end
       local messageCost = tonumber(message.usage.cost)
-      if messageCost then
+      if messageCost and messageCost > 0 then
         cost = (cost or 0) + messageCost
+      else
+        local messageModel = type(message.model) == "table" and message.model or nil
+        local value, isEstimate = estimateCost(message.usage, messageModel)
+        if value ~= nil then
+          if isEstimate then
+            estimate = (estimate or 0) + value
+            estimated = true
+          elseif not cost then
+            freeModel = true
+          end
+        end
       end
     end
   end
@@ -746,8 +806,17 @@ local function sessionUsage()
   -- O custo da sessão (quando o servidor informa) é autoritativo; o somatório
   -- das mensagens cobre o intervalo entre refreshes.
   local sessionCost = activeSession and tonumber(activeSession.cost) or nil
-  if sessionCost ~= nil then
+  if sessionCost ~= nil and sessionCost > 0 then
     cost = sessionCost
+    estimated = false
+  end
+  if cost == nil and estimate ~= nil then
+    cost = estimate
+    estimated = true
+  end
+  if cost == nil and freeModel then
+    cost = 0
+    estimated = false
   end
 
   local limit = nil
@@ -773,6 +842,7 @@ local function sessionUsage()
     contextLimit = limit,
     percent = percent,
     cost = cost,
+    costEstimated = estimated,
   }
 end
 
@@ -1008,6 +1078,7 @@ loadCatalog = function(gen)
             name = model.name or id,
             variants = variants,
             limit = type(model.limit) == "table" and model.limit or nil,
+            cost = type(model.cost) == "table" and model.cost or nil,
           })
         end
       end

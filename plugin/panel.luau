@@ -1326,7 +1326,10 @@ local function usageLabel()
     else
       local label = format.cost(cost)
       if label ~= "" then
-        table.insert(parts, "Sessão " .. label)
+        -- "≈" quando o custo foi estimado do preço do catálogo (o servidor
+        -- desta instalação informa cost 0 em todas as mensagens).
+        local prefix = usage.costEstimated == true and "Sessão ≈ " or "Sessão "
+        table.insert(parts, prefix .. label)
       end
     end
   end
