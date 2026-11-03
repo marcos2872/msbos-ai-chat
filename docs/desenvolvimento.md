@@ -50,6 +50,32 @@ msbos/ai-chat
 0 errors, 0 warnings
 ```
 
+> **O lint não compila Luau.** Ele só cruza settings declarados no manifesto com
+> `getConfig()`. Um erro de sintaxe (ex.: `stateTime.end`, palavra reservada)
+> passa com `0 errors` e só aparece no carregamento do plugin.
+
+### Validar o carregamento (obrigatório)
+
+Depois de instalar, confirme que o host realmente carregou os scripts:
+
+```bash
+# limpa a referência e recarrega
+noctalia msg plugins disable msbos/ai-chat
+noctalia msg plugins enable  msbos/ai-chat
+sleep 2
+grep -i "luau_load failed" ~/.cache/noctalia/noctalia.log | tail -3
+```
+
+Saída esperada: **nada**. Se aparecer `luau_load failed for '…/engine.luau': …:N`,
+o plugin não está rodando — o painel fica no último estado publicado (por
+exemplo, preso em “Iniciando o assistente…”). Corrija a linha indicada e repita.
+
+Sinal de que o serviço subiu:
+
+```bash
+grep -i "msbos-ai-chat: SSE conectado" ~/.cache/noctalia/noctalia.log | tail -1
+```
+
 ## Logs
 
 ```bash

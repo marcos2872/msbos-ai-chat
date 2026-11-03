@@ -31,9 +31,10 @@ Não há `package.json`, `Makefile`, workflow de CI, build step nem suíte autom
 |---|---|
 | Build | Não existe. Os arquivos `.luau` são copiados e carregados diretamente pelo Noctalia. |
 | Teste automatizado | Não existe. Use o checklist manual de [`docs/desenvolvimento.md`](docs/desenvolvimento.md). |
-| Lint | `noctalia plugins lint …`; o esperado é `0 errors, 0 warnings`. |
+| Lint | `noctalia plugins lint …`; o esperado é `0 errors, 0 warnings`. **O lint não compila Luau** — só cruza settings. |
+| Validar carga | `grep -i "luau_load failed" ~/.cache/noctalia/noctalia.log` depois de recarregar; o esperado é nada. |
 
-Ao concluir uma mudança, rode o lint e informe a evidência. Se a mudança for visual, a validação final é do usuário.
+Ao concluir uma mudança, rode o lint **e** confirme no log que não há `luau_load failed` (um erro de sintaxe passa com `0 errors` e deixa o painel preso no último estado publicado). Se a mudança for visual, a validação final é do usuário.
 
 ## Arquitetura
 
