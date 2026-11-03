@@ -61,6 +61,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `lastEventAt` | number | `noctalia.nowMs()` da última publicação. |
 | `runStartedAt` | number/nil | Início do run atual; `nil` quando o estado não é `busy`. Alimenta o cronômetro do painel. |
 | `limits.toolOutput` | number | Valor efetivo de `max_tool_output` (500–20000) usado no corte da saída das ferramentas; o painel usa o mesmo teto ao exibir. |
+| `failure` | table/nil | `{ kind, detail }` com `kind` em `unauthorized`, `timeout`, `server_error`, `stream_closed` ou `server_down`; alimenta o banner do painel. `nil` quando não há falha. |
 | `pending.other` | table | `count` e `sessions` (`id`, `title`, `count`) das pendências em conversas **não** abertas. Só o resumo; o detalhe é carregado ao abrir a sessão. |
 | `ui` | table | `reasoningOpen`, `toolsOpen`, `toolsErrorsOnly` — espelho das preferências salvas em `ui.json`. |
 | `usage` | table | `contextUsed` (input + cache.read da última mensagem com uso), `contextLimit` (do `limit.context` do modelo, quando existe), `percent` e `cost` (custo da sessão ou soma das mensagens). Campos ausentes quando o servidor não informa uso. |
@@ -84,6 +85,7 @@ O histórico completo permanece em `messages` dentro do engine. A exportação e
   error = "",                  -- assistente
   model = { ... },             -- assistente (vindo do contexto)
   usage = { ... },             -- assistente; tokens/custo normalizados do /context
+  attachments = { ... },       -- partes não-texto (só metadados; máx. 3 por mensagem)
 }
 ```
 
@@ -97,6 +99,7 @@ O histórico completo permanece em `messages` dentro do engine. A exportação e
   input = { ... } | "...",     -- no snapshot vai já formatado/truncado (1200)
   output = "...",              -- truncado em max_tool_output (padrão 4000)
   summary = "...",             -- resumo curto do input (format.toolSummary, até 80)
+  diff = "...",                -- diff de edição (metadata.diff), truncado em MAX_SNAPSHOT_DIFF (6000)
   startedAt = 1792625439120,   -- ms; vem de state.time do contexto ou do evento
   finishedAt = 1792625445010,  -- ms; nil enquanto a ferramenta roda
 }
@@ -107,6 +110,14 @@ pronto no snapshot — o painel não decodifica JSON. Exemplos: `src/chat.luau`,
 `dnf install htop`, `"TODO"`, `github.com`.
 
 O snapshot não copia `metadata` da ferramenta; ele existe só no histórico interno do engine.
+
+### Anexo
+
+```lua
+{ kind = "file" | "image" | "patch" | "snapshot" | "other", name = "...", mime = "...", size = 1234 }
+```
+
+Anexos vêm de partes que não são `text`/`reasoning`/`tool`. O snapshot publica no máximo 3 por mensagem e **nunca** o conteúdo binário — só nome, tipo, mime e tamanho.
 
 ### Formulário pendente
 

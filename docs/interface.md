@@ -102,6 +102,8 @@ primeira linha do erro, quando houver).
 | Execução | Linha-resumo (`surface_variant/0.10`) com glifo, `N ferramentas`, contagem de erros em `error`, **duração total** (`format.runDuration`), “ver” e chevron. Mostra a primeira linha do erro quando alguma ferramenta falhou. Clique abre a view **Ferramentas desta execução**. |
 | Permissão | Cartão `tertiary/0.10` em duas camadas: primeiro o resumo em linguagem comum (“O assistente quer: Instalar o programa htop”, derivado de `action`/`resources`), com **Permitir uma vez** / **Recusar** e **Ver o comando** (bloco de código, colapsado). **Permitir sempre** fica atrás de **Mais opções**, com aviso de risco e de como voltar a exigir confirmação; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
+| Anexos | Chips com `paperclip` e `Arquivo: nome` / `Imagem: nome` abaixo do texto (na bolha do usuário e na resposta); o conteúdo binário não é publicado. |
+| Falha de conexão | Banner `error/0.08` no topo do chat com título por causa, detalhe e ação: **Reconectar** (401), **Tentar novamente** (timeout/erro/stream) ou **Iniciar o assistente** (servidor fora). |
 | Consumo | Rodapé do compositor: `Contexto 12.345 (6%) · Sessão US$ 0,0231` (tokens de `usage.contextUsed`, custo de `usage.cost`) e uma barra `ui.progress` de 3 px quando o modelo informa `limit.context`. Sem dados, a linha não aparece. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `max_tool_output` (padrão 4000, faixa 500–20000, publicado em `snapshot.limits.toolOutput`); a entrada em 1200.
@@ -118,6 +120,10 @@ O setting `tool_display` decide o que aparece no chat (`onConfigChanged` relê s
 | `hidden` | Sem raciocínio e sem cartões: texto do run fundido num bloco e a linha-resumo no fim. |
 
 Regra invariável: `question`, cartão de permissão e erro nunca são escondidos em nenhum modo.
+
+### Diff de edição
+
+Quando o metadata de uma ferramenta traz `diff`, o cartão expandido mostra um bloco `diff` em markdown (até 6000 caracteres) antes do resultado.
 
 ### Busca na conversa
 

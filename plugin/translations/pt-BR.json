@@ -41,5 +41,7 @@
   "settings.tool_display.grouped": "Agrupadas (uma linha por execução)",
   "settings.tool_display.rows": "Uma linha por chamada",
   "settings.tool_display.full": "Cards completos, sempre abertos",
-  "settings.tool_display.hidden": "Ocultar ferramentas e raciocínio"
+  "settings.tool_display.hidden": "Ocultar ferramentas e raciocínio",
+  "settings.sound_on_finish.label": "Som ao concluir",
+  "settings.sound_on_finish.description": "Toca um som curto quando a resposta termina com o painel minimizado. Usa o som de eventos do sistema; se não houver player, nada acontece."
 }

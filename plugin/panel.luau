@@ -595,6 +595,9 @@ local function renderTool(tool, detailed)
     if input ~= "" then
       table.insert(children, ui.label({ text = input, fontSize = 10, color = mutedColor(), maxLines = 12 }))
     end
+    if tool.diff and tool.diff ~= "" then
+      table.insert(children, ui.markdown({ text = "```diff\n" .. tool.diff .. "\n```" }))
+    end
     if tool.output and tool.output ~= "" then
       local limit = tonumber(snapshot and snapshot.limits and snapshot.limits.toolOutput) or 4000
       table.insert(children, ui.markdown({ text = format.truncate(tool.output, limit) }))
@@ -1034,6 +1037,40 @@ local function renderPermission(permission)
   }, children)
 end
 
+-- Anexos e partes não-texto: chip com o nome (o conteúdo não é publicado).
+local function attachmentLabel(attachment)
+  local name = tostring(attachment.name or "")
+  if name == "" then
+    return "1 anexo"
+  end
+  local kind = tostring(attachment.kind or "")
+  if kind == "image" then
+    return "Imagem: " .. name
+  end
+  if kind == "patch" then
+    return "Alteração: " .. name
+  end
+  return "Arquivo: " .. name
+end
+
+local function renderAttachments(list, keyPrefix)
+  if type(list) ~= "table" or #list == 0 then
+    return nil
+  end
+  local rows = {}
+  for index, attachment in ipairs(list) do
+    table.insert(rows, ui.row({
+      gap = 4,
+      align = "center",
+      key = tostring(keyPrefix or "att") .. "-" .. tostring(index),
+    }, {
+      ui.glyph({ name = "paperclip", size = 11, color = mutedColor() }),
+      ui.label({ text = attachmentLabel(attachment), fontSize = 10, color = mutedColor(), maxLines = 1 }),
+    }))
+  end
+  return ui.column({ gap = 2, align = "stretch" }, rows)
+end
+
 -- Busca por substring no texto, raciocínio, erro e conteúdo das ferramentas.
 local function messageMatches(message, query)
   local needle = string.lower(tostring(query or ""))
@@ -1079,16 +1116,21 @@ local function renderMessage(message, isLast, ctx)
         end,
       }))
     end
+    local body = {
+      ui.row({ gap = 6, align = "center" }, header),
+      ui.markdown({ text = message.text or "" }),
+    }
+    local attachments = renderAttachments(message.attachments, message.id)
+    if attachments ~= nil then
+      table.insert(body, attachments)
+    end
     return ui.column({
       fill = "primary/0.12",
       radius = 10,
       padding = 10,
       gap = 2,
       align = "stretch",
-    }, {
-      ui.row({ gap = 6, align = "center" }, header),
-      ui.markdown({ text = message.text or "" }),
-    })
+    }, body)
   end
 
   local list = (snapshot and snapshot.messages) or {}
@@ -1233,6 +1275,11 @@ local function renderMessage(message, isLast, ctx)
     table.insert(children, ui.markdown({ text = text }))
   end
 
+  local attachments = renderAttachments(message.attachments, message.id)
+  if attachments ~= nil then
+    table.insert(children, attachments)
+  end
+
   for _, tool in ipairs(inlineTools) do
     table.insert(children, renderTool(tool, mode == "full"))
   end
@@ -1339,6 +1386,46 @@ local function composer()
   return ui.column({ gap = 2, align = "stretch" }, children)
 end
 
+-- Banner de falha de conexão classificado pelo engine (snapshot.failure).
+local function connectionBanner(failure)
+  local kind = tostring(failure.kind or "")
+  local title = "O assistente não está respondendo"
+  local action = "onRetry"
+  local actionLabel = "Tentar novamente"
+  if kind == "unauthorized" then
+    title = "O acesso ao assistente expirou"
+    action = "onPairAuto"
+    actionLabel = "Reconectar"
+  elseif kind == "timeout" then
+    title = "O assistente demorou demais para responder"
+  elseif kind == "server_error" then
+    title = "O assistente respondeu com erro"
+  elseif kind == "stream_closed" then
+    title = "A conexão com o assistente caiu"
+  elseif kind == "server_down" then
+    action = "onStartService"
+    actionLabel = "Iniciar o assistente"
+  end
+
+  local children = {
+    ui.glyph({ name = "alert-triangle", size = 14, color = "error" }),
+    ui.column({ gap = 1, flexGrow = 1 }, {
+      ui.label({ text = title, fontSize = 10, fontWeight = "bold", color = "error", maxLines = 1 }),
+      ui.label({ text = tostring(failure.detail or ""), fontSize = 10, color = mutedColor(), maxLines = 2 }),
+    }),
+    ui.button({ text = actionLabel, variant = "secondary", fontSize = 10, onClick = action }),
+  }
+  return ui.row({
+    gap = 8,
+    align = "center",
+    padding = 10,
+    radius = 10,
+    fill = "error/0.08",
+    border = "error/0.40",
+    borderWidth = 1,
+  }, children)
+end
+
 local function historyNotice(shown, total)
   return ui.row({ gap = 8, align = "center", justify = "center" }, {
     ui.label({
@@ -1364,6 +1451,10 @@ local function chatView()
   if total > #list then
     table.insert(children, historyNotice(#list, total))
   end
+  if type(snapshot.failure) == "table" and snapshot.failure.kind ~= nil then
+    table.insert(children, connectionBanner(snapshot.failure))
+  end
+
   local searching = searchQuery ~= ""
   if searching then
     local matches = 0

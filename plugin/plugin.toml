@@ -127,6 +127,14 @@ label_key = "settings.composer_multiline.label"
 description_key = "settings.composer_multiline.description"
 default = false
 
+# Toca um som curto quando a resposta termina com o painel fechado.
+[[setting]]
+key = "sound_on_finish"
+type = "bool"
+label_key = "settings.sound_on_finish.label"
+description_key = "settings.sound_on_finish.description"
+default = false
+
 # Quanto da execução aparece no chat. "grouped" resume cada execução em uma
 # linha (padrão); "rows" mostra uma linha por chamada; "full" mantém o card
 # completo aberto; "hidden" esconde raciocínio e ferramentas.

@@ -28,6 +28,8 @@ local MAX_SNAPSHOT_REASONING = 3000
 -- Limite padrão de saída de ferramenta no snapshot; o setting `max_tool_output`
 -- sobrescreve (clamp 500–20000) e o valor efetivo vai em `snapshot.limits`.
 local DEFAULT_TOOL_OUTPUT = 4000
+-- Diff de edição é o detalhe mais útil de `edit`/`write`; cabe no orçamento.
+local MAX_SNAPSHOT_DIFF = 6000
 local PUBLISH_INTERVAL_MS = 250
 -- Quantas mensagens o snapshot publica; `load_previous` amplia sob demanda.
 local snapshotLimit = MAX_SNAPSHOT_MESSAGES
@@ -89,6 +91,9 @@ local statusMessage = ""
 local errorMessage = ""
 local busy = false
 local unread = false
+-- Falha classificada para o banner do painel ({ kind, detail }).
+local failure = nil
+local soundOnFinish = false
 local runActive = false
 local runStartedAt = nil
 local panelOpen = false
@@ -286,25 +291,68 @@ local function usageFromMessage(message)
   return usage
 end
 
+-- Anexos e partes não-texto: só metadados (nunca o conteúdo binário).
+local function partAttachment(part)
+  if type(part) ~= "table" then
+    return nil
+  end
+  local kind = "other"
+  if part.type == "file" then
+    kind = "file"
+  elseif part.type == "image" then
+    kind = "image"
+  elseif part.type == "patch" then
+    kind = "patch"
+  elseif part.type == "snapshot" then
+    kind = "snapshot"
+  end
+  local name = part.name or part.filename or part.path or part.file or ""
+  local mime = part.mime or part.mimeType or ""
+  local path = part.path or part.file or ""
+  return {
+    kind = kind,
+    name = tostring(name),
+    mime = tostring(mime),
+    size = tonumber(part.size),
+    path = tostring(path),
+  }
+end
+
 local function mapContext(data)
   local out = {}
   for _, message in ipairs(data or {}) do
     if message.type == "user" then
+      local attachments = {}
+      for _, part in ipairs(message.content or {}) do
+        if type(part) == "table" and part.type ~= "text" and part.type ~= "tool" then
+          local attachment = partAttachment(part)
+          if attachment ~= nil then
+            table.insert(attachments, attachment)
+          end
+        end
+      end
       table.insert(out, {
         id = message.id,
         role = "user",
         text = tostring(message.text or ""),
+        attachments = attachments,
         time = messageTime(message.id),
       })
     elseif message.type == "assistant" then
       local text = {}
       local reasoning = {}
       local tools = {}
+      local attachments = {}
       for _, part in ipairs(message.content or {}) do
         if part.type == "text" then
           table.insert(text, tostring(part.text or ""))
         elseif part.type == "reasoning" then
           table.insert(reasoning, tostring(part.text or ""))
+        elseif part.type == "attachment" or part.type == "file" or part.type == "image" or part.type == "snapshot" then
+          local attachment = partAttachment(part)
+          if attachment ~= nil then
+            table.insert(attachments, attachment)
+          end
         elseif part.type == "tool" then
           local state = part.state
           local stateTime = state and state.time or nil
@@ -327,6 +375,7 @@ local function mapContext(data)
         text = table.concat(text, ""),
         reasoning = table.concat(reasoning, ""),
         tools = tools,
+        attachments = attachments,
         streaming = false,
         error = format.errorText(message.error),
         model = message.model,
@@ -551,10 +600,29 @@ local function publishSessions()
   noctalia.state.set("chat.sessions", list)
 end
 
+local function classifyFailure(message)
+  local status = type(message) == "table" and tonumber(message.status) or nil
+  local text = string.lower(api.errorMessage(message))
+  if status == 401 or text:find("expirad", 1, true) or text:find("token", 1, true) then
+    return "unauthorized"
+  end
+  if status == 408 or text:find("timeout", 1, true) or text:find("demorou", 1, true) then
+    return "timeout"
+  end
+  if status ~= nil and status >= 500 then
+    return "server_error"
+  end
+  if text:find("conex", 1, true) or text:find("connect", 1, true) or text:find("recusou", 1, true) then
+    return "server_down"
+  end
+  return "server_error"
+end
+
 local function setError(message)
   errorMessage = api.errorMessage(message)
   statusMessage = ""
   status = "error"
+  failure = { kind = classifyFailure(message), detail = errorMessage }
   publish(true)
 end
 
@@ -577,6 +645,15 @@ local function snapshotMessages()
       local output = format.truncate(tool.output, maxToolOutput)
       local summary = format.toolSummary(tool)
       used = used + #input + #output + #summary
+
+      -- Diff de edição (quando o metadata traz um) vai em campo próprio para
+      -- o painel destacar; o resto do metadata não é exibido no chat.
+      local diff = nil
+      if type(tool.metadata) == "table" and type(tool.metadata.diff) == "string" and tool.metadata.diff ~= "" then
+        diff = format.truncate(tool.metadata.diff, MAX_SNAPSHOT_DIFF)
+        used = used + #diff
+      end
+
       table.insert(tools, {
         id = tool.id,
         name = tool.name,
@@ -584,6 +661,7 @@ local function snapshotMessages()
         input = input,
         output = output,
         summary = summary,
+        diff = diff,
         startedAt = tool.startedAt,
         finishedAt = tool.finishedAt,
       })
@@ -591,6 +669,19 @@ local function snapshotMessages()
 
     local text = format.truncate(message.text, MAX_SNAPSHOT_TEXT)
     local reasoning = format.truncate(message.reasoning, MAX_SNAPSHOT_REASONING)
+    local attachments = {}
+    for index, attachment in ipairs(message.attachments or {}) do
+      if index > 3 then
+        break
+      end
+      table.insert(attachments, {
+        kind = attachment.kind,
+        name = format.truncate(attachment.name, 120),
+        mime = attachment.mime,
+        size = attachment.size,
+      })
+      used = used + 120
+    end
     used = used + #text + #reasoning
     if #collected > 0 and used > MAX_SNAPSHOT_BYTES then
       break
@@ -602,6 +693,7 @@ local function snapshotMessages()
       text = text,
       reasoning = reasoning,
       tools = tools,
+      attachments = attachments,
       streaming = message.streaming,
       error = message.error,
       model = message.model,
@@ -693,6 +785,7 @@ publish = function(_force)
     },
     lastEventAt = noctalia.nowMs(),
     runStartedAt = runStartedAt,
+    failure = failure,
     usage = sessionUsage(),
     limits = {
       toolOutput = maxToolOutput,
@@ -749,6 +842,30 @@ exportSession = function(id)
   end)
 end
 
+-- Som curto no fim do run: tenta canberra e cai para paplay; se nenhum
+-- existir, não faz nada (sem toast, sem travar o engine).
+local function playSound()
+  local candidates = {
+    { "canberra-gtk-play", "-i", "message" },
+    { "paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga" },
+  }
+  local function attempt(index)
+    local argv = candidates[index]
+    if argv == nil then
+      return
+    end
+    local started = noctalia.runAsync(argv, function(result)
+      if result.exitCode ~= 0 then
+        attempt(index + 1)
+      end
+    end)
+    if not started then
+      attempt(index + 1)
+    end
+  end
+  attempt(1)
+end
+
 finishRun = function()
   if not runActive then
     return
@@ -768,6 +885,9 @@ finishRun = function()
   unread = not panelOpen
   if activeSession then
     unreadSessions[activeSession.id] = unread
+  end
+  if soundOnFinish and not panelOpen then
+    playSound()
   end
   if notifyOnFinish and not panelOpen then
     local title = activeSession and activeSession.title or "Conversa"
@@ -1267,6 +1387,7 @@ handleEvent = function(event)
 
   if eventType == "server.connected" then
     status = "idle"
+    failure = nil
     publish(true)
     return
   end
@@ -1570,6 +1691,8 @@ connectSse = function()
     local delay = math.min(30, 2 ^ reconnectAttempt)
     reconnectAttempt = reconnectAttempt + 1
     reconnectAt = noctalia.nowMs() + delay * 1000
+    failure = { kind = "stream_closed", detail = "A conexão com o assistente foi encerrada." }
+    publish(true)
     noctalia.log("msbos-ai-chat: SSE caiu; reconectando em " .. tostring(delay) .. "s")
   end)
   if stream then
@@ -1847,6 +1970,7 @@ local function init()
   autoPair = noctalia.getConfig("auto_pair") ~= false
   autoExport = noctalia.getConfig("auto_export") ~= false
   notifyOnFinish = noctalia.getConfig("notify_on_finish") ~= false
+  soundOnFinish = noctalia.getConfig("sound_on_finish") == true
   maxToolOutput = tonumber(noctalia.getConfig("max_tool_output")) or DEFAULT_TOOL_OUTPUT
   if maxToolOutput < 500 then
     maxToolOutput = 500

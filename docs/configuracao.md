@@ -19,6 +19,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos
 | `background_opacity` | int | `45` (0–100) | Alfa do fundo preto fixo do painel; o resto deixa passar a transparência/blur do sistema. `0` = transparente. |
 | `permission_mode` | select | `ask` | `ask` = cartão de confirmação para `shell`/`edit`; `always` = autoaprova sem perguntar (desliga a barreira; a descrição do ajuste avisa o risco). |
 | `composer_multiline` | bool | `false` | `false` = caixa de 1 linha (32 px, Enter envia); `true` = caixa de 64 px (Enter envia, Shift+Enter quebra linha). |
+| `sound_on_finish` | bool | `false` | Toca um som curto quando a resposta termina com o painel fechado (tenta `canberra-gtk-play`, cai para `paplay`; sem player, nada acontece). |
 | `tool_display` | select | `grouped` | Quanto da execução aparece no chat: `grouped` (uma linha por execução, com “ver”), `rows` (uma linha por chamada), `full` (card completo sempre aberto) ou `hidden` (só texto e indicador de trabalho). |
 | `glyph` (widget) | glyph | `message-chatbot` | Ícone Tabler do widget. |
 
