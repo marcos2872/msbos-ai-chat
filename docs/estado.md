@@ -61,6 +61,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `lastEventAt` | number | `noctalia.nowMs()` da última publicação. |
 | `runStartedAt` | number/nil | Início do run atual; `nil` quando o estado não é `busy`. Alimenta o cronômetro do painel. |
 | `limits.toolOutput` | number | Valor efetivo de `max_tool_output` (500–20000) usado no corte da saída das ferramentas; o painel usa o mesmo teto ao exibir. |
+| `pending.other` | table | `count` e `sessions` (`id`, `title`, `count`) das pendências em conversas **não** abertas. Só o resumo; o detalhe é carregado ao abrir a sessão. |
 | `ui` | table | `reasoningOpen`, `toolsOpen`, `toolsErrorsOnly` — espelho das preferências salvas em `ui.json`. |
 | `usage` | table | `contextUsed` (input + cache.read da última mensagem com uso), `contextLimit` (do `limit.context` do modelo, quando existe), `percent` e `cost` (custo da sessão ou soma das mensagens). Campos ausentes quando o servidor não informa uso. |
 
@@ -230,6 +231,18 @@ O engine observa essa chave para decidir notificações e unread.
 - `token` é a senha do Basic auth.
 - `version` não é mais usada para validar a conexão (fica vazia em pairings novos).
 - O código do link de pareamento não é salvo.
+
+## `chat.agents`
+
+Lista de agentes primários (sem `subagent`, sem `hidden`), publicada pelo engine a cada `loadAgents`:
+
+```lua
+{ { id = "msbos-chat", name = "msbos", description = "..." }, ... }
+```
+
+## `chat.sessions`
+
+Lista filtrada por `only_own_sessions`. Cada item: `id`, `title`, `updatedAt`, `model`, `agent`, `busy` (a execução atual é desta sessão) e `unread` (resposta nova desde a última vez que foi aberta).
 
 ### `state/ui.json` (`0600`)
 

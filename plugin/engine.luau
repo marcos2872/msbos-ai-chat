@@ -67,6 +67,11 @@ end
 local messages = {}
 local pendingPermissions = {}
 local pendingForms = {}
+-- Pendências de conversas que não estão abertas (aviso "pedido em outra
+-- conversa"). Guarda só os IDs; o detalhe é carregado ao abrir a sessão.
+local otherPending = {}
+local otherPendingIndex = {}
+local unreadSessions = {}
 local toolNames = {}
 
 -- Instante (ms) de cada mensagem, por id. Sobrevive ao `refreshContext`, que
@@ -516,6 +521,18 @@ local function filterOwnSessions(list)
   return filtered
 end
 
+local function publishAgents()
+  local list = {}
+  for _, agent in ipairs(agents) do
+    table.insert(list, {
+      id = agent.id,
+      name = agent.name or agent.id,
+      description = agent.description,
+    })
+  end
+  noctalia.state.set("chat.agents", list)
+end
+
 local function publishSessions()
   local list = {}
   for _, session in ipairs(sessions) do
@@ -526,6 +543,8 @@ local function publishSessions()
         updatedAt = session.time and session.time.updated or 0,
         model = session.model,
         agent = session.agent,
+        busy = busy and activeSession ~= nil and activeSession.id == session.id,
+        unread = unreadSessions[session.id] == true,
       })
     end
   end
@@ -670,6 +689,7 @@ publish = function(_force)
     pending = {
       permissions = pendingPermissions,
       forms = pendingForms,
+      other = pendingOtherSummary(),
     },
     lastEventAt = noctalia.nowMs(),
     runStartedAt = runStartedAt,
@@ -746,6 +766,9 @@ finishRun = function()
     exportSession(activeSession.id)
   end
   unread = not panelOpen
+  if activeSession then
+    unreadSessions[activeSession.id] = unread
+  end
   if notifyOnFinish and not panelOpen then
     local title = activeSession and activeSession.title or "Conversa"
     noctalia.notify("msbos IA", "Resposta concluída: " .. title)
@@ -807,6 +830,7 @@ loadAgents = function(gen)
       end
     end
 
+    publishAgents()
     if found then
       setAgentStatus("ok")
       agentRecheckAt = 0
@@ -867,6 +891,8 @@ selectSession = function(id)
   snapshotLimit = MAX_SNAPSHOT_MESSAGES
   pendingPermissions = {}
   pendingForms = {}
+  otherPending[id] = nil
+  unreadSessions[id] = nil
   status = "idle"
   statusMessage = ""
   errorMessage = ""
@@ -1178,6 +1204,62 @@ local function replyForm(formID, answer)
   end)
 end
 
+local function addOtherPending(sessionID, kind, id)
+  if type(sessionID) ~= "string" or type(id) ~= "string" or id == "" then
+    return
+  end
+  local entry = otherPending[sessionID]
+  if entry == nil then
+    entry = { permissions = {}, forms = {} }
+    otherPending[sessionID] = entry
+  end
+  if entry[kind][id] then
+    return
+  end
+  entry[kind][id] = true
+  otherPendingIndex[id] = { sessionID = sessionID, kind = kind }
+  if not panelOpen then
+    noctalia.notify("msbos IA", "Um pedido aguarda em outra conversa.")
+  end
+end
+
+local function removeOtherPending(id)
+  local info = otherPendingIndex[id]
+  if info == nil then
+    return false
+  end
+  otherPendingIndex[id] = nil
+  local entry = otherPending[info.sessionID]
+  if entry then
+    entry[info.kind][id] = nil
+  end
+  return true
+end
+
+local function pendingOtherSummary()
+  local total = 0
+  local list = {}
+  for sessionID, entry in pairs(otherPending) do
+    local count = 0
+    for _ in pairs(entry.permissions) do
+      count = count + 1
+    end
+    for _ in pairs(entry.forms) do
+      count = count + 1
+    end
+    if count > 0 then
+      total = total + count
+      local session = findSession(sessionID)
+      table.insert(list, {
+        id = sessionID,
+        title = session and session.title or "Outra conversa",
+        count = count,
+      })
+    end
+  end
+  return { count = total, sessions = list }
+end
+
 handleEvent = function(event)
   local data = event.data or {}
   local sessionID = data.sessionID
@@ -1273,6 +1355,37 @@ handleEvent = function(event)
     removePendingForm(formID)
     publish(true)
     return
+  end
+
+  local activeEvent = activeSession ~= nil and sessionID == activeSession.id
+
+  -- Pendência de outra conversa: conta e avisa, sem sequestrar a sessão atual.
+  if not activeEvent and sessionID then
+    if eventType == "permission.asked" and data.id then
+      addOtherPending(sessionID, "permissions", tostring(data.id))
+      publish(true)
+      return
+    elseif eventType == "permission.replied" then
+      removeOtherPending(tostring(data.requestID or data.id or ""))
+      publish(true)
+      return
+    elseif eventType == "form.created" then
+      local form = data.form or data
+      if type(form) == "table" and form.id then
+        addOtherPending(sessionID, "forms", tostring(form.id))
+        publish(true)
+      end
+      return
+    elseif eventType == "form.replied" or eventType == "form.cancelled" then
+      local formID = data.id
+      if type(data.form) == "table" then
+        formID = data.form.id or formID
+      end
+      if formID and removeOtherPending(tostring(formID)) then
+        publish(true)
+      end
+      return
+    end
   end
 
   if not activeSession or sessionID ~= activeSession.id then
@@ -1752,6 +1865,7 @@ local function init()
   pairing = store.readPairing(directory)
   models = {}
   agents = {}
+  publishAgents()
   sessions = {}
   activeSession = nil
   messages = {}

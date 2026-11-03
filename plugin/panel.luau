@@ -47,6 +47,7 @@ local showTechnical = false
 local sessionQuery = ""
 local models = noctalia.state.get("chat.models") or {}
 local sessions = noctalia.state.get("chat.sessions") or {}
+local agents = noctalia.state.get("chat.agents") or {}
 local changes = noctalia.state.get("chat.changes") or {}
 local selectedModelIndex = 0
 local selectedSessionIndex = 0
@@ -1355,6 +1356,37 @@ local function chatView()
   end
 
   local pending = snapshot.pending or {}
+  local other = pending.other
+  if type(other) == "table" and (tonumber(other.count) or 0) > 0 then
+    local first = other.sessions and other.sessions[1] or nil
+    local label = tostring(other.count) .. ((tonumber(other.count) or 0) == 1 and " pedido em outra conversa" or " pedidos em outras conversas")
+    local rowChildren = {
+      ui.glyph({ name = "alert-circle", size = 13, color = "tertiary" }),
+      ui.label({ text = label, fontSize = 10, color = textColor(), flexGrow = 1, maxLines = 1 }),
+    }
+    if first ~= nil then
+      table.insert(rowChildren, ui.button({
+        text = "Abrir",
+        variant = "secondary",
+        fontSize = 10,
+        tooltip = "Abrir " .. tostring(first.title or "a conversa"),
+        onClick = function()
+          sendCommand("select_session", tostring(first.id))
+          view = "chat"
+          render()
+        end,
+      }))
+    end
+    table.insert(children, ui.row({
+      gap = 6,
+      align = "center",
+      padding = 8,
+      radius = 8,
+      fill = "tertiary/0.10",
+      border = "tertiary/0.35",
+      borderWidth = 1,
+    }, rowChildren))
+  end
   for _, permission in ipairs(pending.permissions or {}) do
     table.insert(children, renderPermission(permission))
   end
@@ -1568,10 +1600,16 @@ end
 local function sessionText(session)
   local title = tostring(session.title or "Nova conversa")
   local ago = format.timeAgo(session.updatedAt)
+  local text = title
   if ago ~= "" then
-    return title .. " · " .. ago
+    text = text .. " · " .. ago
   end
-  return title
+  if session.busy then
+    text = text .. " · executando"
+  elseif session.unread then
+    text = text .. " · nova resposta"
+  end
+  return text
 end
 
 -- Agrupa a sessão por data a partir de `updatedAt` (segundos para formatTime).
@@ -1709,6 +1747,31 @@ local function pickerView()
       fontSize = 10,
       color = mutedColor(),
       maxLines = 2,
+    }))
+  end
+
+  if #agents > 0 then
+    local agentOptions = {}
+    local currentAgent = snapshot and snapshot.session and snapshot.session.agent or ""
+    local agentIndex = 0
+    for index, agent in ipairs(agents) do
+      table.insert(agentOptions, tostring(agent.name or agent.id))
+      if tostring(agent.id or "") == tostring(currentAgent) then
+        agentIndex = index - 1
+      end
+    end
+    table.insert(modelChildren, ui.label({ text = "Agente", fontSize = 10, color = mutedColor() }))
+    table.insert(modelChildren, ui.select({
+      key = "agent-select",
+      options = agentOptions,
+      selectedIndex = math.max(0, agentIndex),
+      enabled = not (snapshot and snapshot.state == "busy"),
+      onChange = function(index)
+        local agent = agents[index + 1]
+        if agent ~= nil and agent.id ~= nil then
+          sendCommand("set_agent", tostring(agent.id))
+        end
+      end,
     }))
   end
 
@@ -2482,6 +2545,15 @@ noctalia.state.watch("chat.models", function(value)
     models = value
     if isOpen and view == "picker" then
       syncPickerSelection()
+      render()
+    end
+  end
+end)
+
+noctalia.state.watch("chat.agents", function(value)
+  if type(value) == "table" then
+    agents = value
+    if isOpen and view == "picker" then
       render()
     end
   end

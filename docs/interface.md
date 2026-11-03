@@ -119,11 +119,19 @@ O setting `tool_display` decide o que aparece no chat (`onConfigChanged` relê s
 
 Regra invariável: `question`, cartão de permissão e erro nunca são escondidos em nenhum modo.
 
+### Aviso de pendência em outra conversa
+
+Quando uma sessão que não está aberta fica esperando permissão ou formulário, o topo do chat mostra um aviso `tertiary/0.10` com `N pedidos em outras conversas` e o botão **Abrir**, que troca de sessão (`select_session`) e exibe o cartão. Nenhuma pendência é respondida automaticamente por esse caminho.
+
 ### View “Ferramentas desta execução”
 
 Aberta pela linha-resumo (`view = "tools"`). Mostra o cabeçalho de retorno, o total (`N ferramentas · N erros`), o filtro **Somente erros** (quando há erro) e um cartão compacto expansível por ferramenta, na ordem cronológica. Voltar (`onBackToChat`) limpa a seleção e retorna ao chat.
 
 O snapshot publica as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens; quando há mais, aparece “Mostrando as últimas N de M mensagens” com o botão **Carregar anteriores** (IPC `load_previous`, que amplia a janela).
+
+### Seletor de modelo, raciocínio e agente
+
+Além do modelo e da variante de raciocínio, o seletor mostra um `ui.select` de **Agente** quando `chat.agents` não está vazio (só agentes primários visíveis, desabilitado durante `busy`); a troca usa `set_agent` e vale para a sessão ativa. Cada linha de sessão acrescenta `· executando` ou `· nova resposta` conforme `busy`/`unread` publicados em `chat.sessions`.
 
 ### Compositor
 
