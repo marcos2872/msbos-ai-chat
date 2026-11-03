@@ -18,6 +18,8 @@ local showAlwaysPermission = {}
 local expandedReasoning = {}
 local formDrafts = {}
 local view = "chat"
+local toolsViewRun = nil
+local toolsViewErrorsOnly = false
 local showPairAdvanced = false
 local showTechnical = false
 local sessionQuery = ""
@@ -58,6 +60,22 @@ local function refreshComposer()
 end
 
 refreshComposer()
+
+-- Modo de exibição das ferramentas (ajuste do plugin):
+-- grouped = uma linha por execução · rows = uma linha por chamada ·
+-- full = card completo sempre aberto · hidden = só texto e o indicador.
+local toolDisplay = "grouped"
+local TOOL_DISPLAY_VALUES = { grouped = true, rows = true, full = true, hidden = true }
+
+local function refreshToolDisplay()
+  local value = tostring(noctalia.getConfig("tool_display") or "grouped")
+  if not TOOL_DISPLAY_VALUES[value] then
+    value = "grouped"
+  end
+  toolDisplay = value
+end
+
+refreshToolDisplay()
 
 local function frameFill()
   return string.format("#000000%02x", math.floor(backgroundOpacity * 255 / 100 + 0.5))
@@ -324,8 +342,135 @@ local function agentMissingCard()
   }, children)
 end
 
-local function renderTool(tool)
-  local expanded = expandedTools[tool.id] == true
+-- ── Agrupamento por execução ───────────────────────────────────────────────
+-- Um "run" é o conjunto de mensagens de assistente depois da última mensagem
+-- do usuário. Se o snapshot começa no meio de um run (histórico truncado), a
+-- primeira mensagem disponível é tratada como o início dele.
+
+local function runStartIndex(list, index)
+  local start = index
+  while start > 1 and list[start - 1].role ~= "user" do
+    start = start - 1
+  end
+  return start
+end
+
+-- Tools de cada run, sem `question` (que fica sempre inline), indexadas pelo
+-- início do run: { [start] = { id = <id da mensagem>, tools = { ... } } }.
+local function collectRunTools(list)
+  local runs = {}
+  for index = 1, #list do
+    local message = list[index]
+    if message.role ~= "user" then
+      local start = runStartIndex(list, index)
+      local entry = runs[start]
+      if entry == nil then
+        entry = { id = tostring(list[start].id or start), tools = {} }
+        runs[start] = entry
+      end
+      for _, tool in ipairs(message.tools or {}) do
+        if tool.name ~= "question" then
+          table.insert(entry.tools, tool)
+        end
+      end
+    end
+  end
+  return runs
+end
+
+-- Ferramentas concluídas e quantas falharam (as em execução aparecem inline).
+local function toolCounts(entry)
+  local done, errors = 0, 0
+  for _, tool in ipairs(entry.tools or {}) do
+    if tool.status ~= "running" and tool.status ~= "streaming" then
+      done = done + 1
+      if tool.status == "error" then
+        errors = errors + 1
+      end
+    end
+  end
+  return done, errors
+end
+
+local function firstFailedTool(entry)
+  for _, tool in ipairs(entry.tools or {}) do
+    if tool.status == "error" and tool.output and tool.output ~= "" then
+      return tool
+    end
+  end
+  return nil
+end
+
+local function openToolsView(entry)
+  toolsViewRun = entry.id
+  toolsViewErrorsOnly = false
+  view = "tools"
+  render()
+end
+
+-- Linha-resumo de uma execução: "3 ferramentas · 1 erro → ver".
+local function renderToolRun(entry)
+  local done, errors = toolCounts(entry)
+  if done == 0 then
+    return nil
+  end
+  local color = errors > 0 and "error" or mutedColor()
+  local rowChildren = {
+    ui.glyph({ name = "tool", size = 13, color = color }),
+    ui.label({
+      text = tostring(done) .. (done == 1 and " ferramenta" or " ferramentas"),
+      fontSize = 10,
+      color = textColor(),
+    }),
+  }
+  if errors > 0 then
+    table.insert(rowChildren, ui.label({
+      text = tostring(errors) .. (errors == 1 and " erro" or " erros"),
+      fontSize = 10,
+      fontWeight = "bold",
+      color = "error",
+    }))
+  end
+  table.insert(rowChildren, ui.spacer({ flexGrow = 1 }))
+  table.insert(rowChildren, ui.label({ text = "ver", fontSize = 10, color = mutedColor() }))
+  table.insert(rowChildren, ui.glyph({ name = "chevron-right", size = 12, color = mutedColor() }))
+
+  local children = {
+    ui.row({
+      gap = 6,
+      align = "center",
+      tooltip = "Ver as ferramentas desta execução",
+      onClick = function()
+        openToolsView(entry)
+      end,
+    }, rowChildren),
+  }
+  local failed = firstFailedTool(entry)
+  if failed then
+    local line = format.firstLine(failed.output, 160)
+    if line ~= "" then
+      table.insert(children, ui.label({
+        text = line,
+        fontSize = 10,
+        color = "error",
+        maxLines = 2,
+      }))
+    end
+  end
+
+  return ui.column({
+    fill = "surface_variant/0.10",
+    border = "outline/0.25",
+    borderWidth = 1,
+    radius = 8,
+    padding = 8,
+    gap = 4,
+    align = "stretch",
+  }, children)
+end
+
+local function renderTool(tool, detailed)
+  local expanded = detailed == true or expandedTools[tool.id] == true
   local color = mutedColor()
   if tool.status == "error" then
     color = "error"
@@ -354,14 +499,16 @@ local function renderTool(tool)
     }))
   end
   table.insert(headerChildren, ui.spacer({ flexGrow = 1 }))
-  table.insert(headerChildren, ui.button({
-    glyph = expanded and "chevron-up" or "chevron-down",
-    variant = "ghost",
-    onClick = function()
-      expandedTools[tool.id] = not expanded
-      render()
-    end,
-  }))
+  if not detailed then
+    table.insert(headerChildren, ui.button({
+      glyph = expanded and "chevron-up" or "chevron-down",
+      variant = "ghost",
+      onClick = function()
+        expandedTools[tool.id] = not expanded
+        render()
+      end,
+    }))
+  end
 
   local children = { ui.row({ gap = 6, align = "center" }, headerChildren) }
   -- Falha identificável sem expandir: a primeira linha do erro fica visível.
@@ -387,6 +534,7 @@ local function renderTool(tool)
   end
 
   return ui.column({
+    key = "tool-" .. tostring(tool.id or tool.name or "?"),
     fill = "surface_variant/0.16",
     border = "outline/0.30",
     borderWidth = 1,
@@ -783,7 +931,7 @@ local function renderPermission(permission)
   }, children)
 end
 
-local function renderMessage(message, isLast)
+local function renderMessage(message, isLast, ctx)
   if message.role == "user" then
     local ago = format.timeAgo(message.time)
     local header = {
@@ -803,6 +951,76 @@ local function renderMessage(message, isLast)
       ui.row({ gap = 6, align = "center" }, header),
       ui.markdown({ text = message.text or "" }),
     })
+  end
+
+  local list = (snapshot and snapshot.messages) or {}
+  local hidden = toolDisplay == "hidden"
+  local runEnd = ctx == nil or ctx.isRunEnd ~= false
+
+  -- No modo limpo, só a última mensagem do run desenha algo: o texto de todas
+  -- as mensagens do run é fundido num bloco só, com a linha-resumo no fim.
+  if hidden and not runEnd then
+    return nil
+  end
+
+  local texts = {}
+  local inlineTools = {}
+  local errors = {}
+  local hasContent = false
+
+  if hidden and ctx then
+    for index = ctx.start, ctx.index do
+      local item = list[index]
+      if item then
+        if item.text and item.text ~= "" then
+          table.insert(texts, item.text)
+          hasContent = true
+        end
+        if item.error and item.error ~= "" then
+          table.insert(errors, item.error)
+          hasContent = true
+        end
+      end
+    end
+  else
+    if message.text and message.text ~= "" then
+      table.insert(texts, message.text)
+      hasContent = true
+    end
+    if message.reasoning and message.reasoning ~= "" then
+      hasContent = true
+    end
+    if message.error and message.error ~= "" then
+      table.insert(errors, message.error)
+      hasContent = true
+    end
+    for _, tool in ipairs(message.tools or {}) do
+      -- Agrupado: só a ferramenta em execução e a pergunta ficam inline.
+      local show = true
+      if toolDisplay == "grouped" then
+        show = tool.name == "question" or tool.status == "running"
+      end
+      if show then
+        table.insert(inlineTools, tool)
+        hasContent = true
+      end
+    end
+  end
+
+  if message.streaming then
+    hasContent = true
+  end
+
+  local runLine = nil
+  if ctx and ctx.isRunEnd and ctx.entry and (hidden or toolDisplay == "grouped") then
+    runLine = renderToolRun(ctx.entry)
+    if runLine ~= nil then
+      hasContent = true
+    end
+  end
+
+  if not hasContent then
+    return nil
   end
 
   local children = {}
@@ -829,16 +1047,17 @@ local function renderMessage(message, isLast)
       end,
     }))
   end
-  if message.text and message.text ~= "" then
+  local copyText = table.concat(texts, "\n\n")
+  if copyText ~= "" then
     table.insert(headerChildren, ui.button({
       glyph = "copy",
       variant = "ghost",
       fontSize = 10,
       tooltip = "Copiar resposta",
       onClick = function()
-        noctalia.copyToClipboard(message.text, "text/plain")
+        noctalia.copyToClipboard(copyText, "text/plain")
         toast = "Resposta copiada."
-    toastError = false
+        toastError = false
         toastAt = noctalia.nowMs()
         render()
       end,
@@ -846,7 +1065,8 @@ local function renderMessage(message, isLast)
   end
   table.insert(children, ui.row({ gap = 6, align = "center" }, headerChildren))
 
-  if message.reasoning and message.reasoning ~= "" then
+  -- Raciocínio só faz parte dos modos verbosos; no modo limpo ele some.
+  if not hidden and message.reasoning and message.reasoning ~= "" then
     local expanded = expandedReasoning[message.id] == true
     table.insert(children, ui.button({
       text = expanded and "Ocultar raciocínio" or "Raciocínio",
@@ -863,16 +1083,20 @@ local function renderMessage(message, isLast)
     end
   end
 
-  if message.text and message.text ~= "" then
-    table.insert(children, ui.markdown({ text = message.text }))
+  for _, text in ipairs(texts) do
+    table.insert(children, ui.markdown({ text = text }))
   end
 
-  for _, tool in ipairs(message.tools or {}) do
-    table.insert(children, renderTool(tool))
+  for _, tool in ipairs(inlineTools) do
+    table.insert(children, renderTool(tool, toolDisplay == "full"))
   end
 
-  if message.error and message.error ~= "" then
-    table.insert(children, ui.label({ text = message.error, color = "error", fontSize = 11 }))
+  for _, error in ipairs(errors) do
+    table.insert(children, ui.label({ text = error, color = "error", fontSize = 11 }))
+  end
+
+  if runLine ~= nil then
+    table.insert(children, runLine)
   end
 
   return ui.column({ gap = 6, align = "stretch" }, children)
@@ -940,8 +1164,19 @@ local function chatView()
   if total > #list then
     table.insert(children, historyNotice(#list, total))
   end
+  local runs = collectRunTools(list)
   for index, message in ipairs(list) do
-    table.insert(children, renderMessage(message, index == #list))
+    local start = runStartIndex(list, index)
+    local isRunEnd = index == #list or list[index + 1].role == "user"
+    local node = renderMessage(message, index == #list, {
+      start = start,
+      index = index,
+      isRunEnd = isRunEnd,
+      entry = runs[start],
+    })
+    if node ~= nil then
+      table.insert(children, node)
+    end
   end
   if #children == 0 then
     table.insert(children, emptyState())
@@ -1585,6 +1820,91 @@ local function changesView()
   return ui.column({ flexGrow = 1, gap = 8, align = "stretch", paddingV = 8 }, children)
 end
 
+-- View com as ferramentas de uma execução (o host não tem modal; o padrão é
+-- uma view, como o seletor e o histórico de alterações).
+local function toolsView()
+  local list = (snapshot and snapshot.messages) or {}
+  local entry = nil
+  if toolsViewRun ~= nil then
+    for index, message in ipairs(list) do
+      if message.id == toolsViewRun then
+        entry = collectRunTools(list)[runStartIndex(list, index)]
+        break
+      end
+    end
+  end
+
+  local children = {
+    ui.row({
+      gap = 8,
+      align = "center",
+      paddingH = 12,
+      paddingV = 8,
+      fill = "surface_variant/0.18",
+      border = "outline/0.35",
+      borderWidth = 1,
+      radius = 12,
+    }, {
+      ui.button({ glyph = "arrow-left", variant = "ghost", tooltip = "Voltar ao chat", onClick = "onBackToChat" }),
+      ui.column({ gap = 0, flexGrow = 1 }, {
+        ui.label({ text = "Ferramentas desta execução", fontSize = 15, fontWeight = "bold", color = textColor() }),
+        ui.label({ text = "O que o assistente fez, passo a passo", fontSize = 10, color = mutedColor() }),
+      }),
+      ui.button({ glyph = "minus", variant = "ghost", tooltip = "Minimizar", onClick = "onMinimize" }),
+    }),
+  }
+
+  if entry == nil or #(entry.tools or {}) == 0 then
+    table.insert(children, ui.column({ gap = 8, align = "center", justify = "center", flexGrow = 1, padding = 20 }, {
+      ui.glyph({ name = "tool", size = 30, color = mutedColor() }),
+      ui.label({ text = "Nenhuma ferramenta nesta execução.", fontSize = 12, fontWeight = "bold", color = textColor() }),
+      ui.label({ text = "Volte ao chat para continuar a conversa.", fontSize = 10, color = mutedColor(), textAlign = "center" }),
+    }))
+    return ui.column({ flexGrow = 1, gap = 8, align = "stretch", paddingV = 8 }, children)
+  end
+
+  local done, errors = toolCounts(entry)
+  local summary = tostring(done) .. (done == 1 and " ferramenta" or " ferramentas")
+  if errors > 0 then
+    summary = summary .. " · " .. tostring(errors) .. (errors == 1 and " erro" or " erros")
+  end
+  local top = {
+    ui.label({ text = summary, fontSize = 10, color = mutedColor(), flexGrow = 1 }),
+  }
+  if errors > 0 then
+    table.insert(top, ui.button({
+      text = toolsViewErrorsOnly and "Ver todas" or "Somente erros",
+      glyph = "filter",
+      variant = toolsViewErrorsOnly and "secondary" or "ghost",
+      fontSize = 10,
+      onClick = function()
+        toolsViewErrorsOnly = not toolsViewErrorsOnly
+        render()
+      end,
+    }))
+  end
+  table.insert(children, ui.row({ gap = 8, align = "center", paddingH = 12 }, top))
+
+  local rows = {}
+  for _, tool in ipairs(entry.tools or {}) do
+    if not toolsViewErrorsOnly or tool.status == "error" then
+      table.insert(rows, renderTool(tool, false))
+    end
+  end
+  if #rows == 0 then
+    table.insert(children, ui.label({
+      text = "Nenhuma ferramenta falhou.",
+      fontSize = 10,
+      color = mutedColor(),
+      paddingH = 12,
+    }))
+  else
+    table.insert(children, ui.scroll({ flexGrow = 1, gap = 6, paddingH = 12 }, rows))
+  end
+
+  return ui.column({ flexGrow = 1, gap = 8, align = "stretch", paddingV = 8 }, children)
+end
+
 -- Inset que o host aplica ao conteúdo do plugin: Style::panelPadding (14 px) ×
 -- contentScale (1.0 por padrão). O frame usa esse valor como padding negativo
 -- para o fundo preto cobrir também a borda/raio do painel.
@@ -1616,6 +1936,10 @@ end
 
 render = function()
   if not isOpen then
+    return
+  end
+  if view == "tools" then
+    panel.render(frame(toolsView()))
     return
   end
   if view == "picker" then
@@ -1668,6 +1992,7 @@ end
 function onConfigChanged()
   refreshBackground()
   refreshComposer()
+  refreshToolDisplay()
   render()
 end
 
@@ -1683,6 +2008,8 @@ function onIpc(event, _payload)
     onOpenChanges()
   elseif event == "back" then
     view = "chat"
+    toolsViewRun = nil
+    toolsViewErrorsOnly = false
     deleteConfirm = nil
     render()
   end
@@ -1788,6 +2115,8 @@ end
 
 function onBackToChat()
   view = "chat"
+  toolsViewRun = nil
+  toolsViewErrorsOnly = false
   deleteConfirm = nil
   render()
 end

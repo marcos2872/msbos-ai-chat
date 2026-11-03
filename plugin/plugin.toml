@@ -127,6 +127,22 @@ label_key = "settings.composer_multiline.label"
 description_key = "settings.composer_multiline.description"
 default = false
 
+# Quanto da execução aparece no chat. "grouped" resume cada execução em uma
+# linha (padrão); "rows" mostra uma linha por chamada; "full" mantém o card
+# completo aberto; "hidden" esconde raciocínio e ferramentas.
+[[setting]]
+key = "tool_display"
+type = "select"
+label_key = "settings.tool_display.label"
+description_key = "settings.tool_display.description"
+default = "grouped"
+options = [
+  { value = "grouped", label_key = "settings.tool_display.grouped" },
+  { value = "rows", label_key = "settings.tool_display.rows" },
+  { value = "full", label_key = "settings.tool_display.full" },
+  { value = "hidden", label_key = "settings.tool_display.hidden" },
+]
+
 # ── Serviço ─────────────────────────────────────────────────────────────────
 [[service]]
 id = "engine"

@@ -97,7 +97,9 @@ O widget respeita orientação vertical/horizontal da barra.
 | `toast` / `toastAt` | Erros transitórios por 5 s. |
 | `expandedTools` / `expandedReasoning` | Expansão de cartões. |
 | `formDrafts` | Respostas em edição por `form.id`. |
-| `view` | `"chat"` ou `"picker"`. |
+| `view` | `"chat"`, `"picker"`, `"changes"` ou `"tools"`. |
+| `toolDisplay` | Modo de exibição (`grouped`/`rows`/`full`/`hidden`), relido em `onConfigChanged`. |
+| `toolsViewRun` / `toolsViewErrorsOnly` | Execução aberta na view de ferramentas e filtro “somente erros”. |
 | `models` / `sessions` | Cópias de `chat.models`/`chat.sessions`. |
 | `selectedModelIndex` / `selectedSessionIndex` | Seleção local (1-based). |
 | `selectedReasoningId` | Variante selecionada; `"default"` por padrão. |
@@ -110,9 +112,13 @@ O widget respeita orientação vertical/horizontal da barra.
 |---|---|
 | `sendCommand(event, payload)` | Executa `noctalia msg plugin msbos/ai-chat:engine all <event> [payload]` via `runAsync` com argv. |
 | `header()` | Título, subtítulo, botões novo/histórico/minimizar. |
-| `renderTool(tool)` | Cartão de ferramenta expansível. |
+| `refreshToolDisplay()` | Lê `tool_display` e normaliza valor inválido para `grouped`. |
+| `runStartIndex(list, index)` / `collectRunTools(list)` | Delimitam a execução (mensagens após a última do usuário) e juntam as tools de cada run. |
+| `renderToolRun(entry)` | Linha-resumo “N ferramentas · N erros → ver”, com a primeira linha do erro. |
+| `renderTool(tool, detailed)` | Cartão de ferramenta: compacto expansível ou completo (`detailed`). |
+| `toolsView()` | View com as ferramentas da execução, filtro de erros e cartões expansíveis. |
 | `renderForm(form)` | Formulário com toggle, opções e input; envia `reply_form`. |
-| `renderMessage(message)` | Bolha do usuário, mensagem do assistente, raciocínio, tools e erro. |
+| `renderMessage(message, isLast, ctx)` | Bolha do usuário ou mensagem do assistente; `ctx` traz o run (`start`, `index`, `isRunEnd`, `entry`) para agrupar/limpar. |
 | `composer()` | Input de 1 linha (`controlSize = "sm"`) ou multilinha de 64 px com `composer_multiline`, e botão enviar/parar. |
 | `chatView()` | Lista de mensagens, formulários, aviso/erro, agente ausente e compositor. |
 | `onboardingView()` | Conexão automática, link, colar, copiar comando, abrir terminal. |
@@ -125,6 +131,7 @@ O widget respeita orientação vertical/horizontal da barra.
 | `onFrameTick(deltaMs)` | Anima o spinner a cada ~400 ms quando busy. |
 | `onNewSession()` | Envia `new_session` com o modelo atual. |
 | `onConfirmDelete()` | Envia `delete_session` e permanece no seletor. |
+| `onBackToChat()` | Volta ao chat e limpa a seleção da view de ferramentas. |
 | `onSend` / `onSubmit` | Envia `prompt` e limpa o compositor. |
 | `onStop()` | Envia `interrupt`. |
 | `onPairAuto` / `onPairLinkSubmit` / `onPastePairLink` | Pareamento. |

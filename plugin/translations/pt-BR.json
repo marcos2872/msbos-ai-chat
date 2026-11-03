@@ -35,5 +35,11 @@
   "settings.glyph.label": "Ícone da barra",
   "settings.glyph.description": "Glifo Tabler usado no widget da barra.",
   "settings.composer_multiline.label": "Caixa de mensagem com várias linhas",
-  "settings.composer_multiline.description": "Desligado: uma linha de 32 px (Enter envia). Ligado: caixa alta de 64 px; Enter envia e Shift+Enter quebra a linha."
+  "settings.composer_multiline.description": "Desligado: uma linha de 32 px (Enter envia). Ligado: caixa alta de 64 px; Enter envia e Shift+Enter quebra a linha.",
+  "settings.tool_display.label": "Ferramentas no chat",
+  "settings.tool_display.description": "Quanto da execução aparece: agrupadas (uma linha por execução), uma linha por chamada, cards completos ou ocultas (só o texto e o indicador de trabalho).",
+  "settings.tool_display.grouped": "Agrupadas (uma linha por execução)",
+  "settings.tool_display.rows": "Uma linha por chamada",
+  "settings.tool_display.full": "Cards completos, sempre abertos",
+  "settings.tool_display.hidden": "Ocultar ferramentas e raciocínio"
 }

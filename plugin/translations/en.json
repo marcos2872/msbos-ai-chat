@@ -35,5 +35,11 @@
   "settings.glyph.label": "Bar icon",
   "settings.glyph.description": "Tabler glyph used by the bar widget.",
   "settings.composer_multiline.label": "Multi-line message box",
-  "settings.composer_multiline.description": "Off: one 32 px line (Enter sends). On: 64 px box; Enter sends and Shift+Enter adds a line break."
+  "settings.composer_multiline.description": "Off: one 32 px line (Enter sends). On: 64 px box; Enter sends and Shift+Enter adds a line break.",
+  "settings.tool_display.label": "Tools in the chat",
+  "settings.tool_display.description": "How much of the execution is shown: grouped (one line per run), one row per call, full cards, or hidden (only the text and the working indicator).",
+  "settings.tool_display.grouped": "Grouped (one line per run)",
+  "settings.tool_display.rows": "One row per call",
+  "settings.tool_display.full": "Full cards, always open",
+  "settings.tool_display.hidden": "Hide tools and reasoning"
 }

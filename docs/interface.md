@@ -46,6 +46,8 @@ stateDiagram-v2
     Chat --> Alteracoes: alterações no sistema
     Seletor --> Alteracoes: alterações no sistema
     Alteracoes --> Chat: voltar
+    Chat --> Ferramentas: "ver" na linha-resumo
+    Ferramentas --> Chat: voltar
 ```
 
 A view `picker` é local ao painel (não é um painel separado). O comando `open_picker` também pode ser enviado por IPC.
@@ -64,8 +66,8 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 │ Assistente                                   │
 │ [raciocínio ▾]                               │
 │ texto em markdown                            │
-│ ┌─ tool: read ────────────────────────────┐ │
-│ │ status, entrada e resultado (expansível) │ │
+│ ┌─ 3 ferramentas · 1 erro → ver ───────────┐ │
+│ │ resumo da execução (abre a view)         │ │
 │ └──────────────────────────────────────────┘ │
 │ ┌─ formulário / pergunta ─────────────────┐ │
 │ │ opções + responder                     │ │
@@ -74,6 +76,11 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 │ [ Pergunte sobre o sistema…       ] [enviar] │
 └──────────────────────────────────────────────┘
 ```
+
+No modo `rows`/`full`, a linha-resumo dá lugar a um cartão por chamada (compacto
+expansível ou completo, respectivamente). No modo `hidden`, o bloco de
+raciocínio e os cartões somem: fica o texto do run e a linha-resumo (com a
+primeira linha do erro, quando houver).
 
 ### Header
 
@@ -92,10 +99,28 @@ A view `picker` é local ao painel (não é um painel separado). O comando `open
 | Assistente | Glifo `sparkles`, texto em markdown, “…” enquanto streaming, horário relativo e botões **Regenerar** (na última resposta; reenvia o último pedido) e **copiar**. |
 | Raciocínio | Botão ghost “Raciocínio”/“Ocultar raciocínio” + markdown quando expandido. |
 | Ferramenta | Cartão com glifo, **nome comum** (`format.toolLabel`: “Executar comando”, “Pergunta ao usuário”), **resumo do input** (`tool.summary`, ex.: `src/chat.luau`, `dnf install htop`), status, seta de expansão; entrada e saída truncadas. Falha mostra a primeira linha do erro mesmo com o cartão fechado. O nome técnico fica no tooltip. |
+| Execução | Linha-resumo (`surface_variant/0.10`) com glifo, `N ferramentas`, contagem de erros em `error`, “ver” e chevron. Mostra a primeira linha do erro quando alguma ferramenta falhou. Clique abre a view **Ferramentas desta execução**. |
 | Permissão | Cartão `tertiary/0.10` em duas camadas: primeiro o resumo em linguagem comum (“O assistente quer: Instalar o programa htop”, derivado de `action`/`resources`), com **Permitir uma vez** / **Recusar** e **Ver o comando** (bloco de código, colapsado). **Permitir sempre** fica atrás de **Mais opções**, com aviso de risco e de como voltar a exigir confirmação; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 
 O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) caracteres; a entrada em 1200.
+
+### Modos de exibição das ferramentas
+
+O setting `tool_display` decide o que aparece no chat (`onConfigChanged` relê sem recarregar o plugin):
+
+| Modo | Comportamento |
+|---|---|
+| `grouped` (padrão) | Uma linha-resumo por execução; só a ferramenta em execução e a `question` ficam inline. |
+| `rows` | Um cartão compacto expansível por chamada (sem agrupamento). |
+| `full` | Cartão completo com entrada e saída sempre visíveis, sem seta. |
+| `hidden` | Sem raciocínio e sem cartões: texto do run fundido num bloco e a linha-resumo no fim. |
+
+Regra invariável: `question`, cartão de permissão e erro nunca são escondidos em nenhum modo.
+
+### View “Ferramentas desta execução”
+
+Aberta pela linha-resumo (`view = "tools"`). Mostra o cabeçalho de retorno, o total (`N ferramentas · N erros`), o filtro **Somente erros** (quando há erro) e um cartão compacto expansível por ferramenta, na ordem cronológica. Voltar (`onBackToChat`) limpa a seleção e retorna ao chat.
 
 O snapshot publica as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens; quando há mais, aparece “Mostrando as últimas N de M mensagens” com o botão **Carregar anteriores** (IPC `load_previous`, que amplia a janela).
 
