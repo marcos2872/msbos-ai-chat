@@ -14,7 +14,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos
 | `auto_export` | bool | `true` | Espelha cada conversa em JSON/Markdown. |
 | `notify_on_finish` | bool | `true` | Notifica quando a resposta termina com o painel fechado. |
 | `show_bar_label` | bool | `false` | Mostra o título curto ao lado do ícone da barra. |
-| `max_tool_output` | int | `4000` (500–20000) | Limite de saída de ferramenta no **Markdown exportado**. |
+| `max_tool_output` | int | `4000` (500–20000) | Limite de saída de ferramenta **no chat e no export**: o snapshot corta a saída nesse valor e o painel exibe com o mesmo teto. |
 | `panel_size` | select | `medium` | Preset de tamanho; reescreve o manifesto instalado e recarrega. |
 | `background_opacity` | int | `45` (0–100) | Alfa do fundo preto fixo do painel; o resto deixa passar a transparência/blur do sistema. `0` = transparente. |
 | `permission_mode` | select | `ask` | `ask` = cartão de confirmação para `shell`/`edit`; `always` = autoaprova sem perguntar (desliga a barreira; a descrição do ajuste avisa o risco). |
@@ -26,7 +26,7 @@ Definidos em `plugin/plugin.toml` e exibidos em **Settings → Plugins → msbos
 
 - `agent` vale para novas sessões; uma sessão existente mantém o agente que já tem. O IPC `set_agent` troca o agente da sessão ativa.
 - `only_own_sessions` (padrão ligado) filtra `chat.sessions` pelo `agent` configurado, então só aparecem as conversas criadas pelo painel; sessões abertas na TUI/desktop do OpenCode ficam fora. O filtro também descarta eventos `session.created` de outros `location.directory`. Desligue para ver todas as sessões do workspace. A mudança exige recarregar o plugin.
-- `max_tool_output` é usado por `store.sessionMarkdown` no export. No chat, o snapshot já entrega o `output` truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) e a entrada limitada a 1200 por `format.toolInput`; o painel trunca de novo em 4000, mas o valor exibido já vem limitado a 2000.
+- `max_tool_output` vale nos dois caminhos: `store.sessionMarkdown` no export e `snapshotMessages` no chat. O valor é limitado a 500–20000, publicado em `snapshot.limits.toolOutput`, e o painel usa esse teto (antes era 4000 fixo). A entrada continua limitada a 1200 por `format.toolInput`.
 - `panel_size` não altera o tamanho em runtime: o Noctalia não expõe API de resize. O engine edita a cópia instalada do `plugin.toml`.
 - `background_opacity` é o alfa do fundo preto fixo do painel: `0` = totalmente transparente, `100` = totalmente preto. O frame usa padding negativo (`Style::panelPadding` = 14 px) para o preto cobrir o painel inteiro, então a borda e o raio do tema ficam atrás do fundo. Com o padrão `45`, o preto fica como um vidro escuro, deixando a transparência e o blur do sistema passarem. Em papel de parede claro, aumente para `60`–`75` para manter o contraste do texto.
 - `composer_multiline` é lido no `onConfigChanged` do painel; o valor padrão mantém o compositor na mesma altura do botão de enviar.

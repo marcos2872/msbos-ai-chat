@@ -103,7 +103,7 @@ primeira linha do erro, quando houver).
 | Permissão | Cartão `tertiary/0.10` em duas camadas: primeiro o resumo em linguagem comum (“O assistente quer: Instalar o programa htop”, derivado de `action`/`resources`), com **Permitir uma vez** / **Recusar** e **Ver o comando** (bloco de código, colapsado). **Permitir sempre** fica atrás de **Mais opções**, com aviso de risco e de como voltar a exigir confirmação; resposta por IPC `reply_permission`. |
 | Erro | Label em `error`. |
 
-O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000) caracteres; a entrada em 1200.
+O cartão de ferramenta usa `surface_variant/0.16`, borda `outline/0.30` e radius 8. O resultado exibido vem do snapshot, truncado em `max_tool_output` (padrão 4000, faixa 500–20000, publicado em `snapshot.limits.toolOutput`); a entrada em 1200.
 
 ### Modos de exibição das ferramentas
 

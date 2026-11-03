@@ -25,7 +25,9 @@ local MAX_SNAPSHOT_MESSAGES = 24
 local MAX_SNAPSHOT_BYTES = 48000
 local MAX_SNAPSHOT_TEXT = 8000
 local MAX_SNAPSHOT_REASONING = 3000
-local MAX_SNAPSHOT_TOOL_OUTPUT = 2000
+-- Limite padrão de saída de ferramenta no snapshot; o setting `max_tool_output`
+-- sobrescreve (clamp 500–20000) e o valor efetivo vai em `snapshot.limits`.
+local DEFAULT_TOOL_OUTPUT = 4000
 local PUBLISH_INTERVAL_MS = 250
 -- Quantas mensagens o snapshot publica; `load_previous` amplia sob demanda.
 local snapshotLimit = MAX_SNAPSHOT_MESSAGES
@@ -36,6 +38,32 @@ local agents = {}
 local sessions = {}
 local activeSession = nil
 local preferredModel = nil
+
+-- Preferências de exibição do painel persistidas em ui.json (whitelist).
+local uiPrefs = {
+  reasoningOpen = false,
+  toolsOpen = false,
+  toolsErrorsOnly = false,
+}
+local UI_PREF_KEYS = {
+  reasoning_open = "reasoningOpen",
+  tools_open = "toolsOpen",
+  tools_errors_only = "toolsErrorsOnly",
+}
+
+local function normalizePrefs(raw)
+  local out = {
+    reasoningOpen = false,
+    toolsOpen = false,
+    toolsErrorsOnly = false,
+  }
+  if type(raw) == "table" then
+    out.reasoningOpen = raw.reasoningOpen == true
+    out.toolsOpen = raw.toolsOpen == true
+    out.toolsErrorsOnly = raw.toolsErrorsOnly == true
+  end
+  return out
+end
 local messages = {}
 local pendingPermissions = {}
 local pendingForms = {}
@@ -326,6 +354,7 @@ local function saveUi()
     preferredModel = preferredModel,
     agent = agentId,
     lastOpenedAt = noctalia.nowMs(),
+    prefs = uiPrefs,
   })
 end
 
@@ -480,7 +509,7 @@ local function snapshotMessages()
     local tools = {}
     for _, tool in ipairs(message.tools or {}) do
       local input = format.toolInput(tool.input)
-      local output = format.truncate(tool.output, MAX_SNAPSHOT_TOOL_OUTPUT)
+      local output = format.truncate(tool.output, maxToolOutput)
       local summary = format.toolSummary(tool)
       used = used + #input + #output + #summary
       table.insert(tools, {
@@ -547,6 +576,14 @@ publish = function(_force)
     },
     lastEventAt = noctalia.nowMs(),
     runStartedAt = runStartedAt,
+    limits = {
+      toolOutput = maxToolOutput,
+    },
+    ui = {
+      reasoningOpen = uiPrefs.reasoningOpen,
+      toolsOpen = uiPrefs.toolsOpen,
+      toolsErrorsOnly = uiPrefs.toolsErrorsOnly,
+    },
   }
   noctalia.state.set("chat.snapshot", snapshot)
   noctalia.state.set("chat.status", {
@@ -1595,7 +1632,12 @@ local function init()
   autoPair = noctalia.getConfig("auto_pair") ~= false
   autoExport = noctalia.getConfig("auto_export") ~= false
   notifyOnFinish = noctalia.getConfig("notify_on_finish") ~= false
-  maxToolOutput = tonumber(noctalia.getConfig("max_tool_output")) or 4000
+  maxToolOutput = tonumber(noctalia.getConfig("max_tool_output")) or DEFAULT_TOOL_OUTPUT
+  if maxToolOutput < 500 then
+    maxToolOutput = 500
+  elseif maxToolOutput > 20000 then
+    maxToolOutput = 20000
+  end
   permissionMode = tostring(noctalia.getConfig("permission_mode") or "ask")
 
   store.ensure(directory)
@@ -1603,6 +1645,7 @@ local function init()
 
   local ui = store.readUi(directory)
   preferredModel = copyModelRef(ui.preferredModel) or copyModelRef(ui.model)
+  uiPrefs = normalizePrefs(ui.prefs)
 
   pairing = store.readPairing(directory)
   models = {}
@@ -1748,6 +1791,16 @@ function onIpc(event, payload)
     end
   elseif event == "set_agent" then
     setAgent(payload)
+  elseif event == "set_ui_pref" then
+    local key, value = tostring(payload or ""):match("^([%w_]+)=([%w_]+)$")
+    local field = key and UI_PREF_KEYS[key] or nil
+    if field == nil then
+      noctalia.log("msbos-ai-chat: set_ui_pref ignorado: " .. tostring(payload))
+    else
+      uiPrefs[field] = value == "true" or value == "1"
+      saveUi()
+      publish(true)
+    end
   elseif event == "prompt" then
     sendPrompt(payload)
   elseif event == "interrupt" then

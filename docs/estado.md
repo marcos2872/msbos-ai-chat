@@ -60,10 +60,12 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `pending.forms` | array | Formulários pendentes; renderizados no fim do chat. |
 | `lastEventAt` | number | `noctalia.nowMs()` da última publicação. |
 | `runStartedAt` | number/nil | Início do run atual; `nil` quando o estado não é `busy`. Alimenta o cronômetro do painel. |
+| `limits.toolOutput` | number | Valor efetivo de `max_tool_output` (500–20000) usado no corte da saída das ferramentas; o painel usa o mesmo teto ao exibir. |
+| `ui` | table | `reasoningOpen`, `toolsOpen`, `toolsErrorsOnly` — espelho das preferências salvas em `ui.json`. |
 
 ### Limites de publicação
 
-O snapshot é copiado para o estado compartilhado e reconstruído pelo painel a cada mudança. Para não estourar o orçamento de CPU dos callbacks Luau do Noctalia (que desabilita o painel após timeouts repetidos), `publish()` envia somente as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens, dentro de um orçamento total de `MAX_SNAPSHOT_BYTES` (48000): começa pela mensagem mais recente e para de acumular quando o orçamento estoura. Por mensagem, `text` é truncado em `MAX_SNAPSHOT_TEXT` (8000), `reasoning` em `MAX_SNAPSHOT_REASONING` (3000) e `output` de ferramenta em `MAX_SNAPSHOT_TOOL_OUTPUT` (2000). Durante o streaming, o engine publica no máximo a cada `PUBLISH_INTERVAL_MS` (250 ms); eventos pontuais (sessão, permissões, formulários) continuam publicando na hora.
+O snapshot é copiado para o estado compartilhado e reconstruído pelo painel a cada mudança. Para não estourar o orçamento de CPU dos callbacks Luau do Noctalia (que desabilita o painel após timeouts repetidos), `publish()` envia somente as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens, dentro de um orçamento total de `MAX_SNAPSHOT_BYTES` (48000): começa pela mensagem mais recente e para de acumular quando o orçamento estoura. Por mensagem, `text` é truncado em `MAX_SNAPSHOT_TEXT` (8000), `reasoning` em `MAX_SNAPSHOT_REASONING` (3000) e `output` de ferramenta em `max_tool_output` (padrão 4000, faixa 500–20000). Durante o streaming, o engine publica no máximo a cada `PUBLISH_INTERVAL_MS` (250 ms); eventos pontuais (sessão, permissões, formulários) continuam publicando na hora.
 
 O histórico completo permanece em `messages` dentro do engine. A exportação e o espelho em `sessions/` usam o payload de `/export`, então não sofrem esses cortes.
 
@@ -90,7 +92,7 @@ O histórico completo permanece em `messages` dentro do engine. A exportação e
   name = "read",
   status = "running" | "streaming" | "ok" | "completed" | "error",
   input = { ... } | "...",     -- no snapshot vai já formatado/truncado (1200)
-  output = "...",              -- truncado em MAX_SNAPSHOT_TOOL_OUTPUT (2000)
+  output = "...",              -- truncado em max_tool_output (padrão 4000)
   summary = "...",             -- resumo curto do input (format.toolSummary, até 80)
   startedAt = 1792625439120,   -- ms; vem de state.time do contexto ou do evento
   finishedAt = 1792625445010,  -- ms; nil enquanto a ferramenta roda
@@ -235,7 +237,8 @@ O engine observa essa chave para decidir notificações e unread.
   "model": { "id": "deepseek-v4.1-flash", "providerID": "opencode-go", "variant": "low" },
   "preferredModel": { "id": "deepseek-v4.1-flash", "providerID": "opencode-go", "variant": "low" },
   "agent": "msbos-chat",
-  "lastOpenedAt": 1792625451332
+  "lastOpenedAt": 1792625451332,
+  "prefs": { "reasoningOpen": false, "toolsOpen": false, "toolsErrorsOnly": false }
 }
 ```
 
@@ -243,7 +246,8 @@ O engine observa essa chave para decidir notificações e unread.
 - `model`: modelo da sessão ativa no momento da última gravação.
 - `preferredModel`: último modelo definido explicitamente por `set_model`; usado em novas conversas.
 - `agent`: agente configurado no momento da gravação (não é lido no `init`; a fonte é o setting).
-- O `init` lê `preferredModel` e, se ausente, `model`.
+- `prefs`: preferências de exibição do painel (raciocínio aberto por padrão, cartões abertos por padrão, filtro “somente erros”). Escritas pelo IPC `set_ui_pref` com whitelist de chaves.
+- O `init` lê `preferredModel`, `preferredModel`→`model` e `prefs`.
 
 ### `sessions/index.json` (`0600`)
 

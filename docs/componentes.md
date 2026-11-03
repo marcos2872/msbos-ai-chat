@@ -194,6 +194,7 @@ noctalia msg plugin msbos/ai-chat:panel all open_picker
 | `delete_session` | ID | Apaga sessão no OpenCode. |
 | `set_model` | JSON `Model.Ref` | Troca modelo/variante da sessão ativa. |
 | `set_agent` | ID | Troca agente da sessão ativa (sem UI dedicada). |
+| `set_ui_pref` | `chave=valor` | Persiste preferência de exibição em `ui.json` (whitelist: `reasoning_open`, `tools_open`, `tools_errors_only`). |
 | `prompt` | texto | Envia mensagem; cria sessão se não houver ativa. |
 | `interrupt` | — | Interrompe execução. |
 | `regenerate` | — | Reenvia o último pedido do usuário (a API não tem regenerar nativo). |

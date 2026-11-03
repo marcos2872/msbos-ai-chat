@@ -21,6 +21,13 @@ local view = "chat"
 local toolsViewRun = nil
 local toolsViewErrorsOnly = false
 local busySince = nil
+-- Preferências de exibição persistidas em ui.json (via IPC set_ui_pref).
+local uiPrefs = { reasoningOpen = false, toolsOpen = false, toolsErrorsOnly = false }
+local UI_PREF_EVENTS = {
+  reasoningOpen = "reasoning_open",
+  toolsOpen = "tools_open",
+  toolsErrorsOnly = "tools_errors_only",
+}
 local showPairAdvanced = false
 local showTechnical = false
 local sessionQuery = ""
@@ -43,6 +50,11 @@ local function applySnapshot(value)
   end
   local wasBusy = snapshot ~= nil and snapshot.state == "busy"
   snapshot = value
+  if type(value.ui) == "table" then
+    uiPrefs.reasoningOpen = value.ui.reasoningOpen == true
+    uiPrefs.toolsOpen = value.ui.toolsOpen == true
+    uiPrefs.toolsErrorsOnly = value.ui.toolsErrorsOnly == true
+  end
   if value.state == "busy" then
     if not wasBusy or busySince == nil then
       busySince = tonumber(value.runStartedAt) or noctalia.nowMs()
@@ -127,6 +139,15 @@ local function sendCommand(event, payload)
     toastAt = noctalia.nowMs()
     toastError = true
     render()
+  end
+end
+
+-- Atualiza a preferência local e persiste no engine (ui.json).
+local function setUiPref(key, value)
+  uiPrefs[key] = value == true
+  local event = UI_PREF_EVENTS[key]
+  if event then
+    sendCommand("set_ui_pref", event .. "=" .. ((value == true) and "true" or "false"))
   end
 end
 
@@ -426,7 +447,7 @@ end
 
 local function openToolsView(entry)
   toolsViewRun = entry.id
-  toolsViewErrorsOnly = false
+  toolsViewErrorsOnly = uiPrefs.toolsErrorsOnly == true
   view = "tools"
   render()
 end
@@ -496,8 +517,16 @@ local function renderToolRun(entry)
   }, children)
 end
 
+local function toolExpanded(tool)
+  local value = expandedTools[tool.id]
+  if value == nil then
+    return uiPrefs.toolsOpen == true
+  end
+  return value == true
+end
+
 local function renderTool(tool, detailed)
-  local expanded = detailed == true or expandedTools[tool.id] == true
+  local expanded = detailed == true or toolExpanded(tool)
   local color = mutedColor()
   if tool.status == "error" then
     color = "error"
@@ -536,6 +565,7 @@ local function renderTool(tool, detailed)
       variant = "ghost",
       onClick = function()
         expandedTools[tool.id] = not expanded
+        setUiPref("toolsOpen", not expanded)
         render()
       end,
     }))
@@ -560,7 +590,8 @@ local function renderTool(tool, detailed)
       table.insert(children, ui.label({ text = input, fontSize = 10, color = mutedColor(), maxLines = 12 }))
     end
     if tool.output and tool.output ~= "" then
-      table.insert(children, ui.markdown({ text = format.truncate(tool.output, 4000) }))
+      local limit = tonumber(snapshot and snapshot.limits and snapshot.limits.toolOutput) or 4000
+      table.insert(children, ui.markdown({ text = format.truncate(tool.output, limit) }))
     end
   end
 
@@ -1098,7 +1129,10 @@ local function renderMessage(message, isLast, ctx)
 
   -- Raciocínio só faz parte dos modos verbosos; no modo limpo ele some.
   if not hidden and message.reasoning and message.reasoning ~= "" then
-    local expanded = expandedReasoning[message.id] == true
+    local expanded = expandedReasoning[message.id]
+    if expanded == nil then
+      expanded = uiPrefs.reasoningOpen == true
+    end
     table.insert(children, ui.button({
       text = expanded and "Ocultar raciocínio" or "Raciocínio",
       glyph = expanded and "chevron-up" or "chevron-down",
@@ -1106,6 +1140,7 @@ local function renderMessage(message, isLast, ctx)
       fontSize = 10,
       onClick = function()
         expandedReasoning[message.id] = not expanded
+        setUiPref("reasoningOpen", not expanded)
         render()
       end,
     }))
@@ -1914,6 +1949,7 @@ local function toolsView()
       fontSize = 10,
       onClick = function()
         toolsViewErrorsOnly = not toolsViewErrorsOnly
+        setUiPref("toolsErrorsOnly", toolsViewErrorsOnly)
         render()
       end,
     }))
