@@ -108,7 +108,7 @@ mexe no contrato do snapshot.
 
 ## Status da implementação
 
-Todas as 25 tasks foram implementadas (2026-11-03), em 8 commits:
+Todas as 25 tasks foram implementadas (2026-11-03), em 9 commits de feature + 1 de correção da revisão:
 
 | Commit | Tasks |
 |---|---|
@@ -121,6 +121,7 @@ Todas as 25 tasks foram implementadas (2026-11-03), em 8 commits:
 | `99957f9` | M-15, M-16, M-17 |
 | `2f94d0e` | M-19 |
 | `3d90b3f` | M-20, M-21, M-22, M-23, M-24, M-25 |
+| `399dddf` | Correções da revisão (forward declaration de `pendingOtherSummary`, limpeza de `failure`, teto por mensagem no snapshot, preferência por cartão) |
 
 Desvios conscientes em relação ao plano original:
 
