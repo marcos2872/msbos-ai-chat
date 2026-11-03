@@ -523,12 +523,13 @@ local function renderToolRun(entry)
   }, children)
 end
 
+-- A preferência define o estado inicial de cada cartão; depois disso cada um
+-- tem o seu próprio estado (abrir um não abre os outros).
 local function toolExpanded(tool)
-  local value = expandedTools[tool.id]
-  if value == nil then
-    return uiPrefs.toolsOpen == true
+  if expandedTools[tool.id] == nil then
+    expandedTools[tool.id] = uiPrefs.toolsOpen == true
   end
-  return value == true
+  return expandedTools[tool.id] == true
 end
 
 local function renderTool(tool, detailed)
@@ -571,6 +572,8 @@ local function renderTool(tool, detailed)
       variant = "ghost",
       onClick = function()
         expandedTools[tool.id] = not expanded
+        -- Vale para os cartões que ainda vão aparecer; os já abertos têm
+        -- estado próprio (inicializado em toolExpanded).
         setUiPref("toolsOpen", not expanded)
         render()
       end,
@@ -610,6 +613,7 @@ local function renderTool(tool, detailed)
         glyph = "copy",
         variant = "ghost",
         fontSize = 10,
+        tooltip = "Copia o texto exibido (pode estar truncado)",
         onClick = function()
           noctalia.copyToClipboard(tostring(tool.input or ""), "text/plain")
           toast = "Entrada copiada."
@@ -625,6 +629,7 @@ local function renderTool(tool, detailed)
         glyph = "copy",
         variant = "ghost",
         fontSize = 10,
+        tooltip = "Copia o texto exibido (pode estar truncado)",
         onClick = function()
           noctalia.copyToClipboard(tool.output, "text/plain")
           toast = "Saída copiada."
@@ -1254,6 +1259,7 @@ local function renderMessage(message, isLast, ctx)
     local expanded = expandedReasoning[message.id]
     if expanded == nil then
       expanded = uiPrefs.reasoningOpen == true
+      expandedReasoning[message.id] = expanded
     end
     table.insert(children, ui.button({
       text = expanded and "Ocultar raciocínio" or "Raciocínio",
@@ -1312,7 +1318,7 @@ local function usageLabel()
     table.insert(parts, text)
   end
   local cost = tonumber(usage.cost)
-  if cost then
+  if cost ~= nil and cost > 0 then
     local label = format.cost(cost)
     if label ~= "" then
       table.insert(parts, "Sessão " .. label)
@@ -2271,6 +2277,30 @@ local function toolsView()
   local top = {
     ui.label({ text = summary, fontSize = 10, color = mutedColor(), flexGrow = 1 }),
   }
+  table.insert(top, ui.button({
+    text = "Abrir tudo",
+    variant = "ghost",
+    fontSize = 10,
+    onClick = function()
+      setUiPref("toolsOpen", true)
+      for _, tool in ipairs(entry.tools or {}) do
+        expandedTools[tool.id] = true
+      end
+      render()
+    end,
+  }))
+  table.insert(top, ui.button({
+    text = "Fechar tudo",
+    variant = "ghost",
+    fontSize = 10,
+    onClick = function()
+      setUiPref("toolsOpen", false)
+      for _, tool in ipairs(entry.tools or {}) do
+        expandedTools[tool.id] = false
+      end
+      render()
+    end,
+  }))
   if errors > 0 then
     table.insert(top, ui.button({
       text = toolsViewErrorsOnly and "Ver todas" or "Somente erros",

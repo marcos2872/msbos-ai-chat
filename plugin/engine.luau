@@ -30,6 +30,9 @@ local MAX_SNAPSHOT_REASONING = 3000
 local DEFAULT_TOOL_OUTPUT = 4000
 -- Diff de edição é o detalhe mais útil de `edit`/`write`; cabe no orçamento.
 local MAX_SNAPSHOT_DIFF = 6000
+-- Teto por mensagem: uma execução com muitas ferramentas não pode estourar
+-- sozinha o orçamento total do snapshot.
+local MAX_SNAPSHOT_MESSAGE_BYTES = 16000
 local PUBLISH_INTERVAL_MS = 250
 -- Quantas mensagens o snapshot publica; `load_previous` amplia sob demanda.
 local snapshotLimit = MAX_SNAPSHOT_MESSAGES
@@ -143,6 +146,7 @@ local finishRun
 local exportSession
 local refreshContext
 local handleEvent
+local pendingOtherSummary
 local onPaired
 local doPair
 
@@ -364,6 +368,7 @@ local function mapContext(data)
             status = state and state.status or "running",
             input = state and state.input or nil,
             output = toolOutput(state),
+            metadata = state and state.metadata or nil,
             startedAt = startedAt,
             finishedAt = finishedAt,
           })
@@ -640,10 +645,17 @@ local function snapshotMessages()
   for i = total, oldest, -1 do
     local message = messages[i]
     local tools = {}
+    local messageBytes = 0
     for _, tool in ipairs(message.tools or {}) do
       local input = format.toolInput(tool.input)
       local output = format.truncate(tool.output, maxToolOutput)
       local summary = format.toolSummary(tool)
+      -- Saída longa só é mantida se couber no teto da mensagem; acima disso,
+      -- volta ao piso de 2000 (o detalhe completo fica no export).
+      if #input + #output + #summary > MAX_SNAPSHOT_MESSAGE_BYTES - messageBytes then
+        output = format.truncate(tool.output, 2000)
+      end
+      messageBytes = messageBytes + #input + #output + #summary
       used = used + #input + #output + #summary
 
       -- Diff de edição (quando o metadata traz um) vai em campo próprio para
@@ -651,7 +663,12 @@ local function snapshotMessages()
       local diff = nil
       if type(tool.metadata) == "table" and type(tool.metadata.diff) == "string" and tool.metadata.diff ~= "" then
         diff = format.truncate(tool.metadata.diff, MAX_SNAPSHOT_DIFF)
-        used = used + #diff
+        if messageBytes + #diff > MAX_SNAPSHOT_MESSAGE_BYTES then
+          diff = nil
+        else
+          messageBytes = messageBytes + #diff
+          used = used + #diff
+        end
       end
 
       table.insert(tools, {
@@ -1016,6 +1033,7 @@ selectSession = function(id)
   status = "idle"
   statusMessage = ""
   errorMessage = ""
+  failure = nil
   busy = false
   runActive = false
   publish(true)
@@ -1169,6 +1187,7 @@ sendPromptTo = function(sessionID, text)
   status = "busy"
   statusMessage = ""
   errorMessage = ""
+  failure = nil""
   unread = false
   publish(true)
   api.prompt(pairing, directory, sessionID, text, function(ok, err)
@@ -1176,9 +1195,11 @@ sendPromptTo = function(sessionID, text)
       return
     end
     runActive = false
+    runStartedAt = nil
     busy = false
     status = "error"
     errorMessage = api.errorMessage(err)
+    failure = { kind = classifyFailure(err), detail = errorMessage }
     publish(true)
   end)
 end
@@ -1356,7 +1377,7 @@ local function removeOtherPending(id)
   return true
 end
 
-local function pendingOtherSummary()
+pendingOtherSummary = function()
   local total = 0
   local list = {}
   for sessionID, entry in pairs(otherPending) do
@@ -1525,6 +1546,7 @@ handleEvent = function(event)
       status = "busy"
       statusMessage = ""
       errorMessage = ""
+      failure = nil
       unread = false
       publish(true)
     end
@@ -1743,11 +1765,11 @@ ensureService = function()
     return
   end
 
-  local function finish(url, failure)
+  local function finish(url, errMessage)
     serviceStarting = false
     statusMessage = ""
     applyServiceUrl(url)
-    if failure then
+    if errMessage then
       status = "offline"
       errorMessage = failure
       publish(true)
@@ -1809,6 +1831,7 @@ checkHealth = function(gen)
     serviceRetryAt = 0
     status = "idle"
     errorMessage = ""
+    failure = nil
     publish(true)
     loadCatalog(gen)
     loadSessions(gen)
@@ -1838,6 +1861,7 @@ onPaired = function(result, err)
   end
   status = "idle"
   errorMessage = ""
+  failure = nil
   pairRetryAt = 0
   pairingSuppressed = false
   publish(true)
