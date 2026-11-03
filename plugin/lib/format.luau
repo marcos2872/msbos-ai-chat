@@ -246,6 +246,75 @@ function M.toolSummary(tool)
   return fallback and limit(fallback) or ""
 end
 
+-- Duração legível: "820 ms", "3 s", "1 min 5 s".
+local function toMillis(value)
+  local n = tonumber(value)
+  if n == nil then
+    return nil
+  end
+  -- Epoch em segundos (o OpenCode usa ms, mas sessões antigas podem vir em s).
+  if n >= 1e9 and n < 1e11 then
+    return n * 1000
+  end
+  return n
+end
+
+function M.duration(ms)
+  local value = tonumber(ms)
+  if value == nil or value < 0 then
+    return ""
+  end
+  if value < 1000 then
+    return tostring(math.max(1, math.floor(value + 0.5))) .. " ms"
+  end
+  local seconds = math.floor(value / 1000 + 0.5)
+  if seconds < 60 then
+    return tostring(seconds) .. " s"
+  end
+  local minutes = math.floor(seconds / 60)
+  local rest = seconds % 60
+  if rest == 0 then
+    return tostring(minutes) .. " min"
+  end
+  return tostring(minutes) .. " min " .. tostring(rest) .. " s"
+end
+
+-- Duração de uma ferramenta; em execução, conta até agora.
+function M.toolDuration(tool)
+  if type(tool) ~= "table" then
+    return ""
+  end
+  local start = toMillis(tool.startedAt)
+  if start == nil then
+    return ""
+  end
+  local finish = toMillis(tool.finishedAt) or noctalia.nowMs()
+  return M.duration(math.max(0, finish - start))
+end
+
+-- Duração total do run: do início da primeira ferramenta ao fim da última.
+function M.runDuration(tools)
+  local first, last = nil, nil
+  for _, tool in ipairs(tools or {}) do
+    if type(tool) == "table" then
+      local start = toMillis(tool.startedAt)
+      local finish = toMillis(tool.finishedAt) or noctalia.nowMs()
+      if start ~= nil then
+        if first == nil or start < first then
+          first = start
+        end
+        if last == nil or finish > last then
+          last = finish
+        end
+      end
+    end
+  end
+  if first == nil or last == nil then
+    return ""
+  end
+  return M.duration(math.max(0, last - first))
+end
+
 -- Título do cartão de formulário. O host manda "Questions" (inglês) por padrão.
 function M.formTitle(title)
   local text = tostring(title or "")

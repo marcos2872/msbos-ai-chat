@@ -20,6 +20,7 @@ local formDrafts = {}
 local view = "chat"
 local toolsViewRun = nil
 local toolsViewErrorsOnly = false
+local busySince = nil
 local showPairAdvanced = false
 local showTechnical = false
 local sessionQuery = ""
@@ -34,6 +35,22 @@ local spinnerFrames = { "◐", "◓", "◑", "◒" }
 local spinnerFrame = 1
 local spinnerAccum = 0
 local render
+
+-- Aplica um snapshot novo e mantém o cronômetro do run (tempo decorrido).
+local function applySnapshot(value)
+  if type(value) ~= "table" then
+    return
+  end
+  local wasBusy = snapshot ~= nil and snapshot.state == "busy"
+  snapshot = value
+  if value.state == "busy" then
+    if not wasBusy or busySince == nil then
+      busySince = tonumber(value.runStartedAt) or noctalia.nowMs()
+    end
+  else
+    busySince = nil
+  end
+end
 
 -- Fundo do painel: "black" (preto fixo — exceção pedida) ou "theme" (segue o
 -- tema). A intensidade do preto vem de `background_opacity` (0–100).
@@ -208,6 +225,12 @@ local function busyIndicator()
     text = "Aguardando a sua resposta…"
   elseif activity then
     text = "Executando: " .. format.toolLabel(activity) .. "…"
+  end
+  if busySince ~= nil then
+    local elapsed = format.duration(noctalia.nowMs() - busySince)
+    if elapsed ~= "" then
+      text = text .. " · " .. elapsed
+    end
   end
   return ui.row({ gap = 6, align = "center" }, {
     ui.label({
@@ -431,6 +454,10 @@ local function renderToolRun(entry)
       color = "error",
     }))
   end
+  local runDuration = format.runDuration(entry.tools)
+  if runDuration ~= "" then
+    table.insert(rowChildren, ui.label({ text = runDuration, fontSize = 10, color = mutedColor() }))
+  end
   table.insert(rowChildren, ui.spacer({ flexGrow = 1 }))
   table.insert(rowChildren, ui.label({ text = "ver", fontSize = 10, color = mutedColor() }))
   table.insert(rowChildren, ui.glyph({ name = "chevron-right", size = 12, color = mutedColor() }))
@@ -497,6 +524,10 @@ local function renderTool(tool, detailed)
       maxLines = 1,
       flexGrow = 1,
     }))
+  end
+  local toolDuration = format.toolDuration(tool)
+  if toolDuration ~= "" then
+    table.insert(headerChildren, ui.label({ text = toolDuration, fontSize = 10, color = mutedColor() }))
   end
   table.insert(headerChildren, ui.spacer({ flexGrow = 1 }))
   if not detailed then
@@ -1868,6 +1899,10 @@ local function toolsView()
   if errors > 0 then
     summary = summary .. " · " .. tostring(errors) .. (errors == 1 and " erro" or " erros")
   end
+  local runDuration = format.runDuration(entry.tools)
+  if runDuration ~= "" then
+    summary = summary .. " · " .. runDuration
+  end
   local top = {
     ui.label({ text = summary, fontSize = 10, color = mutedColor(), flexGrow = 1 }),
   }
@@ -1976,7 +2011,7 @@ function onOpen(_context)
   panel.setWantsSecondTicks(true)
   panel.setNeedsFrameTick(true)
   noctalia.state.set("chat.panel_open", true)
-  snapshot = noctalia.state.get("chat.snapshot") or snapshot
+  applySnapshot(noctalia.state.get("chat.snapshot"))
   composerKey = composerKey + 1
   sendCommand("sync")
   render()
@@ -2264,7 +2299,7 @@ end
 noctalia.setUpdateInterval(1000)
 noctalia.state.watch("chat.snapshot", function(value)
   if type(value) == "table" then
-    snapshot = value
+    applySnapshot(value)
     if isOpen then
       render()
     end

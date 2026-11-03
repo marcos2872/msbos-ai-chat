@@ -57,6 +57,7 @@ local errorMessage = ""
 local busy = false
 local unread = false
 local runActive = false
+local runStartedAt = nil
 local panelOpen = false
 local agentMissing = false
 
@@ -186,6 +187,7 @@ local function ensureTool(assistantID, toolID, name, input)
     status = "running",
     input = input,
     output = "",
+    startedAt = noctalia.nowMs(),
   }
   table.insert(message.tools, tool)
   return tool
@@ -227,12 +229,18 @@ local function mapContext(data)
         elseif part.type == "reasoning" then
           table.insert(reasoning, tostring(part.text or ""))
         elseif part.type == "tool" then
+          local state = part.state
+          local stateTime = state and state.time or nil
+          local startedAt = stateTime and tonumber(stateTime.start) or nil
+          local finishedAt = stateTime and tonumber(stateTime.end) or nil
           table.insert(tools, {
             id = part.id,
             name = part.name,
-            status = part.state and part.state.status or "running",
-            input = part.state and part.state.input or nil,
-            output = toolOutput(part.state),
+            status = state and state.status or "running",
+            input = state and state.input or nil,
+            output = toolOutput(state),
+            startedAt = startedAt,
+            finishedAt = finishedAt,
           })
         end
       end
@@ -482,6 +490,8 @@ local function snapshotMessages()
         input = input,
         output = output,
         summary = summary,
+        startedAt = tool.startedAt,
+        finishedAt = tool.finishedAt,
       })
     end
 
@@ -536,6 +546,7 @@ publish = function(_force)
       forms = pendingForms,
     },
     lastEventAt = noctalia.nowMs(),
+    runStartedAt = runStartedAt,
   }
   noctalia.state.set("chat.snapshot", snapshot)
   noctalia.state.set("chat.status", {
@@ -588,6 +599,7 @@ finishRun = function()
     return
   end
   runActive = false
+  runStartedAt = nil
   busy = false
   status = errorMessage ~= "" and "error" or "idle"
   statusMessage = ""
@@ -871,6 +883,7 @@ sendPromptTo = function(sessionID, text)
   end
   runActive = true
   busy = true
+  runStartedAt = noctalia.nowMs()
   status = "busy"
   statusMessage = ""
   errorMessage = ""
@@ -1133,6 +1146,9 @@ handleEvent = function(event)
     if not runActive then
       runActive = true
       busy = true
+      if runStartedAt == nil then
+        runStartedAt = noctalia.nowMs()
+      end
       status = "busy"
       statusMessage = ""
       errorMessage = ""
@@ -1183,6 +1199,9 @@ handleEvent = function(event)
     if assistantID and type(data.id) == "string" then
       local tool = ensureTool(assistantID, data.id, toolNames[data.id], data.input)
       tool.status = "running"
+      if not tool.startedAt then
+        tool.startedAt = noctalia.nowMs()
+      end
       schedulePublish()
     end
   elseif eventType == "session.tool.progress" then
@@ -1199,6 +1218,7 @@ handleEvent = function(event)
       tool.status = "ok"
       tool.output = toolOutput({ status = "completed", content = data.content })
       tool.metadata = data.metadata
+      tool.finishedAt = noctalia.nowMs()
       schedulePublish()
     end
   elseif eventType == "session.tool.failed" then
@@ -1207,6 +1227,7 @@ handleEvent = function(event)
       tool.status = "error"
       local errorText = format.errorText(data.error)
       tool.output = errorText ~= "" and errorText or toolOutput({ status = "completed", content = data.content })
+      tool.finishedAt = noctalia.nowMs()
       schedulePublish()
     end
   elseif eventType == "session.retry.scheduled" then

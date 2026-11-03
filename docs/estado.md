@@ -40,6 +40,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
     forms = { ... },
   },
   lastEventAt = 1792625451332,
+  runStartedAt = 1792625439000, -- nil quando não há execução em andamento
 }
 ```
 
@@ -58,6 +59,7 @@ O painel **não** muta o snapshot diretamente. Toda ação passa por IPC; o engi
 | `pending.permissions` | array | Permissões pendentes de `shell`/`edit` (carregadas por `/permission`); o painel renderiza como cartão e responde por `reply_permission`. |
 | `pending.forms` | array | Formulários pendentes; renderizados no fim do chat. |
 | `lastEventAt` | number | `noctalia.nowMs()` da última publicação. |
+| `runStartedAt` | number/nil | Início do run atual; `nil` quando o estado não é `busy`. Alimenta o cronômetro do painel. |
 
 ### Limites de publicação
 
@@ -90,6 +92,8 @@ O histórico completo permanece em `messages` dentro do engine. A exportação e
   input = { ... } | "...",     -- no snapshot vai já formatado/truncado (1200)
   output = "...",              -- truncado em MAX_SNAPSHOT_TOOL_OUTPUT (2000)
   summary = "...",             -- resumo curto do input (format.toolSummary, até 80)
+  startedAt = 1792625439120,   -- ms; vem de state.time do contexto ou do evento
+  finishedAt = 1792625445010,  -- ms; nil enquanto a ferramenta roda
 }
 ```
 
