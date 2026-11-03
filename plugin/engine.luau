@@ -361,7 +361,7 @@ local function mapContext(data)
           local state = part.state
           local stateTime = state and state.time or nil
           local startedAt = stateTime and tonumber(stateTime.start) or nil
-          local finishedAt = stateTime and tonumber(stateTime.end) or nil
+          local finishedAt = stateTime and tonumber(stateTime["end"]) or nil
           table.insert(tools, {
             id = part.id,
             name = part.name,
@@ -1187,7 +1187,7 @@ sendPromptTo = function(sessionID, text)
   status = "busy"
   statusMessage = ""
   errorMessage = ""
-  failure = nil""
+  failure = nil
   unread = false
   publish(true)
   api.prompt(pairing, directory, sessionID, text, function(ok, err)
