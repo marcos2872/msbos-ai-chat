@@ -92,7 +92,7 @@ O widget respeita orientação vertical/horizontal da barra.
 | `isOpen` | Painel aberto/fechado no runtime atual. |
 | `snapshot` | Cópia de `chat.snapshot`. |
 | `composerKey` | Muda a key do input para limpar após envio. |
-| `draft` | Rascunho do compositor. |
+| `drafts` | Rascunho por sessão (`drafts[sessionID]`); `getDraft`/`setDraft` encapsulam. |
 | `pairLinkDraft` | Link colado no onboarding. |
 | `toast` / `toastAt` | Erros transitórios por 5 s. |
 | `expandedTools` / `expandedReasoning` | Expansão de cartões. |
@@ -132,7 +132,9 @@ O widget respeita orientação vertical/horizontal da barra.
 | `onNewSession()` | Envia `new_session` com o modelo atual. |
 | `onConfirmDelete()` | Envia `delete_session` e permanece no seletor. |
 | `onBackToChat()` | Volta ao chat e limpa a seleção da view de ferramentas. |
-| `onSend` / `onSubmit` | Envia `prompt` e limpa o compositor. |
+| `onSend` / `onSubmit` | Envia `prompt` e limpa o rascunho da sessão. |
+| `onKey(chord, pressed)` | Atalhos capturados: `ctrl+n`, `ctrl+k`, `ctrl+shift+c`. |
+| `onCopyLast()` | Copia a última resposta do assistente. |
 | `onStop()` | Envia `interrupt`. |
 | `onPairAuto` / `onPairLinkSubmit` / `onPastePairLink` | Pareamento. |
 | `onOpenSettings()` | Abre Settings do Noctalia. |

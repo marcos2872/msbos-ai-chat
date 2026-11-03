@@ -128,10 +128,11 @@ O snapshot publica as últimas `MAX_SNAPSHOT_MESSAGES` (24) mensagens; quando h�
 ### Compositor
 
 - `ui.input` de 1 linha por padrão, `submitOnEnter = true`, `controlSize = "sm"` (32 px, mesma altura do botão), `frameVisible = false`, foco ao abrir. **Enter** envia. Com `composer_multiline = true`, vira `multiline` de 64 px: **Enter** envia e **Shift+Enter** quebra a linha.
-- O rascunho fica em `draft`; a `key` do input muda após envio para limpar o campo.
+- O rascunho é **por conversa** (`drafts[sessionID]`): trocar de sessão não apaga o texto da outra. A `key` do input muda após envio para limpar o campo.
 - **Enter** envia; o botão de enviar também.
 - Durante `busy`, o botão vira **Parar** (`player-stop`, `destructive`).
 - Ação (enviar/parar) fica **na mesma linha** do input, à direita (`ui.row` com o input em `flexGrow = 1`); sem texto de `agente`/`modelo` (migraram para o header).
+- Copiar: botão **Copiar mensagem** na bolha do usuário e **Copiar entrada**/**Copiar saída** no cartão expandido da ferramenta (além de **Copiar resposta** no cabeçalho do assistente).
 - Sem anexos de arquivo/imagem nesta versão.
 
 ### Estados vazios e avisos
@@ -269,4 +270,4 @@ Se o host não aplicar o novo tamanho, confira o `plugin.toml` instalado e recar
 - `keyboard_focus = "on_demand"`: o painel não rouba o foco ao abrir.
 - O compositor usa `focus = true` e `submitOnEnter`.
 - **Enter** envia; o input é de 1 linha (ou 64 px com `composer_multiline`).
-- Não há captura global de teclas nem atalho próprio; o widget da barra é o ponto de abertura.
+- `capture_keys = ["ctrl+n", "ctrl+k", "ctrl+shift+c"]` no `[[panel]]`; `onKey(chord, pressed)` trata: **Ctrl+N** nova conversa, **Ctrl+K** modelos/sessões, **Ctrl+Shift+C** copiar a última resposta. Escape sempre fecha. Input focado tem prioridade para texto.

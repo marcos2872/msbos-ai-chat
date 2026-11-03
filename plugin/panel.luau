@@ -6,7 +6,21 @@ local format = require("./lib/format.luau")
 local isOpen = false
 local snapshot = noctalia.state.get("chat.snapshot")
 local composerKey = 0
-local draft = ""
+-- Rascunho por conversa: trocar de sessão não apaga o que foi digitado.
+local drafts = {}
+
+local function draftKey()
+  local session = snapshot and snapshot.session
+  return (session and session.id) or "none"
+end
+
+local function getDraft()
+  return drafts[draftKey()] or ""
+end
+
+local function setDraft(text)
+  drafts[draftKey()] = text or ""
+end
 local pairLinkDraft = ""
 local toast = ""
 local toastAt = 0
@@ -581,6 +595,41 @@ local function renderTool(tool, detailed)
       local limit = tonumber(snapshot and snapshot.limits and snapshot.limits.toolOutput) or 4000
       table.insert(children, ui.markdown({ text = format.truncate(tool.output, limit) }))
     end
+
+    local actions = {}
+    if input ~= "" then
+      table.insert(actions, ui.button({
+        text = "Copiar entrada",
+        glyph = "copy",
+        variant = "ghost",
+        fontSize = 10,
+        onClick = function()
+          noctalia.copyToClipboard(tostring(tool.input or ""), "text/plain")
+          toast = "Entrada copiada."
+          toastError = false
+          toastAt = noctalia.nowMs()
+          render()
+        end,
+      }))
+    end
+    if tool.output and tool.output ~= "" then
+      table.insert(actions, ui.button({
+        text = "Copiar saída",
+        glyph = "copy",
+        variant = "ghost",
+        fontSize = 10,
+        onClick = function()
+          noctalia.copyToClipboard(tool.output, "text/plain")
+          toast = "Saída copiada."
+          toastError = false
+          toastAt = noctalia.nowMs()
+          render()
+        end,
+      }))
+    end
+    if #actions > 0 then
+      table.insert(children, ui.row({ gap = 6, align = "center" }, actions))
+    end
   end
 
   return ui.column({
@@ -986,10 +1035,25 @@ local function renderMessage(message, isLast, ctx)
     local ago = format.timeAgo(message.time)
     local header = {
       ui.label({ text = "Você", fontSize = 10, fontWeight = "bold", color = "primary" }),
+      ui.spacer({ flexGrow = 1 }),
     }
     if ago ~= "" then
-      table.insert(header, ui.spacer({ flexGrow = 1 }))
       table.insert(header, ui.label({ text = ago, fontSize = 10, color = mutedColor() }))
+    end
+    if message.text and message.text ~= "" then
+      table.insert(header, ui.button({
+        glyph = "copy",
+        variant = "ghost",
+        fontSize = 10,
+        tooltip = "Copiar mensagem",
+        onClick = function()
+          noctalia.copyToClipboard(message.text, "text/plain")
+          toast = "Mensagem copiada."
+          toastError = false
+          toastAt = noctalia.nowMs()
+          render()
+        end,
+      }))
     end
     return ui.column({
       fill = "primary/0.12",
@@ -1229,7 +1293,7 @@ local function composer()
   }, {
     ui.input({
       key = "composer-" .. tostring(composerKey),
-      value = draft,
+      value = getDraft(),
       placeholder = "Pergunte sobre o sistema…",
       submitOnEnter = true,
       multiline = composerMultiline,
@@ -2349,7 +2413,7 @@ function onOpenSettings()
 end
 
 function onDraftChange(text)
-  draft = text or ""
+  setDraft(text)
 end
 
 function onSubmit(text)
@@ -2360,18 +2424,47 @@ function onSubmit(text)
     render()
     return
   end
-  local value = noctalia.string.trim(text or draft)
+  local value = noctalia.string.trim(text or getDraft())
   if value == "" then
     return
   end
   sendCommand("prompt", value)
-  draft = ""
+  setDraft("")
   composerKey = composerKey + 1
   render()
 end
 
 function onSend()
-  onSubmit(draft)
+  onSubmit(getDraft())
+end
+
+-- Copia a última resposta do assistente (atalho ctrl+shift+c).
+function onCopyLast()
+  local list = (snapshot and snapshot.messages) or {}
+  for index = #list, 1, -1 do
+    local message = list[index]
+    if message.role == "assistant" and message.text and message.text ~= "" then
+      noctalia.copyToClipboard(message.text, "text/plain")
+      toast = "Resposta copiada."
+      toastError = false
+      toastAt = noctalia.nowMs()
+      render()
+      return
+    end
+  end
+end
+
+function onKey(chord, pressed)
+  if not pressed then
+    return
+  end
+  if chord == "ctrl+n" then
+    onNewSession()
+  elseif chord == "ctrl+k" then
+    onOpenPicker()
+  elseif chord == "ctrl+shift+c" then
+    onCopyLast()
+  end
 end
 
 noctalia.setUpdateInterval(1000)
