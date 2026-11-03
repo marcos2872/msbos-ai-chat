@@ -106,6 +106,30 @@ mexe no contrato do snapshot.
 | **F** | M-16, M-17, M-19 | Convivência com várias conversas. |
 | **G** | M-20 … M-25 | Polimento. |
 
+## Status da implementação
+
+Todas as 25 tasks foram implementadas (2026-11-03), em 8 commits:
+
+| Commit | Tasks |
+|---|---|
+| `9e3b9c9` | M-05, M-06 |
+| `dded24d` | M-01, M-02, M-03, M-04 |
+| `78a87ac` | M-07, M-12 |
+| `dc236b7` | M-08, M-09 |
+| `4470987` | M-10, M-11 |
+| `f3a2ea5` | M-13, M-14, M-18 |
+| `99957f9` | M-15, M-16, M-17 |
+| `2f94d0e` | M-19 |
+| `3d90b3f` | M-20, M-21, M-22, M-23, M-24, M-25 |
+
+Desvios conscientes em relação ao plano original:
+
+- **M-05**: o resumo é calculado no **engine** (`format.toolSummary`) e vai pronto em `tool.summary`; o painel não decodifica JSON.
+- **M-11**: o uso vem do `/context` (mensagens) e do `cost` da sessão. Não há evento de usage tratado no SSE, então o número atualiza ao fim do run e ao trocar de sessão.
+- **M-17**: contamos permissões e formulários de outras sessões por ID; o detalhe continua sendo carregado ao abrir a conversa.
+- **M-21**: resolvido por `toolSummary` (`Skill: <nome>`, agente do `task`) — o rótulo genérico permanece como fallback.
+- **M-25**: chips com metadados (`Arquivo:`/`Imagem:`), sem miniatura — nada de binário no snapshot.
+
 ## Definição de pronto (vale para toda task)
 
 - [ ] `./install.sh` seguido de
