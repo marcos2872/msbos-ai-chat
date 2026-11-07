@@ -47,4 +47,4 @@ O `shell` também passa pelo cartão de permissão do painel; `read` é livre.
 
 ## Painel
 
-`read` é automático; `shell` e `edit` param no cartão de permissão. O servidor do OpenCode Desktop pode rodar com `NoNewPrivs=1` e o `pkexec` direto falha — o caminho pelo niri/Alacritty e o foco da janela do polkit estão na skill.
+`read` é automático; `shell` e `edit` param no cartão de permissão. O servidor do OpenCode Desktop pode rodar com `NoNewPrivs=1` e o `pkexec` direto falha — o spawn pelo niri (sem terminal) e o foco da janela do polkit estão na skill.

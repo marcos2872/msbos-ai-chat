@@ -73,19 +73,19 @@ Consequências:
 
 O servidor iniciado pelo **OpenCode Desktop** roda com `NoNewPrivs=1` (herdado do app Electron). Nesse estado, o bit setuid do `pkexec` é ignorado e o comando direto falha com `pkexec must be setuid root`.
 
-Para o helper privilegiado funcionar, o agente é instruído a iniciar o `pkexec` dentro do **Alacritty** (TTY), pelo **niri**:
+Para o helper privilegiado funcionar, o agente spawna o `pkexec` pelo **niri**, sem terminal:
 
 ```bash
-niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv <subcomando> [argumentos...]
+niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/msbos-priv <subcomando> [argumentos...]
 ```
 
-- O Alacritty fornece um TTY e o polkit abre de forma confiável; o terminal pode fechar quando o helper terminar.
-- O `niri` roda como o usuário e não eleva privilégios sozinho; o `pkexec` continua sendo a única via para root e o polkit pede a senha.
+- O `niri` roda como o usuário, com `NoNewPrivs=0`, e não eleva privilégio sozinho; o `pkexec` continua sendo a única via para root e o polkit pede a senha.
+- A janela "Autenticação necessária" do polkit continua abrindo: ela é a autenticação, não um terminal. Sem agente polkit na sessão, o `pkexec` falha.
 - O comando é assíncrono: o agente não recebe stdout/stderr. Depois do spawn, ele deve localizar a janela `org.kde.polkit-kde-authentication-agent-1` em `niri msg --json windows` e focá-la com `niri msg action focus-window --id <id>`; se a janela não existir, deve parar e reportar, sem esperar 90 s.
 - A janela pode abrir no workspace/monitor focado pelo niri, que pode ser diferente do painel do chat; focar a janela resolve.
-- Se o Alacritty não existir, use `niri msg action spawn -- /usr/bin/pkexec ...` e valide a janela.
 - Só os subcomandos do helper devem ser usados; não é um caminho para comandos arbitrários.
-- Se o host for reiniciado com um servidor standalone (sem `NoNewPrivs`), o `pkexec` direto também funciona; a instrução via niri continua válida.
+- Se o host for reiniciado com um servidor standalone (sem `NoNewPrivs`), o `pkexec` direto também funciona; o spawn pelo niri continua válido.
+- O progresso do `dnf` não aparece em janela; a prova vem de leitura (`rpm -q`, `dnf history list`) e dos logs (`/var/log/msbos/actions.log`).
 
 ### Helper privilegiado (instalado pelo `install.sh`)
 

@@ -19,7 +19,7 @@ Chat de IA para o desktop **msbos** (Fedora + niri + Noctalia), exibido em um pa
 - Uma conta de IA conectada ao OpenCode (`opencode auth login`). Sem isso o painel abre, mas não tem modelos para conversar.
 - Skill `msbos` instalada em `~/.agents/skills/msbos/` para o agente especialista.
 - Helper privilegiado em `/usr/local/libexec/msbos-priv` (allowlist das ações de root). O `install.sh` instala a cópia de `plugin/scripts/msbos-priv` quando ele não existe.
-- `alacritty` e `pkexec` (a confirmação de root abre um terminal com a janela de senha do polkit).
+- `alacritty` (fluxos interativos de pareamento e login) e `pkexec` (janela de senha do polkit).
 - `bash` e utilitários básicos (`cp`, `chmod`, `cmp`).
 
 O plugin **não** instala o OpenCode, o Noctalia nem a skill `msbos`; ele usa o que já está no sistema. O servidor local do OpenCode é iniciado pelo próprio plugin (`opencode service start`) quando necessário — não é preciso abrir o app desktop nem um terminal.

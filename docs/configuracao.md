@@ -149,7 +149,7 @@ permission:
 - O agente é `primary`.
 - A skill `msbos` deve existir em `~/.agents/skills/msbos/` (ou em um dos diretórios globais descobertos pelo OpenCode).
 - `edit`/`shell` em `ask` geram cartão no painel; o ajuste `permission_mode = always` autoaprova (desliga a barreira). `webfetch` é negado. A confirmação conversacional da skill continua valendo.
-- Para root, o agente usa `niri msg action spawn -- alacritty -e /usr/bin/pkexec /usr/local/libexec/msbos-priv ...` (TTY + polkit) porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
+- Para root, o agente usa `niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/msbos-priv ...` (sem terminal; só a janela do polkit) porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
 - O instalador faz backup do agente anterior como `msbos-chat.md.bak-<timestamp>`.
 
 ## Configuração do host (Noctalia)

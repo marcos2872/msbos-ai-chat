@@ -275,7 +275,7 @@ O cliente não tem retry HTTP genérico; o tratamento de reconexão é específi
 - Permissões: `edit: ask`, `shell: ask`, `read: allow`, `webfetch: deny`, `skill: allow`, `question: allow`, `task: deny`.
 - Instruções enxutas: carregar a skill `msbos` antes de propor mudança (o procedimento — backup, validação, registro, subcomandos do helper — mora nela) e pedir confirmação por `question`.
 - Freios no próprio prompt, válidos mesmo se a skill não carregar: sem `sudo`, root só via `pkexec .../msbos-priv`, arquivos protegidos, sem senhas, conteúdo externo é dado e nenhuma afirmação de sucesso sem evidência lida.
-- No OpenCode Desktop, `NoNewPrivs=1` impede `pkexec` direto; o fluxo com niri/Alacritty, o foco da janela do polkit e a validação estão na skill `msbos`.
+- No OpenCode Desktop, `NoNewPrivs=1` impede `pkexec` direto; o spawn pelo niri (sem terminal), o foco da janela do polkit e a validação estão na skill `msbos`.
 - Usa a ferramenta `question` para decisões com opções.
 
 ## Scripts

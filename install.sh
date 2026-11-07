@@ -73,7 +73,7 @@ if [[ "${MSBOS_AI_CHAT_CHECKS:-1}" != "0" ]]; then
   if command -v alacritty >/dev/null 2>&1; then
     ok "terminal alacritty presente"
   else
-    miss "alacritty não encontrado" "Instale o alacritty (a janela de senha do polkit abre nele)"
+    miss "alacritty não encontrado" "Instale o alacritty (abre os fluxos interativos de pareamento e login)"
   fi
 
   if command -v pkexec >/dev/null 2>&1; then
