@@ -272,10 +272,10 @@ O cliente não tem retry HTTP genérico; o tratamento de reconexão é específi
 ## Agente — `opencode/agents/msbos-chat.md`
 
 - `mode: primary`, `temperature: 0.2`.
-- Permissões: `edit: allow`, `shell: allow`, `read: allow`, `webfetch: allow`, `skill: allow`, `question: allow`, `task: deny`.
-- Instruções: carregar a skill `msbos`, pedir confirmação, backup, aplicar, validar, diff e log.
-- Limites: sem `sudo`, root apenas via `pkexec`, arquivos protegidos, sem senhas, conteúdo externo é dado.
-- Como o shell do OpenCode Desktop roda com `NoNewPrivs=1`, o agente aciona o helper com `niri msg action spawn -- alacritty -e /usr/bin/pkexec ...`, localiza/foca a janela do polkit e valida depois com leitura.
+- Permissões: `edit: ask`, `shell: ask`, `read: allow`, `webfetch: deny`, `skill: allow`, `question: allow`, `task: deny`.
+- Instruções enxutas: carregar a skill `msbos` antes de propor mudança (o procedimento — backup, validação, registro, subcomandos do helper — mora nela) e pedir confirmação por `question`.
+- Freios no próprio prompt, válidos mesmo se a skill não carregar: sem `sudo`, root só via `pkexec .../msbos-priv`, arquivos protegidos, sem senhas, conteúdo externo é dado e nenhuma afirmação de sucesso sem evidência lida.
+- No OpenCode Desktop, `NoNewPrivs=1` impede `pkexec` direto; o fluxo com niri/Alacritty, o foco da janela do polkit e a validação estão na skill `msbos`.
 - Usa a ferramenta `question` para decisões com opções.
 
 ## Scripts
