@@ -121,6 +121,40 @@ cp -r "$ROOT/plugin/." "$PLUGIN_DIR/"
 rm -f "$PLUGIN_DIR"/plugin.toml.bak-* "$PLUGIN_DIR"/*.bak-* "$PLUGIN_DIR"/*.bak 2>/dev/null || true
 cp "$ROOT/opencode/agents/msbos-chat.md" "$AGENT_FILE"
 
+# ── Cópia no agents-config ─────────────────────────────────────────────────
+# O sync.sh do agents-config substitui ~/.config/opencode/agents/ inteiro pelo
+# conteúdo versionado nele. Se a cópia do agente lá faltar ou divergir, o
+# próximo sync apaga a versão instalada aqui. Só avisa: o outro repositório é
+# fonte independente e não deve ser alterado por este instalador.
+# Procura em MSBOS_AGENTS_CONFIG_DIR, ao lado deste repo ou no clone usado
+# pelo instalador do msbos.
+agents_config_copy() {
+  local dir
+  for dir in \
+    "${MSBOS_AGENTS_CONFIG_DIR:-}" \
+    "$(dirname "$ROOT")/agents-config" \
+    "${XDG_DATA_HOME:-$HOME/.local/share}/agents-config"; do
+    if [[ -n "$dir" && -d "$dir" ]]; then
+      printf '%s\n' "$dir/opencode/agents/msbos-chat.md"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if agents_copy="$(agents_config_copy)"; then
+  if [[ ! -f "$agents_copy" ]]; then
+    echo
+    echo "aviso: $agents_copy não existe."
+    echo "       O próximo ./sync.sh do agents-config apaga o agente instalado."
+    echo "       Copie $ROOT/opencode/agents/msbos-chat.md para lá e faça commit."
+  elif ! cmp -s "$ROOT/opencode/agents/msbos-chat.md" "$agents_copy"; then
+    echo
+    echo "aviso: $agents_copy difere do agente deste repo."
+    echo "       Atualize a cópia antes do próximo sync do agents-config."
+  fi
+fi
+
 # O plugin antigo não tem dados do usuário (as settings ficam no Noctalia);
 # arquiva o diretório fora de plugins/ para o Noctalia não descobri-lo.
 if [[ -d "$OLD_PLUGIN_DIR" && "$OLD_PLUGIN_DIR" != "$PLUGIN_DIR" ]]; then

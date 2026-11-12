@@ -43,6 +43,8 @@ Depois disso, o instalador:
 4. roda o lint do plugin e tenta habilitá-lo no Noctalia;
 5. instala o helper privilegiado (se ausente) e a regra de polkit que bloqueia `pkexec` para shells.
 
+Se houver um checkout do `agents-config` ao lado do repositório (ou em `~/.local/share/agents-config`), o instalador também avisa quando a cópia versionada de `msbos-chat.md` estiver ausente ou diferente do arquivo deste repo. O `sync.sh` do `agents-config` substitui `~/.config/opencode/agents/` inteiro; sem essa cópia, o próximo sync apagaria o agente instalado.
+
 ### Migrando da versão anterior
 
 Se você já tinha o plugin antigo instalado, `./install.sh`:

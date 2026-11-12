@@ -128,6 +128,7 @@ Padrão: `~/.msbos-ai-chat`.
 | `XDG_DATA_HOME` | Base de `noctalia/plugins`; padrão `~/.local/share`. |
 | `XDG_CONFIG_HOME` | Base de `opencode/agents`; padrão `~/.config`. |
 | `MSBOS_AI_CHAT_DIR` | Workspace criado pelo `install.sh`; padrão `~/.msbos-ai-chat`. |
+| `MSBOS_AGENTS_CONFIG_DIR` | Checkout do `agents-config` conferido pelo `install.sh`; padrão: `../agents-config` e `~/.local/share/agents-config`. |
 
 > O setting `directory` do plugin é independente de `MSBOS_AI_CHAT_DIR`. Se usar um diretório customizado no instalador, ajuste também **Settings → Plugins → Diretório do chat** para o mesmo caminho.
 
@@ -151,6 +152,7 @@ permission:
 - `edit`/`shell` em `ask` geram cartão no painel; o ajuste `permission_mode = always` autoaprova (desliga a barreira). `webfetch` é negado. A confirmação conversacional da skill continua valendo.
 - Para root, o agente usa `niri msg action spawn -- /usr/bin/pkexec /usr/local/libexec/msbos-priv ...` (sem terminal; só a janela do polkit) porque o servidor do OpenCode Desktop roda com `NoNewPrivs=1`; veja [Segurança](seguranca.md).
 - O instalador faz backup do agente anterior como `msbos-chat.md.bak-<timestamp>`.
+- O repo `agents-config` também versiona uma cópia em `opencode/agents/msbos-chat.md`, porque o `sync.sh` dele substitui `~/.config/opencode/agents/` inteiro. Mantenha as duas iguais: o `install.sh` avisa quando a cópia falta ou diverge, mas não altera o outro repositório.
 
 ## Configuração do host (Noctalia)
 
